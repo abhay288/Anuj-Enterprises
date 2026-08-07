@@ -1,12 +1,13 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const Toast = () => {
-  const { toast } = useApp();
+  const context = useApp();
+  const toast = context?.toast;
 
-  if (!toast.show) return null;
+  if (!toast?.show) return null;
 
   const getIcon = () => {
     switch (toast.type) {
