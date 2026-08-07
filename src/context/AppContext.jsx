@@ -12,27 +12,27 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('anuj_products');
+    const saved = localStorage.getItem('anuj_products_v2');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
 
   const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('anuj_categories');
+    const saved = localStorage.getItem('anuj_categories_v2');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
   const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('anuj_brands');
+    const saved = localStorage.getItem('anuj_brands_v2');
     return saved ? JSON.parse(saved) : INITIAL_BRANDS;
   });
 
   const [salesmen, setSalesmen] = useState(() => {
-    const saved = localStorage.getItem('anuj_salesmen');
+    const saved = localStorage.getItem('anuj_salesmen_v2');
     return saved ? JSON.parse(saved) : INITIAL_SALESMEN;
   });
 
   const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('anuj_orders');
+    const saved = localStorage.getItem('anuj_orders_v2');
     return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
@@ -43,7 +43,7 @@ export const AppProvider = ({ children }) => {
 
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('anuj_wishlist');
-    return saved ? JSON.parse(saved) : ['prod-101', 'prod-104'];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [user, setUser] = useState(() => {
@@ -51,8 +51,8 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : { role: 'guest', name: 'Guest Visitor' };
   });
 
-  const [view, setView] = useState('home'); // 'home', 'catalogue', 'product-detail', 'cart', 'salesman-dash', 'admin-dash', 'about', 'contact'
-  const [selectedProductId, setSelectedProductId] = useState('prod-101');
+  const [view, setView] = useState('home');
+  const [selectedProductId, setSelectedProductId] = useState('prod-fmcg-101');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -63,21 +63,16 @@ export const AppProvider = ({ children }) => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Dark Mode
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('anuj_theme') === 'dark';
-  });
-
   // Toast System
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
 
   // Persistence Effects
   useEffect(() => {
-    localStorage.setItem('anuj_products', JSON.stringify(products));
+    localStorage.setItem('anuj_products_v2', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('anuj_orders', JSON.stringify(orders));
+    localStorage.setItem('anuj_orders_v2', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
@@ -85,32 +80,14 @@ export const AppProvider = ({ children }) => {
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('anuj_wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
-
-  useEffect(() => {
     localStorage.setItem('anuj_user', JSON.stringify(user));
   }, [user]);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('anuj_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('anuj_theme', 'light');
-    }
-  }, [darkMode]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
       setToast(prev => ({ ...prev, show: false }));
     }, 4000);
-  };
-
-  const toggleDarkMode = () => {
-    setDarkMode(prev => !prev);
   };
 
   const navigateTo = (targetView, productId = null) => {
@@ -129,7 +106,6 @@ export const AppProvider = ({ children }) => {
   // Cart Management
   const getTierPrice = (product, qty) => {
     if (!product.bulkTiers || product.bulkTiers.length === 0) return product.price;
-    // Find matching tier
     let unitPrice = product.price;
     if (qty >= 21) unitPrice = product.bulkTiers[2]?.price || unitPrice;
     else if (qty >= 6) unitPrice = product.bulkTiers[1]?.price || unitPrice;
@@ -151,7 +127,7 @@ export const AppProvider = ({ children }) => {
         return [...prev, { product, qty, unitPrice }];
       }
     });
-    showToast(`Added ${qty}x ${product.name.slice(0, 30)}... to B2B Cart`, 'success');
+    showToast(`Added ${qty}x ${product.name.slice(0, 30)}... to FMCG Cart`, 'success');
   };
 
   const updateCartQty = (productId, delta) => {
@@ -183,7 +159,7 @@ export const AppProvider = ({ children }) => {
         showToast('Removed from Wishlist', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        showToast('Added to B2B Wishlist', 'success');
+        showToast('Added to FMCG Wishlist', 'success');
         return [...prev, productId];
       }
     });
@@ -203,7 +179,7 @@ export const AppProvider = ({ children }) => {
         region: sUser.region
       });
       setIsSalesmanModalOpen(false);
-      showToast(`Welcome, ${sUser.name}! B2B Salesman Session Activated.`, 'success');
+      showToast(`Welcome, ${sUser.name}! FMCG Salesman Session Activated.`, 'success');
       return true;
     } else {
       showToast('Invalid Salesman ID or Password. Try SLS-101', 'error');
@@ -248,7 +224,7 @@ export const AppProvider = ({ children }) => {
     setIsInvoiceModalOpen(false);
   };
 
-  // Place B2B Order & Generate Invoice
+  // Place Order
   const checkoutOrder = (customerDetails) => {
     if (cart.length === 0) {
       showToast('Cart is empty', 'warning');
@@ -260,14 +236,14 @@ export const AppProvider = ({ children }) => {
     const sgst = Math.round(subtotal * 0.09);
     const grandTotal = subtotal + cgst + sgst;
 
-    const newInvoiceId = `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const newInvoiceId = `INV-2026-FMCG-${Math.floor(100 + Math.random() * 900)}`;
 
     const newOrder = {
       id: newInvoiceId,
       date: new Date().toISOString().split('T')[0],
-      customerName: customerDetails.companyName || "Premier Heavy Metal Fabricators Pvt Ltd",
-      customerGstin: customerDetails.gstin || "27AAACP9981K1Z5",
-      customerAddress: customerDetails.address || "Plot 42, MIDC Industrial Area, Thane, Maharashtra",
+      customerName: customerDetails.companyName || "Reliance Retail Wholesale Chains",
+      customerGstin: customerDetails.gstin || "27AAACR4412P1ZX",
+      customerAddress: customerDetails.address || "Bhiwandi Central FMCG Logistics Hub, Thane, Maharashtra",
       salesmanId: user.salesmanId || "SLS-101",
       salesmanName: user.name || "Vikram Malhotra",
       salesmanPhone: user.phone || "+91 98201 44512",
@@ -291,7 +267,6 @@ export const AppProvider = ({ children }) => {
     setOrders(prev => [newOrder, ...prev]);
     clearCart();
 
-    // Trigger celebration confetti
     try {
       confetti({
         particleCount: 100,
@@ -302,7 +277,7 @@ export const AppProvider = ({ children }) => {
       console.log('Confetti triggered');
     }
 
-    showToast(`B2B Order #${newInvoiceId} Placed Successfully!`, 'success');
+    showToast(`B2B FMCG Order #${newInvoiceId} Placed Successfully!`, 'success');
     openInvoiceModal(newOrder);
   };
 
@@ -310,13 +285,13 @@ export const AppProvider = ({ children }) => {
   const addProduct = (newProd) => {
     const formatted = {
       ...newProd,
-      id: `prod-${Date.now()}`,
+      id: `prod-fmcg-${Date.now()}`,
       rating: 5.0,
       reviewCount: 1,
       gallery: [newProd.image]
     };
     setProducts(prev => [formatted, ...prev]);
-    showToast(`Product "${newProd.name.slice(0, 25)}" added to catalog`, 'success');
+    showToast(`FMCG Product "${newProd.name.slice(0, 25)}" added to catalog`, 'success');
   };
 
   const updateProduct = (updatedProd) => {
@@ -331,7 +306,7 @@ export const AppProvider = ({ children }) => {
 
   const bulkAddProducts = (newProductsList) => {
     setProducts(prev => [...newProductsList, ...prev]);
-    showToast(`Successfully bulk imported ${newProductsList.length} products!`, 'success');
+    showToast(`Successfully bulk imported ${newProductsList.length} FMCG products!`, 'success');
   };
 
   // Calculations
@@ -359,8 +334,6 @@ export const AppProvider = ({ children }) => {
       isSalesmanModalOpen,
       isInvoiceModalOpen,
       selectedInvoice,
-      darkMode,
-      toast,
       cartSubtotal,
       cartGst,
       cartGrandTotal,
@@ -368,7 +341,6 @@ export const AppProvider = ({ children }) => {
       setSearchQuery,
       setSelectedCategoryFilter,
       filterByCategory,
-      toggleDarkMode,
       navigateTo,
       addToCart,
       updateCartQty,

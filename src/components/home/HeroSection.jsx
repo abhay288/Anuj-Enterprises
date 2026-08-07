@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, ArrowRight, Award, Truck, Building2, Search } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Award, Truck, Building2, Search, ShoppingBag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Enterprise3DModel } from './Enterprise3DModel';
 
@@ -33,7 +33,7 @@ export const HeroSection = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/60 backdrop-blur-md text-xs font-semibold text-amber-400 shadow-lg"
             >
               <Award className="w-4 h-4 text-amber-400 animate-bounce" />
-              <span>India's Leading Enterprise B2B Industrial Supply Partner</span>
+              <span>India's Premier B2B FMCG & Consumer Goods Wholesale Distributor</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -43,9 +43,9 @@ export const HeroSection = () => {
               transition={{ delay: 0.1 }}
               className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none"
             >
-              Empowering India's <br />
+              Powering India's <br />
               <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
-                Industrial Growth
+                FMCG Supply Chain
               </span>
             </motion.h1>
 
@@ -55,7 +55,7 @@ export const HeroSection = () => {
               transition={{ delay: 0.2 }}
               className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed"
             >
-              Direct factory procurement for Heavy Machinery, Electrical Switchgear, SKF Bearings, Power Tools, and Safety Equipment. Net 30 B2B Credit, Instant GST Invoicing & 24h Express Freight.
+              Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Net 30 B2B Credit, Instant GST Invoicing & 24h Express Freight.
             </motion.p>
 
             {/* Quick Hero Search Launcher */}
@@ -72,14 +72,14 @@ export const HeroSection = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Enter Product SKU, HSN, Schneider MCCB, Bosch..."
+                  placeholder="Search FMCG, Amul Milk, Dove, Lay's, Bisleri, Colgate..."
                   className="w-full pl-12 pr-32 py-3.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-sm font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xl"
                 />
                 <button
                   type="submit"
                   className="absolute right-2 px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all"
                 >
-                  Find Item
+                  Find FMCG SKU
                 </button>
               </div>
             </motion.form>
@@ -95,7 +95,8 @@ export const HeroSection = () => {
                 onClick={() => navigateTo('catalogue')}
                 className="px-6 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm rounded-xl shadow-xl shadow-brand-900/50 flex items-center gap-2 transition-all hover:scale-105"
               >
-                <span>Browse Products</span>
+                <ShoppingBag className="w-4 h-4" />
+                <span>Browse FMCG Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -116,18 +117,18 @@ export const HeroSection = () => {
               className="pt-4 flex flex-wrap items-center gap-6 text-xs text-slate-400"
             >
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Genuine OEM Warranty
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Genuine Brand Sourcing
               </span>
               <span className="flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-amber-400" /> Same-Day Dispatch
+                <Truck className="w-4 h-4 text-amber-400" /> 24h Express Dispatch
               </span>
               <span className="flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-brand-400" /> B2B GST Tax Invoice
+                <Building2 className="w-4 h-4 text-brand-400" /> B2B GST Tax Credit Invoice
               </span>
             </motion.div>
           </div>
 
-          {/* Right Column Interactive 3D Enterprise Model */}
+          {/* Right Column Interactive 3D Model */}
           <div className="lg:col-span-5 relative">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
