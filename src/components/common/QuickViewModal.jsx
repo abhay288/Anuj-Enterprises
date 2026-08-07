@@ -32,11 +32,6 @@ export const QuickViewModal = () => {
               <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-md bg-brand-900 text-white dark:bg-brand-600">
                 {quickViewProduct.brand}
               </span>
-              {quickViewProduct.isTrending && (
-                <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-md bg-amber-500 text-white">
-                  Trending
-                </span>
-              )}
             </div>
 
             <div className="w-full h-64 md:h-80 flex items-center justify-center p-4 my-auto">
@@ -70,43 +65,15 @@ export const QuickViewModal = () => {
                 {quickViewProduct.name}
               </h2>
 
-              <div className="mb-4">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-extrabold text-brand-900 dark:text-brand-400">
-                    ₹{quickViewProduct.price.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-sm text-slate-400 line-through">
-                    ₹{quickViewProduct.mrp.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    {Math.round(((quickViewProduct.mrp - quickViewProduct.price) / quickViewProduct.mrp) * 100)}% OFF
-                  </span>
-                </div>
-                <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">
-                  + {quickViewProduct.gstRate}% GST Applicable (Tax Invoice Provided)
+              <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                  Wholesale Price Quotes Provided via Sales Portal
                 </span>
               </div>
 
               <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-3 mb-6">
                 {quickViewProduct.description}
               </p>
-
-              {/* Bulk Tier Preview */}
-              {quickViewProduct.bulkTiers && (
-                <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                    B2B Tiered Volume Discounts
-                  </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {quickViewProduct.bulkTiers.map((tier, idx) => (
-                      <div key={idx} className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-center">
-                        <span className="text-[11px] text-slate-500 block">{tier.qty}</span>
-                        <span className="text-xs font-bold text-brand-900 dark:text-brand-400">₹{tier.price.toLocaleString('en-IN')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Actions */}
@@ -138,7 +105,7 @@ export const QuickViewModal = () => {
                   className="flex-1 bg-brand-900 hover:bg-brand-800 text-white dark:bg-brand-600 dark:hover:bg-brand-500 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-brand-900/20 transition-all hover:scale-[1.02]"
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  Add to Bulk Cart
+                  Add to Order List
                 </button>
               </div>
 
@@ -149,7 +116,7 @@ export const QuickViewModal = () => {
                 }}
                 className="w-full py-2 text-xs font-semibold text-brand-900 dark:text-brand-400 hover:underline flex items-center justify-center gap-1"
               >
-                View Full Technical Specifications & Warranty Details <ArrowRight className="w-3.5 h-3.5" />
+                View Full Product Specifications <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

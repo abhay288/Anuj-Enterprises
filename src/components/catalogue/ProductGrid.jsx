@@ -79,10 +79,10 @@ export const ProductGrid = () => {
             <span className="font-bold text-slate-900 dark:text-white">Product Catalogue</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Industrial Equipment & Hardware Supply
+            FMCG Wholesale & Consumer Goods Supply
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Displaying {filteredProducts.length} verified B2B products with direct manufacturer warranty & GST tax invoices.
+            Displaying {filteredProducts.length} verified B2B FMCG products with direct brand sourcing & GST tax invoices.
           </p>
         </div>
 
