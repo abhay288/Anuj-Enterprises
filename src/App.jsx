@@ -6,14 +6,7 @@ import { Toast } from './components/common/Toast';
 import { QuickViewModal } from './components/common/QuickViewModal';
 import { SalesmanLoginModal } from './components/common/SalesmanLoginModal';
 
-import { HeroSection } from './components/home/HeroSection';
-import { StatsSection } from './components/home/StatsSection';
-import { BrandTicker } from './components/home/BrandTicker';
-import { CategoriesSection } from './components/home/CategoriesSection';
-import { FeaturedProducts } from './components/home/FeaturedProducts';
-import { WhyChooseUs } from './components/home/WhyChooseUs';
-import { Testimonials } from './components/home/Testimonials';
-
+import { HomeDashboard } from './components/home/HomeDashboard';
 import { ProductGrid } from './components/catalogue/ProductGrid';
 import { ProductDetailView } from './components/detail/ProductDetailView';
 import { CartView } from './components/cart/CartView';
@@ -30,18 +23,7 @@ const MainContent = () => {
       <Navbar />
       
       <main className="flex-grow">
-        {view === 'home' && (
-          <>
-            <HeroSection />
-            <StatsSection />
-            <BrandTicker />
-            <CategoriesSection />
-            <FeaturedProducts />
-            <WhyChooseUs />
-            <Testimonials />
-          </>
-        )}
-
+        {view === 'home' && <HomeDashboard />}
         {view === 'catalogue' && <ProductGrid />}
         {view === 'product-detail' && <ProductDetailView />}
         {view === 'cart' && <CartView />}
