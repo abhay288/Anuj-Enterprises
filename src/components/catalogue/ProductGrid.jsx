@@ -1,3 +1,9 @@
+import React, { useState, useMemo } from 'react';
+import { PackageX } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { ProductCard } from './ProductCard';
+import { FilterSidebar } from './FilterSidebar';
+
 // Helper component for list view items with quantity selector
 const ProductListItem = ({ product }) => {
   const { addToCart, navigateTo } = useApp();
