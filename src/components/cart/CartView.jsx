@@ -24,26 +24,20 @@ export const CartView = () => {
   } = useApp();
 
   const [customerName, setCustomerName] = useState('Premier Heavy Metal Fabricators Pvt Ltd');
-  const [customerGstin, setCustomerGstin] = useState('27AAACP9981K1Z5');
-  const [customerAddress, setCustomerAddress] = useState('Plot 42, MIDC Industrial Area, Thane, Maharashtra - 400604');
+  const [salesmanIdInput, setSalesmanIdInput] = useState(user.salesmanId || 'SLS-101');
   const [paymentMode, setPaymentMode] = useState('Net 30 Days B2B Credit');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCheckoutClick = () => {
-    if (user.role === 'guest') {
-      setIsSalesmanModalOpen(true);
-    } else {
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        checkoutOrder({
-          companyName: customerName,
-          gstin: customerGstin,
-          address: customerAddress,
-          paymentMode
-        });
-      }, 1000);
-    }
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      checkoutOrder({
+        companyName: customerName,
+        salesmanId: salesmanIdInput || 'SLS-101',
+        paymentMode
+      });
+    }, 800);
   };
 
   if (cart.length === 0) {
@@ -173,10 +167,10 @@ export const CartView = () => {
               </table>
             </div>
 
-            {/* Customer Details Form */}
+            {/* Customer & Salesman Details Form */}
             <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
               <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-amber-500" /> B2B Customer & GST Procurement Details
+                <Building2 className="w-4 h-4 text-amber-500" /> B2B Order & Invoice Generation
               </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -193,27 +187,16 @@ export const CartView = () => {
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    Buyer GSTIN Number
+                    Salesman ID
                   </label>
                   <input
                     type="text"
-                    value={customerGstin}
-                    onChange={(e) => setCustomerGstin(e.target.value)}
+                    value={salesmanIdInput}
+                    onChange={(e) => setSalesmanIdInput(e.target.value)}
+                    placeholder="e.g. SLS-101"
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold uppercase text-slate-900 dark:text-white"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Billing & Warehouse Delivery Address
-                </label>
-                <input
-                  type="text"
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                />
               </div>
             </div>
           </div>

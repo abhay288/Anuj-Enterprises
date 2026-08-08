@@ -244,18 +244,35 @@ export const AppProvider = ({ children }) => {
       setUser({
         role: 'salesman',
         name: sUser.name,
-        salesmanId: sUser.id,
+        salesmanId: sUser.id || salesmanId,
         email: sUser.email,
         phone: sUser.phone,
         region: sUser.region
       });
       setIsSalesmanModalOpen(false);
-      showToast(`Welcome, ${sUser.name}! FMCG Salesman Session Activated.`, 'success');
+      showToast(`Welcome, ${sUser.name}! Salesman Session Activated.`, 'success');
       return true;
     } else {
       showToast('Invalid Salesman ID or Password. Try SLS-101', 'error');
       return false;
     }
+  };
+
+  const loginNormalUser = (email, name = '') => {
+    const displayName = name.trim() || email.split('@')[0] || 'Valued Customer';
+    setUser({
+      role: 'customer',
+      name: displayName,
+      email: email
+    });
+    setIsSalesmanModalOpen(false);
+    showToast(`Signed in as ${displayName}`, 'success');
+  };
+
+  const bypassLoginAsGuest = () => {
+    setUser({ role: 'guest', name: 'Guest Visitor' });
+    setIsSalesmanModalOpen(false);
+    showToast('Continuing session as Guest Visitor', 'info');
   };
 
   const loginAdmin = () => {
@@ -419,6 +436,8 @@ export const AppProvider = ({ children }) => {
       clearCart,
       toggleWishlist,
       loginSalesman,
+      loginNormalUser,
+      bypassLoginAsGuest,
       loginAdmin,
       logout,
       openQuickView,

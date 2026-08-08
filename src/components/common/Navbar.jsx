@@ -133,10 +133,10 @@ export const Navbar = () => {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setIsSalesmanModalOpen(true)}
-                  className="hidden sm:flex items-center gap-1.5 bg-brand-900 hover:bg-brand-800 text-white dark:bg-brand-600 dark:hover:bg-brand-500 px-3.5 py-2 rounded-xl text-xs font-bold shadow-md shadow-brand-900/20 transition-all hover:scale-105"
+                  className="flex items-center gap-1.5 bg-brand-900 hover:bg-brand-800 text-white dark:bg-brand-600 dark:hover:bg-brand-500 px-3.5 py-2 rounded-xl text-xs font-bold shadow-md shadow-brand-900/20 transition-all hover:scale-105"
                 >
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <span>Salesman Login</span>
+                  <User className="w-4 h-4 text-amber-400" />
+                  <span>Sign In / Login</span>
                 </button>
                 <button
                   onClick={loginAdmin}

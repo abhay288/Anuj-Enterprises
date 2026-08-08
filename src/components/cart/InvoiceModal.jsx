@@ -101,14 +101,12 @@ export const InvoiceModal = () => {
             <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div>
                 <h4 className="font-extrabold uppercase tracking-wider text-slate-500 mb-1">Billed To (Customer Details)</h4>
-                <p className="font-bold text-slate-900 text-sm">{inv.customerName}</p>
-                <p className="text-slate-700 font-semibold">GSTIN: <strong className="font-mono text-slate-900">{inv.customerGstin}</strong></p>
-                <p className="text-slate-600">{inv.customerAddress || "MIDC Industrial Hub, Thane, Maharashtra"}</p>
+                <p className="font-bold text-slate-900 text-sm">{inv.customerName || "Premier Heavy Metal Fabricators Pvt Ltd"}</p>
               </div>
 
               <div className="text-right border-l border-slate-200 pl-6">
                 <h4 className="font-extrabold uppercase tracking-wider text-slate-500 mb-1">Salesman & Dispatch Officer</h4>
-                <p className="font-bold text-slate-900 text-sm">{inv.salesmanName} ({inv.salesmanId})</p>
+                <p className="font-bold text-slate-900 text-sm">{inv.salesmanName || "Account Representative"} ({inv.salesmanId || "SLS-101"})</p>
                 <p className="text-slate-600">Phone: {inv.salesmanPhone || "+91 98201 44512"}</p>
                 <p className="text-slate-600">Dispatch Hub: Mumbai Central Warehouse</p>
               </div>
