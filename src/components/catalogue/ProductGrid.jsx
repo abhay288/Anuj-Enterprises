@@ -84,33 +84,41 @@ export const ProductGrid = () => {
     setSelectedCategoryFilter 
   } = useApp();
 
-  const [selectedCategory, setSelectedCategory] = useState(selectedCategoryFilter || 'All');
-  const [selectedBrand, setSelectedBrand] = useState('All');
-  const [priceRange, setPriceRange] = useState(60000);
-  const [inStockOnly, setInStockOnly] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState(
+    selectedCategoryFilter && selectedCategoryFilter !== 'All' ? [selectedCategoryFilter] : ['All']
+  );
+  const [selectedBrands, setSelectedBrands] = useState(['All']);
   const [sortBy, setSortBy] = useState('featured'); // 'featured' | 'rating'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
   // Sync state if category filter changed globally
   React.useEffect(() => {
     if (selectedCategoryFilter) {
-      setSelectedCategory(selectedCategoryFilter);
+      if (selectedCategoryFilter === 'All') {
+        setSelectedCategories(['All']);
+      } else {
+        setSelectedCategories([selectedCategoryFilter]);
+      }
     }
   }, [selectedCategoryFilter]);
 
   const resetFilters = () => {
-    setSelectedCategory('All');
+    setSelectedCategories(['All']);
     setSelectedCategoryFilter('All');
-    setSelectedBrand('All');
+    setSelectedBrands(['All']);
     setSearchQuery('');
   };
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      // Category check
-      if (selectedCategory !== 'All' && p.category !== selectedCategory) return false;
-      // Brand / Company check
-      if (selectedBrand !== 'All' && p.brand !== selectedBrand) return false;
+      // Multi-Category/Products check
+      if (selectedCategories.length > 0 && !selectedCategories.includes('All')) {
+        if (!selectedCategories.includes(p.category)) return false;
+      }
+      // Multi-Brand/Company check
+      if (selectedBrands.length > 0 && !selectedBrands.includes('All')) {
+        if (!selectedBrands.includes(p.brand)) return false;
+      }
       // Search query check
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -126,7 +134,7 @@ export const ProductGrid = () => {
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0; // default featured
     });
-  }, [products, selectedCategory, selectedBrand, searchQuery, sortBy]);
+  }, [products, selectedCategories, selectedBrands, searchQuery, sortBy]);
 
   return (
     <div className="py-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
@@ -149,10 +157,10 @@ export const ProductGrid = () => {
 
         {/* Horizontal Catalog Filter Bar above products */}
         <FilterSidebar
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          selectedBrand={selectedBrand}
-          setSelectedBrand={setSelectedBrand}
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+          selectedBrands={selectedBrands}
+          setSelectedBrands={setSelectedBrands}
           onReset={resetFilters}
         />
 
