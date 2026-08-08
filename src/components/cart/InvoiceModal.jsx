@@ -123,8 +123,8 @@ export const InvoiceModal = () => {
                     <th className="py-2.5 px-3">Product Description</th>
                     <th className="py-2.5 px-3">SKU / HSN</th>
                     <th className="py-2.5 px-3 text-center">Qty</th>
-                    <th className="py-2.5 px-3 text-right">Unit Rate (₹)</th>
-                    <th className="py-2.5 px-3 text-right">Amount (₹)</th>
+                    <th className="py-2.5 px-3 text-right">Unit Rate</th>
+                    <th className="py-2.5 px-3 text-right">Pricing Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium">
@@ -134,8 +134,8 @@ export const InvoiceModal = () => {
                       <td className="py-3 px-3 font-bold text-slate-900">{item.name}</td>
                       <td className="py-3 px-3 font-mono text-slate-600">{item.sku} / {item.hsn || '84672100'}</td>
                       <td className="py-3 px-3 text-center font-bold">{item.qty}</td>
-                      <td className="py-3 px-3 text-right font-mono">₹{item.price.toLocaleString('en-IN')}</td>
-                      <td className="py-3 px-3 text-right font-mono font-bold">₹{(item.price * item.qty).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-3 text-right font-mono">Price On Request</td>
+                      <td className="py-3 px-3 text-right font-mono font-bold">Quote Pending</td>
                     </tr>
                   ))}
                 </tbody>
@@ -156,19 +156,15 @@ export const InvoiceModal = () => {
               <div className="w-64 space-y-2 text-xs text-right">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal:</span>
-                  <span className="font-mono font-bold">₹{inv.subtotal.toLocaleString('en-IN')}</span>
+                  <span className="font-mono font-bold">Price On Request</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>CGST (9%):</span>
-                  <span className="font-mono font-bold">₹{inv.cgst.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>SGST (9%):</span>
-                  <span className="font-mono font-bold">₹{inv.sgst.toLocaleString('en-IN')}</span>
+                  <span>GST Tax:</span>
+                  <span className="font-mono font-bold">As per RFQ Slab</span>
                 </div>
                 <div className="pt-2 border-t-2 border-slate-900 flex justify-between font-black text-sm text-slate-900">
                   <span>Grand Total:</span>
-                  <span className="font-mono text-base text-brand-900">₹{inv.grandTotal.toLocaleString('en-IN')}</span>
+                  <span className="font-mono text-xs text-brand-900 uppercase">Quoted On RFQ</span>
                 </div>
               </div>
             </div>

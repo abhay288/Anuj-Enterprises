@@ -294,7 +294,7 @@ export const INITIAL_PRODUCTS = [
     ],
     description: "Crispy farm-fresh potato chips seasoned with tangy Spanish tomato spices. Sealed nitrogen-flushed foil packs for long freshness.",
     specs: {
-      "Pack Size": "48 Packs x ₹20 MRP Unit",
+      "Pack Size": "48 Packs x 20g Unit",
       "Flavor": "Spanish Tomato Tango",
       "Shelf Life": "4 Months",
       "FSSAI License": "10012063000110"
@@ -428,9 +428,9 @@ export const INITIAL_BRANDS = [
 ];
 
 export const INITIAL_SALESMEN = [
-  { id: "SLS-101", name: "Vikram Malhotra", email: "vikram.m@anujenterprises.com", phone: "+91 98201 44512", region: "West India (Mumbai HQ)", salesVolume: "₹ 84.5 Lakhs", ordersCount: 242, status: "Active" },
-  { id: "SLS-102", name: "Priya Sharma", email: "priya.s@anujenterprises.com", phone: "+91 98110 33219", region: "North India (Delhi NCR)", salesVolume: "₹ 62.2 Lakhs", ordersCount: 198, status: "Active" },
-  { id: "SLS-103", name: "Rajesh Kumar", email: "rajesh.k@anujenterprises.com", phone: "+91 99400 12890", region: "South India (Bengaluru Hub)", salesVolume: "₹ 92.8 Lakhs", ordersCount: 310, status: "Active" }
+  { id: "SLS-101", name: "Vikram Malhotra", email: "vikram.m@anujenterprises.com", phone: "+91 98201 44512", region: "West India (Mumbai HQ)", salesVolume: "84.5K Units", ordersCount: 242, status: "Active" },
+  { id: "SLS-102", name: "Priya Sharma", email: "priya.s@anujenterprises.com", phone: "+91 98110 33219", region: "North India (Delhi NCR)", salesVolume: "62.2K Units", ordersCount: 198, status: "Active" },
+  { id: "SLS-103", name: "Rajesh Kumar", email: "rajesh.k@anujenterprises.com", phone: "+91 99400 12890", region: "South India (Bengaluru Hub)", salesVolume: "92.8K Units", ordersCount: 310, status: "Active" }
 ];
 
 export const INITIAL_ORDERS = [

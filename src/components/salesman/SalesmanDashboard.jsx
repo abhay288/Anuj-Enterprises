@@ -106,7 +106,7 @@ export const SalesmanDashboard = () => {
                   Today's Purchase Volume
                 </span>
                 <span className="text-2xl font-black text-slate-900 dark:text-white block">
-                  ₹ 1,40,302
+                  1,400 Units
                 </span>
                 <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3.5 h-3.5" /> +14.2% vs yesterday
@@ -118,10 +118,10 @@ export const SalesmanDashboard = () => {
                   Monthly Purchase Volume
                 </span>
                 <span className="text-2xl font-black text-brand-900 dark:text-brand-400 block">
-                  ₹ 48,50,000
+                  48,500 Units
                 </span>
                 <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block mt-1">
-                  Target: ₹ 50 Lakhs (97% achieved)
+                  Target: 50,000 Units (97% achieved)
                 </span>
               </div>
 
@@ -145,7 +145,7 @@ export const SalesmanDashboard = () => {
                   Platinum (2.5%)
                 </span>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1">
-                  Estimated Payout: ₹1,21,250
+                  Estimated Payout: On Target
                 </span>
               </div>
             </div>
@@ -156,7 +156,7 @@ export const SalesmanDashboard = () => {
               {/* Recharts Bar Chart */}
               <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  Monthly Purchase Volume Trend (in ₹ Lakhs)
+                  Monthly Purchase Volume Trend (in Units)
                 </h3>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -190,7 +190,7 @@ export const SalesmanDashboard = () => {
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs font-extrabold text-slate-900 dark:text-white block">₹{order.grandTotal.toLocaleString('en-IN')}</span>
+                        <span className="text-xs font-extrabold text-slate-900 dark:text-white block">Quote Pending</span>
                         <button
                           onClick={() => openInvoiceModal(order)}
                           className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-0.5 justify-end mt-1"
@@ -234,7 +234,7 @@ export const SalesmanDashboard = () => {
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Customer Company</th>
                     <th className="py-3 px-4 text-center">Items</th>
-                    <th className="py-3 px-4 text-right">Grand Total (GST)</th>
+                    <th className="py-3 px-4 text-right">Quote Status</th>
                     <th className="py-3 px-4 text-center">Status</th>
                     <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
@@ -246,7 +246,7 @@ export const SalesmanDashboard = () => {
                       <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400">{order.date}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{order.customerName}</td>
                       <td className="py-3.5 px-4 text-center font-semibold">{order.items.length} Products</td>
-                      <td className="py-3.5 px-4 text-right font-extrabold text-slate-900 dark:text-white">₹{order.grandTotal.toLocaleString('en-IN')}</td>
+                      <td className="py-3.5 px-4 text-right font-extrabold text-slate-900 dark:text-white">Quote Pending</td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
                           {order.status}

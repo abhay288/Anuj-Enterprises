@@ -197,14 +197,14 @@ export const AdminDashboard = () => {
                 {/* Metric Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Today's Sales</span>
-                    <span className="text-2xl font-black text-slate-900 dark:text-white">₹ 8,20,400</span>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Today's Orders</span>
+                    <span className="text-2xl font-black text-slate-900 dark:text-white">142 Enquiries</span>
                     <span className="text-[11px] font-bold text-emerald-600 block mt-1">+18.5% Growth</span>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Monthly Sales</span>
-                    <span className="text-2xl font-black text-brand-900 dark:text-brand-400">₹ 1.48 Crore</span>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Monthly Orders</span>
+                    <span className="text-2xl font-black text-brand-900 dark:text-brand-400">3,480 Orders</span>
                     <span className="text-[11px] text-slate-500 block mt-1">GST Tax Verified</span>
                   </div>
 
@@ -225,7 +225,7 @@ export const AdminDashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Weekly B2B Revenue Trend (in ₹ Lakhs)
+                      Weekly B2B Order Volume Trend (in Units)
                     </h3>
                     <div className="h-64 w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -234,7 +234,7 @@ export const AdminDashboard = () => {
                           <XAxis dataKey="day" stroke="#94a3b8" />
                           <YAxis stroke="#94a3b8" />
                           <Tooltip />
-                          <Line type="monotone" dataKey="revenue" stroke="#d97706" strokeWidth={3} />
+                          <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -242,13 +242,21 @@ export const AdminDashboard = () => {
 
                   <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Revenue Distribution by Category
+                      Salesmen Region Share
                     </h3>
-                    <div className="h-64 w-full flex items-center justify-center">
+                    <div className="h-64 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={categoryPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
-                            {categoryPieData.map((entry, index) => (
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {pieData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
@@ -297,7 +305,7 @@ export const AdminDashboard = () => {
                         <th className="py-3 px-4">Product Details</th>
                         <th className="py-3 px-4">Brand</th>
                         <th className="py-3 px-4">Category</th>
-                        <th className="py-3 px-4 text-right">Price</th>
+                        <th className="py-3 px-4 text-right">Price Status</th>
                         <th className="py-3 px-4 text-center">Stock</th>
                         <th className="py-3 px-4 text-center">Actions</th>
                       </tr>
@@ -316,7 +324,7 @@ export const AdminDashboard = () => {
                           </td>
                           <td className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300">{prod.brand}</td>
                           <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{prod.category}</td>
-                          <td className="py-3 px-4 text-right font-extrabold text-brand-900 dark:text-brand-400">₹{prod.price.toLocaleString('en-IN')}</td>
+                          <td className="py-3 px-4 text-right font-extrabold text-brand-900 dark:text-brand-400">Price On Request</td>
                           <td className="py-3 px-4 text-center">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${prod.stock > 10 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
                               {prod.stock} units
@@ -352,7 +360,7 @@ export const AdminDashboard = () => {
                         <th className="py-3 px-4">Invoice #</th>
                         <th className="py-3 px-4">Customer</th>
                         <th className="py-3 px-4">Salesman</th>
-                        <th className="py-3 px-4 text-right">Grand Total</th>
+                        <th className="py-3 px-4 text-right">Quote Status</th>
                         <th className="py-3 px-4 text-center">Status</th>
                         <th className="py-3 px-4 text-center">Actions</th>
                       </tr>
@@ -363,7 +371,7 @@ export const AdminDashboard = () => {
                           <td className="py-3.5 px-4 font-mono font-bold text-brand-900 dark:text-brand-400">{ord.id}</td>
                           <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{ord.customerName}</td>
                           <td className="py-3.5 px-4 text-slate-600">{ord.salesmanName} ({ord.salesmanId})</td>
-                          <td className="py-3.5 px-4 text-right font-extrabold">₹{ord.grandTotal.toLocaleString('en-IN')}</td>
+                          <td className="py-3.5 px-4 text-right font-extrabold">Quote Pending</td>
                           <td className="py-3.5 px-4 text-center">
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                               {ord.status}
@@ -574,7 +582,7 @@ export const AdminDashboard = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Price (₹)</label>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Base Price / Rate</label>
                     <input
                       type="number"
                       required

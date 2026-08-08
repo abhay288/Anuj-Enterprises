@@ -1,5 +1,5 @@
-import React from 'react';
-import { RotateCcw, Filter, Tag, Check, Award } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { RotateCcw, Filter, Building2, Layers } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const FilterSidebar = ({
@@ -7,114 +7,102 @@ export const FilterSidebar = ({
   setSelectedCategory,
   selectedBrand,
   setSelectedBrand,
-  inStockOnly,
-  setInStockOnly,
   onReset
 }) => {
-  const { categories, brands } = useApp();
+  const { categories, brands, products } = useApp();
+
+  // Dynamic category options based on selected Company (1st Filter)
+  const availableCategories = useMemo(() => {
+    if (selectedBrand === 'All') {
+      return categories.map(c => c.name);
+    }
+    const companyCategories = new Set(
+      products
+        .filter(p => p.brand === selectedBrand)
+        .map(p => p.category)
+    );
+    return Array.from(companyCategories);
+  }, [selectedBrand, categories, products]);
+
+  // Handle Company Selection
+  const handleCompanyChange = (e) => {
+    const newBrand = e.target.value;
+    setSelectedBrand(newBrand);
+    if (newBrand !== 'All') {
+      const companyCats = new Set(
+        products.filter(p => p.brand === newBrand).map(p => p.category)
+      );
+      if (selectedCategory !== 'All' && !companyCats.has(selectedCategory)) {
+        setSelectedCategory('All');
+      }
+    }
+  };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-6 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
       
-      {/* Header & Reset */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2">
+      {/* Title & Filter Dropdowns Container */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+        <div className="flex items-center gap-2 pr-4 border-r-0 sm:border-r border-slate-200 dark:border-slate-800 shrink-0">
           <Filter className="w-4 h-4 text-brand-900 dark:text-brand-400" />
-          <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+          <h2 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
             Catalog Filters
           </h2>
         </div>
-        <button
-          onClick={onReset}
-          className="text-xs font-semibold text-slate-500 hover:text-brand-900 dark:hover:text-amber-400 flex items-center gap-1 transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5" /> Reset
-        </button>
-      </div>
 
-      {/* Category Picker */}
-      <div className="space-y-3">
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-          Department / Category
-        </span>
-        <div className="space-y-1">
-          <button
-            onClick={() => setSelectedCategory('All')}
-            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
-              selectedCategory === 'All'
-                ? 'bg-brand-900 text-white font-bold shadow'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <span>All Categories</span>
-          </button>
-
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.name)}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
-                selectedCategory === cat.name
-                  ? 'bg-brand-900 text-white font-bold shadow'
-                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+        {/* 1st Filter: Company */}
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <Building2 className="w-4 h-4 text-amber-500 shrink-0" />
+          <div className="flex flex-col w-full">
+            <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-0.5">
+              Company
+            </label>
+            <select
+              value={selectedBrand}
+              onChange={handleCompanyChange}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
             >
-              <span>{cat.name}</span>
-              <span className="text-[10px] opacity-80">{cat.count}</span>
-            </button>
-          ))}
+              <option value="All">All Companies ({brands.length})</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.name}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 2nd Filter: Category (Filtered by Company Selection) */}
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <Layers className="w-4 h-4 text-emerald-500 shrink-0" />
+          <div className="flex flex-col w-full">
+            <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-0.5">
+              Category
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            >
+              <option value="All">All Categories</option>
+              {availableCategories.map((catName) => (
+                <option key={catName} value={catName}>
+                  {catName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Brand Radio Options */}
-      <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-          Brand / Manufacturer
-        </span>
-        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-          <button
-            onClick={() => setSelectedBrand('All')}
-            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 ${
-              selectedBrand === 'All' ? 'text-brand-900 dark:text-amber-400 font-bold' : 'text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${selectedBrand === 'All' ? 'border-brand-900 bg-brand-900 text-white' : 'border-slate-300'}`}>
-              {selectedBrand === 'All' && <Check className="w-2.5 h-2.5" />}
-            </div>
-            <span>All Brands</span>
-          </button>
+      {/* Reset Action Button */}
+      <button
+        onClick={onReset}
+        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+      >
+        <RotateCcw className="w-3.5 h-3.5" /> Reset
+      </button>
 
-          {brands.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => setSelectedBrand(b.name)}
-              className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 ${
-                selectedBrand === b.name ? 'text-brand-900 dark:text-amber-400 font-bold' : 'text-slate-600 dark:text-slate-400'
-              }`}
-            >
-              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${selectedBrand === b.name ? 'border-brand-900 bg-brand-900 text-white' : 'border-slate-300'}`}>
-                {selectedBrand === b.name && <Check className="w-2.5 h-2.5" />}
-              </div>
-              <span>{b.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* In-Stock Toggle */}
-      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-        <label className="flex items-center justify-between cursor-pointer">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Show In-Stock Only
-          </span>
-          <input
-            type="checkbox"
-            checked={inStockOnly}
-            onChange={(e) => setInStockOnly(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300 text-brand-900 focus:ring-brand-500"
-          />
-        </label>
-      </div>
     </div>
   );
 };

@@ -105,9 +105,9 @@ export const CartView = () => {
                 <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="py-3 px-4">Item Details</th>
-                    <th className="py-3 px-4">Unit Rate</th>
+                    <th className="py-3 px-4">Unit Price</th>
                     <th className="py-3 px-4 text-center">Quantity</th>
-                    <th className="py-3 px-4 text-right">Subtotal</th>
+                    <th className="py-3 px-4 text-right">Quote Status</th>
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
@@ -134,8 +134,8 @@ export const CartView = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4 font-bold text-slate-900 dark:text-white">
-                        ₹{item.unitPrice.toLocaleString('en-IN')}
+                      <td className="py-4 px-4 font-bold text-slate-600 dark:text-slate-300">
+                        Price On Request
                       </td>
                       <td className="py-4 px-4 text-center">
                         <div className="inline-flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -157,7 +157,7 @@ export const CartView = () => {
                         </div>
                       </td>
                       <td className="py-4 px-4 text-right font-extrabold text-brand-900 dark:text-brand-400">
-                        ₹{(item.unitPrice * item.qty).toLocaleString('en-IN')}
+                        Quote Pending
                       </td>
                       <td className="py-4 px-4 text-center">
                         <button
@@ -222,7 +222,7 @@ export const CartView = () => {
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white pb-3 border-b border-slate-100 dark:border-slate-800">
-                Order Tax Calculation
+                Order Enquiry Summary
               </h3>
 
               <div className="space-y-3 text-xs">
@@ -231,20 +231,16 @@ export const CartView = () => {
                   <span className="font-bold text-slate-900 dark:text-white">{cartTotalQty} Units</span>
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>Subtotal Excl. Tax</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                  <span>Subtotal</span>
+                  <span className="font-bold text-slate-900 dark:text-white">Price On Request</span>
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>CGST (9%)</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{Math.round(cartGst / 2).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>SGST (9%)</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{Math.round(cartGst / 2).toLocaleString('en-IN')}</span>
+                  <span>Applicable GST</span>
+                  <span className="font-bold text-slate-900 dark:text-white">Quoted on RFQ</span>
                 </div>
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between items-baseline">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white">Grand Total (Incl. GST)</span>
-                  <span className="font-black text-xl text-brand-900 dark:text-brand-400">₹{cartGrandTotal.toLocaleString('en-IN')}</span>
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white">Estimated Total</span>
+                  <span className="font-black text-sm text-brand-900 dark:text-brand-400">Price Quoted On RFQ</span>
                 </div>
               </div>
 

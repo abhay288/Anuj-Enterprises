@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Star, PhoneCall } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const ProductCard = ({ product }) => {
-  const { addToCart, openQuickView, navigateTo, setIsSalesmanModalOpen } = useApp();
+  const { addToCart, openQuickView, navigateTo } = useApp();
+  const [quantity, setQuantity] = useState(1);
 
   return (
     <motion.div
@@ -64,17 +65,39 @@ export const ProductCard = ({ product }) => {
 
         {/* Action Trigger */}
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl text-center">
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">
-              Price Available Upon B2B RFQ
-            </span>
+          {/* Interactive Quantity Selector */}
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 pl-2">Quantity:</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-12 h-7 text-center text-xs font-extrabold bg-white dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+              <button
+                type="button"
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           <button
-            onClick={() => addToCart(product, 1)}
+            onClick={() => addToCart(product, quantity)}
             className="w-full py-2.5 px-4 bg-slate-900 hover:bg-brand-900 text-white dark:bg-brand-600 dark:hover:bg-brand-500 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow transition-all"
           >
-            <ShoppingCart className="w-4 h-4" /> Add to Order Enquiry
+            <ShoppingCart className="w-4 h-4" /> Add to Cart
           </button>
         </div>
       </div>

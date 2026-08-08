@@ -152,7 +152,7 @@ export const BulkCsvModal = ({ isOpen, onClose }) => {
                         <th className="p-2">Name</th>
                         <th className="p-2">Brand</th>
                         <th className="p-2">SKU</th>
-                        <th className="p-2 text-right">Price</th>
+                        <th className="p-2 text-right">Price Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -161,7 +161,7 @@ export const BulkCsvModal = ({ isOpen, onClose }) => {
                           <td className="p-2 font-bold">{item.name}</td>
                           <td className="p-2">{item.brand}</td>
                           <td className="p-2 font-mono">{item.sku}</td>
-                          <td className="p-2 text-right font-bold">₹{item.price}</td>
+                          <td className="p-2 text-right font-bold">Price On Request</td>
                         </tr>
                       ))}
                     </tbody>
