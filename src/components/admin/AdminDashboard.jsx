@@ -21,6 +21,10 @@ export const AdminDashboard = () => {
     addProduct, 
     updateProduct, 
     deleteProduct, 
+    addCategory,
+    deleteCategory,
+    addBrand,
+    deleteBrand,
     openInvoiceModal, 
     logout, 
     showToast 
@@ -30,6 +34,23 @@ export const AdminDashboard = () => {
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [newCompanyInput, setNewCompanyInput] = useState('');
+
+  const handleAddCategorySubmit = (e) => {
+    e.preventDefault();
+    if (!newCategoryInput.trim()) return;
+    addCategory(newCategoryInput.trim());
+    setNewCategoryInput('');
+  };
+
+  const handleAddCompanySubmit = (e) => {
+    e.preventDefault();
+    if (!newCompanyInput.trim()) return;
+    addBrand(newCompanyInput.trim());
+    setNewCompanyInput('');
+  };
 
   // Form State for New Product
   const [prodForm, setProdForm] = useState({
@@ -419,36 +440,118 @@ export const AdminDashboard = () => {
               </div>
             )}
 
-            {/* Tab 5: Categories & Brands */}
+            {/* Tab 5: Categories & Companies */}
             {activeTab === 'categories' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Industrial Equipment Departments ({categories.length})
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {categories.map(c => (
-                      <div key={c.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</h4>
-                        <span className="text-[10px] text-slate-400">{c.count} Items</span>
-                      </div>
-                    ))}
+                
+                {/* Company Management Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                        Company Filter Management ({brands.length})
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Add or manage companies displayed in the 1st catalog filter dropdown.
+                      </p>
+                    </div>
+
+                    {/* Add Company Form */}
+                    <form onSubmit={handleAddCompanySubmit} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newCompanyInput}
+                        onChange={(e) => setNewCompanyInput(e.target.value)}
+                        placeholder="Enter Company Name..."
+                        className="px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[200px]"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1 shrink-0"
+                      >
+                        <Plus className="w-4 h-4" /> Add Company
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Company Badges Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {brands.map(b => {
+                      const itemCount = products.filter(p => p.brand === b.name).length;
+                      return (
+                        <div key={b.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between group hover:border-amber-500/50 transition-colors">
+                          <div>
+                            <h4 className="font-bold text-xs text-slate-900 dark:text-white">{b.name}</h4>
+                            <span className="text-[10px] text-slate-400">{itemCount} Products</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteBrand(b.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                            title="Delete Company"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    OEM Partner Brands ({brands.length})
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {brands.map(b => (
-                      <div key={b.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-white">{b.name}</h4>
-                        <span className="text-[10px] text-slate-400">{b.country} • {b.count} Items</span>
-                      </div>
-                    ))}
+                {/* Category Management Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                        Product Category Filter Management ({categories.length})
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Add or manage product categories displayed in the 2nd catalog filter dropdown.
+                      </p>
+                    </div>
+
+                    {/* Add Category Form */}
+                    <form onSubmit={handleAddCategorySubmit} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newCategoryInput}
+                        onChange={(e) => setNewCategoryInput(e.target.value)}
+                        placeholder="Enter Category Name..."
+                        className="px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 min-w-[200px]"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1 shrink-0"
+                      >
+                        <Plus className="w-4 h-4" /> Add Category
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Categories Badges Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {categories.map(c => {
+                      const itemCount = products.filter(p => p.category === c.name).length;
+                      return (
+                        <div key={c.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between group hover:border-brand-500/50 transition-colors">
+                          <div>
+                            <h4 className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</h4>
+                            <span className="text-[10px] text-slate-400">{itemCount} Products</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteCategory(c.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                            title="Delete Category"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+
               </div>
             )}
 

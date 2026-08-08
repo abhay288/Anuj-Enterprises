@@ -72,6 +72,14 @@ export const AppProvider = ({ children }) => {
   }, [products]);
 
   useEffect(() => {
+    localStorage.setItem('anuj_categories_v2', JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem('anuj_brands_v2', JSON.stringify(brands));
+  }, [brands]);
+
+  useEffect(() => {
     localStorage.setItem('anuj_orders_v2', JSON.stringify(orders));
   }, [orders]);
 
@@ -82,6 +90,41 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('anuj_user', JSON.stringify(user));
   }, [user]);
+
+  // Admin Category & Brand (Company) Management Operations
+  const addCategory = (catName) => {
+    if (!catName || !catName.trim()) return;
+    const trimmed = catName.trim();
+    if (categories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Category "${trimmed}" already exists`, 'warning');
+      return;
+    }
+    const newCat = { id: `cat-${Date.now()}`, name: trimmed, count: 0 };
+    setCategories(prev => [...prev, newCat]);
+    showToast(`Category "${trimmed}" added to catalog filters`, 'success');
+  };
+
+  const deleteCategory = (catId) => {
+    setCategories(prev => prev.filter(c => c.id !== catId));
+    showToast('Category removed from catalog filters', 'info');
+  };
+
+  const addBrand = (brandName) => {
+    if (!brandName || !brandName.trim()) return;
+    const trimmed = brandName.trim();
+    if (brands.some(b => b.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Company "${trimmed}" already exists`, 'warning');
+      return;
+    }
+    const newBrand = { id: `brand-${Date.now()}`, name: trimmed, country: 'India', count: 0 };
+    setBrands(prev => [...prev, newBrand]);
+    showToast(`Company "${trimmed}" added to catalog filters`, 'success');
+  };
+
+  const deleteBrand = (brandId) => {
+    setBrands(prev => prev.filter(b => b.id !== brandId));
+    showToast('Company removed from catalog filters', 'info');
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -360,6 +403,10 @@ export const AppProvider = ({ children }) => {
       updateProduct,
       deleteProduct,
       bulkAddProducts,
+      addCategory,
+      deleteCategory,
+      addBrand,
+      deleteBrand,
       showToast
     }}>
       {children}
