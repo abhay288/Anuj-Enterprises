@@ -269,7 +269,7 @@ export const AdminDashboard = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={pieData}
+                            data={categoryPieData}
                             cx="50%"
                             cy="50%"
                             innerRadius={50}
@@ -277,7 +277,7 @@ export const AdminDashboard = () => {
                             paddingAngle={5}
                             dataKey="value"
                           >
-                            {pieData.map((entry, index) => (
+                            {categoryPieData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>

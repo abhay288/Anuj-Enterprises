@@ -51,7 +51,13 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : { role: 'guest', name: 'Guest Visitor' };
   });
 
-  const [view, setView] = useState('home');
+  // Initialize view from URL hash if available
+  const getInitialView = () => {
+    const hash = window.location.hash.replace('#/', '');
+    return hash || 'home';
+  };
+
+  const [view, setView] = useState(getInitialView);
   const [selectedProductId, setSelectedProductId] = useState('prod-fmcg-101');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +71,25 @@ export const AppProvider = ({ children }) => {
 
   // Toast System
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
+  // Browser Back/Forward History Listener
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.history.replaceState({ view: 'home' }, '', '#/home');
+    }
+
+    const handlePopState = (event) => {
+      const targetView = event.state?.view || window.location.hash.replace('#/', '') || 'home';
+      if (event.state?.productId) {
+        setSelectedProductId(event.state.productId);
+      }
+      setView(targetView);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Persistence Effects
   useEffect(() => {
@@ -133,11 +158,14 @@ export const AppProvider = ({ children }) => {
     }, 4000);
   };
 
-  const navigateTo = (targetView, productId = null) => {
+  const navigateTo = (targetView, productId = null, pushHistory = true) => {
     if (productId) {
       setSelectedProductId(productId);
     }
     setView(targetView);
+    if (pushHistory) {
+      window.history.pushState({ view: targetView, productId }, '', `#/${targetView}`);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
