@@ -8,6 +8,7 @@ import { useApp } from '../../context/AppContext';
 
 export const NotificationCenter = ({ role = 'ADMIN' }) => {
   const { 
+    user,
     notifications = [], 
     markNotificationAsRead, 
     clearAllNotifications, 
@@ -17,6 +18,11 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
   } = useApp();
 
   const [isOpen, setIsOpen] = useState(false);
+
+  // Strict restriction: Notifications are only available for Admin
+  if (user?.role !== 'admin' && role !== 'ADMIN') {
+    return null;
+  }
 
   // Filter notifications for active role
   const roleNotifications = notifications.filter(n => {

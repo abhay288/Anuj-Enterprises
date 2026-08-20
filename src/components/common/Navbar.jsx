@@ -118,8 +118,10 @@ export const Navbar = () => {
 
         {/* Action Controls & User Dropdown */}
         <div className="flex items-center gap-2">
-          {/* Notification Center */}
-          <NotificationCenter role={user.role === 'admin' ? 'ADMIN' : user.role === 'salesman' ? 'SALESMAN' : 'GUEST'} />
+          {/* Notification Center - Admin Only */}
+          {user.role === 'admin' && (
+            <NotificationCenter role="ADMIN" />
+          )}
 
           {/* Cart Icon */}
           <button
