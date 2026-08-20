@@ -28,26 +28,26 @@ export const Footer = () => {
           
           {/* Col 1: Company Profile */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-900 to-amber-500 text-white flex items-center justify-center font-black">
-                <Building2 className="w-5 h-5 text-amber-400" />
+            <div className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigateTo('home')}>
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-500/60 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg relative">
+                <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain scale-[1.9]" />
               </div>
               <div>
-                <span className="text-xl font-extrabold text-white tracking-tight">ANUJ ENTERPRISES</span>
-                <span className="text-[10px] text-amber-400 block font-semibold tracking-widest uppercase">
-                  Industrial Supply Partner
+                <span className="text-xl sm:text-2xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>
+                <span className="text-[10px] sm:text-xs text-amber-400 block font-bold tracking-widest uppercase mt-0.5">
+                  Your Trusted Supply Partner
                 </span>
               </div>
             </div>
 
             <p className="text-xs leading-relaxed text-slate-400 max-w-sm">
-              Anuj Enterprises is India's premier B2B industrial distributor, powering OEMs, EPC contractors, steel mills, and manufacturing plants with 50,000+ certified tools, electrical automation, and safety equipment.
+              Anuj Enterprises is India's premier B2B industrial distributor, powering OEMs, EPC contractors, steel mills, and manufacturing plants with certified FMCG, tools, and equipment.
             </p>
 
             <div className="pt-2 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-slate-300">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>GSTIN Registered: <strong className="text-white">27AAACA12341ZV</strong></span>
+                <span>Verified B2B Industrial Supply Partner</span>
               </div>
               <div className="flex items-center gap-2 text-slate-300">
                 <Clock className="w-4 h-4 text-amber-400" />
@@ -76,15 +76,15 @@ export const Footer = () => {
               Enterprise Navigation
             </h4>
             <ul className="space-y-2 text-xs">
-              {['Home', 'Products Catalogue', 'About Us', 'Contact HQ', 'Salesman Login'].map((item, idx) => (
+              {['Home', 'Products Catalogue', 'About Us', 'Support & FAQ', 'Contact HQ'].map((item, idx) => (
                 <li key={idx}>
                   <button
                     onClick={() => {
                       if (item === 'Home') navigateTo('home');
                       else if (item === 'Products Catalogue') navigateTo('catalogue');
                       else if (item === 'About Us') navigateTo('about');
-                      else if (item === 'Contact HQ') navigateTo('contact');
-                      else if (item === 'Salesman Login') navigateTo('home');
+                      else if (item === 'Support & FAQ') navigateTo('support');
+                      else if (item === 'Contact HQ') navigateTo('support');
                     }}
                     className="hover:text-amber-400 transition-colors flex items-center gap-1 group"
                   >
@@ -123,15 +123,19 @@ export const Footer = () => {
             <div className="space-y-2.5 text-xs">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>Anuj Tower, Plot 88, MIDC Central Avenue, Andheri East, Mumbai - 400093</span>
+                <span>Kanpur, Uttar Pradesh</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>+91 (022) 6890-4400 / 4401</span>
+                <a href="tel:+918887683782" className="hover:text-amber-400 transition-colors">
+                  +91 88876 83782 / +91 70719 79894
+                </a>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-brand-400 shrink-0" />
-                <span>sales@anujenterprises.com</span>
+                <a href="mailto:anujenterprises.fmcg.006@gmail.com" className="hover:text-amber-400 transition-colors">
+                  anujenterprises.fmcg.006@gmail.com
+                </a>
               </div>
             </div>
 
@@ -139,13 +143,13 @@ export const Footer = () => {
             <div className="mt-3 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-2 relative group">
               <div className="h-20 w-full bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-2">
                 <MapPin className="w-5 h-5 text-amber-400 animate-bounce mb-1" />
-                <span className="text-[10px] text-slate-300 font-bold">Mumbai HQ & Central Dispatch Hub</span>
+                <span className="text-[10px] text-slate-300 font-bold">Kanpur HQ & Central Dispatch Hub</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Newsletter & Bottom Legal Bar */}
+        {/* Bottom Legal Bar */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <span>© 2026 Anuj Enterprises. All Rights Reserved.</span>
@@ -156,23 +160,9 @@ export const Footer = () => {
             <span>•</span>
             <a href="#refund" onClick={(e) => { e.preventDefault(); showToast('GST Replacement Guarantee on Defective Goods', 'info'); }} className="hover:text-amber-400">Return Policy</a>
           </div>
-
-          <form onSubmit={handleSubscribe} className="flex items-center gap-2 w-full md:w-auto">
-            <input
-              type="email"
-              value={newsletterEmail}
-              onChange={(e) => setNewsletterEmail(e.target.value)}
-              placeholder="Enter corporate email for rate cards..."
-              required
-              className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-            />
-            <button
-              type="submit"
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-colors"
-            >
-              <Send className="w-3 h-3" /> Subscribe
-            </button>
-          </form>
+          <div className="text-slate-400 text-xs">
+            Official B2B FMCG Distribution & Sourcing Platform
+          </div>
         </div>
       </div>
     </footer>

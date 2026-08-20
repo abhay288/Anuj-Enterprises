@@ -6,32 +6,32 @@ export const WhyChooseUs = () => {
   const features = [
     {
       id: 1,
-      title: "100% Genuine OEM Quality",
-      desc: "Direct authorized partnership with Bosch, Siemens, SKF, 3M, Makita, and L&T with official manufacturer warranty.",
+      title: "100% Genuine FMCG Brands",
+      desc: "Direct authorized distribution with Amul, Nestlé, Britannia, Cadbury, Colgate, and HUL with complete batch authenticity.",
       icon: ShieldCheck,
       color: "text-amber-500",
       bg: "bg-amber-50 dark:bg-amber-950/40"
     },
     {
       id: 2,
-      title: "24-Hour Freight Dispatch",
-      desc: "Centralized warehouse hubs in Mumbai, Delhi & Bengaluru for rapid dispatch across Indian industrial corridors.",
+      title: "Kanpur Central Warehouse",
+      desc: "Centralized warehouse hub in Kanpur, Uttar Pradesh for dependable dispatch across regional retail networks.",
       icon: Truck,
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-950/40"
     },
     {
       id: 3,
-      title: "Tiered Bulk Discounts",
-      desc: "Transparent price break tiers for volume buyers. The larger your order volume, the lower your unit cost.",
+      title: "Wholesale Case Packaging",
+      desc: "Master cartons, bundle packaging, and dependable wholesale volume supply for supermarkets and retail stores.",
       icon: Percent,
       color: "text-brand-500",
       bg: "bg-brand-50 dark:bg-brand-950/40"
     },
     {
       id: 4,
-      title: "Dedicated Account Manager",
-      desc: "Assigned enterprise sales expert for custom quotations, RFQs, credit management, and priority supply chains.",
+      title: "Dedicated Field Sales Force",
+      desc: "Assigned sales representatives for regular store visits, stock replenishment, and personalized customer care.",
       icon: Headset,
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-950/40"

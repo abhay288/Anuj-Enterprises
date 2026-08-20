@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Search, ShoppingCart, Menu, X, 
-  ChevronDown, ShieldCheck, User, LogOut, LayoutDashboard 
+  ChevronDown, ShieldCheck, User, LogOut, LayoutDashboard, HelpCircle 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { NotificationCenter } from './NotificationCenter';
 
 export const Navbar = () => {
   const { 
@@ -14,7 +15,6 @@ export const Navbar = () => {
     user, 
     logout, 
     setIsSalesmanModalOpen, 
-    loginAdmin, 
     searchQuery,
     setSearchQuery
   } = useApp();
@@ -30,27 +30,31 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-nav transition-all">
-      {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white/75 dark:bg-slate-950/75 backdrop-blur-2xl backdrop-saturate-150 border-b border-slate-200/60 dark:border-slate-800/60 shadow-lg shadow-slate-950/5 transition-all">
+      {/* Full Width Navbar Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-22 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div 
           onClick={() => navigateTo('home')}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-950 via-brand-900 to-brand-800 text-amber-400 flex items-center justify-center shadow-lg shadow-brand-900/30 group-hover:scale-105 transition-transform">
-            <Building2 className="w-6 h-6" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white border-2 border-amber-500/60 p-1 flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative">
+            <img 
+              src="/logo.png" 
+              alt="Anuj Enterprises Logo" 
+              className="w-full h-full object-contain scale-[1.85]" 
+            />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <div className="flex items-center gap-1.5 leading-tight">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 ANUJ
               </span>
-              <span className="text-xl font-extrabold tracking-tight text-brand-900 dark:text-brand-400">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-brand-900 dark:text-amber-400">
                 ENTERPRISES
               </span>
             </div>
-            <span className="text-[10px] font-semibold tracking-wider text-amber-600 dark:text-amber-400 uppercase block -mt-1">
+            <span className="text-[10px] sm:text-xs font-extrabold tracking-wider text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
               Your Trusted Supply Partner
             </span>
           </div>
@@ -101,19 +105,22 @@ export const Navbar = () => {
           </button>
 
           <button
-            onClick={() => navigateTo('contact')}
+            onClick={() => navigateTo('support')}
             className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              view === 'contact' 
+              view === 'support' || view === 'contact' 
                 ? 'text-brand-900 dark:text-brand-400 bg-brand-50/80 dark:bg-slate-800' 
                 : 'text-slate-700 dark:text-slate-300 hover:text-brand-900 dark:hover:text-white'
             }`}
           >
-            Contact
+            Support & FAQ
           </button>
         </nav>
 
         {/* Action Controls & User Dropdown */}
         <div className="flex items-center gap-2">
+          {/* Notification Center */}
+          <NotificationCenter role={user.role === 'admin' ? 'ADMIN' : user.role === 'salesman' ? 'SALESMAN' : 'GUEST'} />
+
           {/* Cart Icon */}
           <button
             onClick={() => navigateTo('cart')}
@@ -137,12 +144,6 @@ export const Navbar = () => {
                 >
                   <User className="w-4 h-4 text-amber-400" />
                   <span>Sign In / Login</span>
-                </button>
-                <button
-                  onClick={loginAdmin}
-                  className="hidden md:flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-2 rounded-xl text-xs font-extrabold shadow-sm transition-all"
-                >
-                  Admin
                 </button>
               </div>
             ) : (
@@ -283,18 +284,9 @@ export const Navbar = () => {
                     setIsMobileMenuOpen(false);
                     setIsSalesmanModalOpen(true);
                   }}
-                  className="flex-1 py-2.5 bg-brand-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-brand-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
                 >
-                  <ShieldCheck className="w-4 h-4 text-amber-400" /> Salesman Login
-                </button>
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    loginAdmin();
-                  }}
-                  className="py-2.5 px-4 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl"
-                >
-                  Admin
+                  <ShieldCheck className="w-4 h-4 text-amber-400" /> Sign In / Login
                 </button>
               </div>
             )}

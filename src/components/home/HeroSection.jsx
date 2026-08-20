@@ -55,7 +55,7 @@ export const HeroSection = () => {
               transition={{ delay: 0.2 }}
               className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed"
             >
-              Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Net 30 B2B Credit, Instant GST Invoicing & 24h Express Freight.
+              Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Net 30 B2B Credit, Instant B2B Invoicing & 24h Express Freight.
             </motion.p>
 
             {/* Quick Hero Search Launcher */}
@@ -123,7 +123,7 @@ export const HeroSection = () => {
                 <Truck className="w-4 h-4 text-amber-400" /> 24h Express Dispatch
               </span>
               <span className="flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-brand-400" /> B2B GST Tax Credit Invoice
+                <Building2 className="w-4 h-4 text-brand-400" /> Official B2B Sales Invoice
               </span>
             </motion.div>
           </div>

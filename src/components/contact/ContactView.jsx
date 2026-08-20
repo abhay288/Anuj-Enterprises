@@ -8,7 +8,6 @@ export const ContactView = () => {
   const [formData, setFormData] = useState({
     name: '',
     company: '',
-    gstin: '',
     email: '',
     phone: '',
     subject: 'Bulk Procurement Inquiry',
@@ -21,7 +20,6 @@ export const ContactView = () => {
     setFormData({
       name: '',
       company: '',
-      gstin: '',
       email: '',
       phone: '',
       subject: 'Bulk Procurement Inquiry',
@@ -135,15 +133,15 @@ export const ContactView = () => {
 
               <div className="space-y-4 text-xs">
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                  <span className="font-extrabold text-amber-600 block">Mumbai Corporate HQ & Hub</span>
-                  <p className="text-slate-600 dark:text-slate-300">Anuj Tower, Plot 88, MIDC Central Avenue, Andheri East, Mumbai - 400093</p>
-                  <p className="text-slate-500 font-mono">Tel: +91 (022) 6890-4400</p>
+                  <span className="font-extrabold text-amber-600 block">Headquarters & Central Distribution Hub</span>
+                  <p className="text-slate-600 dark:text-slate-300">Kanpur, Uttar Pradesh</p>
+                  <p className="text-slate-500 font-mono">Tel: +91 88876 83782 / +91 70719 79894</p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                  <span className="font-extrabold text-brand-900 dark:text-brand-400 block">Delhi NCR Regional Logistics</span>
-                  <p className="text-slate-600 dark:text-slate-300">Sector 63, Noida Industrial Zone, UP - 201301</p>
-                  <p className="text-slate-500 font-mono">Tel: +91 (0120) 4410-880</p>
+                  <span className="font-extrabold text-brand-900 dark:text-brand-400 block">Direct Trade & Customer Helpline</span>
+                  <p className="text-slate-600 dark:text-slate-300">Priority B2B Account Manager Desk</p>
+                  <p className="text-slate-500 font-mono">Mobile / WhatsApp: +91 88876 83782</p>
                 </div>
               </div>
             </div>
@@ -151,13 +149,13 @@ export const ContactView = () => {
             {/* Interactive Map Frame */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-2">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block px-2">
-                Location Map (Mumbai Corporate Center)
+                Location Map (Kanpur Central Facility)
               </span>
               <div className="h-48 rounded-2xl overflow-hidden bg-slate-800 relative flex items-center justify-center p-4 text-center">
                 <div className="space-y-2 z-10">
                   <MapPin className="w-8 h-8 text-amber-400 mx-auto animate-bounce" />
-                  <span className="text-xs font-bold text-white block">MIDC Central Avenue, Andheri East</span>
-                  <span className="text-[10px] text-slate-300 block">GPS Coordinates: 19.1176° N, 72.8631° E</span>
+                  <span className="text-xs font-bold text-white block">Kanpur, Uttar Pradesh</span>
+                  <span className="text-[10px] text-slate-300 block">Central FMCG Distribution Facility</span>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-brand-950 opacity-90" />
               </div>

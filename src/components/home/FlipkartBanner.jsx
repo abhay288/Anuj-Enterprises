@@ -15,29 +15,29 @@ export const FlipkartBanner = () => {
       tag: "DIRECT FACTORY RATES",
       bgColor: "from-brand-950 via-brand-900 to-slate-900",
       accentColor: "text-amber-400",
-      badge: "GST Invoice Included",
+      badge: "Sales Invoice Included",
       btnText: "Explore Bulk Crates",
       target: "catalogue"
     },
     {
       id: 2,
-      title: "Same-Day Dispatch for Supermarkets",
-      subtitle: "24-Hour Express Logistics Hubs in Mumbai, Delhi & Bengaluru",
-      tag: "PAN-INDIA FREIGHT",
+      title: "Fast Dispatch for Supermarkets & Retailers",
+      subtitle: "Direct Warehouse Fulfillment & Delivery from Kanpur Hub",
+      tag: "FAST REGIONAL DISPATCH",
       bgColor: "from-slate-900 via-slate-950 to-brand-950",
       accentColor: "text-emerald-400",
-      badge: "100% Genuine OEM Sourcing",
+      badge: "100% Genuine FMCG Sourcing",
       btnText: "View FMCG Products",
       target: "catalogue"
     },
     {
       id: 3,
-      title: "Salesman Credit Accounts & RFQ Quotes",
-      subtitle: "Net 30 Days Credit Facilities for Approved Corporate Buyers",
-      tag: "B2B SALES PORTAL",
+      title: "Field Salesman & Store Order Booking",
+      subtitle: "Authorized Sales Representatives for Regular Store Visits & Stock Replenishment",
+      tag: "B2B SALES FORCE",
       bgColor: "from-brand-900 via-slate-900 to-amber-950",
       accentColor: "text-amber-300",
-      badge: "Salesman Auth Ready",
+      badge: "Salesman Portal Ready",
       btnText: "Authenticate as Salesman",
       action: "salesman"
     }

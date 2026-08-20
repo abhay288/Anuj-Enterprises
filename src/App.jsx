@@ -5,6 +5,7 @@ import { Footer } from './components/common/Footer';
 import { Toast } from './components/common/Toast';
 import { QuickViewModal } from './components/common/QuickViewModal';
 import { SalesmanLoginModal } from './components/common/SalesmanLoginModal';
+import { BottomNav } from './components/common/BottomNav';
 
 import { HomeDashboard } from './components/home/HomeDashboard';
 import { ProductGrid } from './components/catalogue/ProductGrid';
@@ -14,13 +15,21 @@ import { SalesmanDashboard } from './components/salesman/SalesmanDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AboutView } from './components/about/AboutView';
 import { ContactView } from './components/contact/ContactView';
+import { SupportView } from './components/support/SupportView';
+import { InvoiceModal } from './components/cart/InvoiceModal';
+import { OrderSuccessModal } from './components/cart/OrderSuccessModal';
+import { WhatsAppFloatingButton } from './components/common/WhatsAppFloatingButton';
+import { HeadlineBar } from './components/common/HeadlineBar';
 
 const MainContent = () => {
-  const { view } = useApp();
+  const { view, user, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
+  const isEligibleAdminView = view === 'admin-dash' || user?.role === 'admin';
+  const hasHeadline = isEligibleAdminView && headlineConfig?.isVisible;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className={`flex flex-col min-h-screen ${hasHeadline ? 'pt-28 sm:pt-30' : 'pt-20 sm:pt-22'} pb-16 md:pb-0 transition-all`}>
       <Navbar />
+      <HeadlineBar />
       
       <main className="flex-grow">
         {view === 'home' && <HomeDashboard />}
@@ -30,13 +39,21 @@ const MainContent = () => {
         {view === 'salesman-dash' && <SalesmanDashboard />}
         {view === 'admin-dash' && <AdminDashboard />}
         {view === 'about' && <AboutView />}
-        {view === 'contact' && <ContactView />}
+        {(view === 'contact' || view === 'support') && <SupportView />}
       </main>
 
       <Footer />
+      <BottomNav />
       <Toast />
       <QuickViewModal />
       <SalesmanLoginModal />
+      <InvoiceModal />
+      <OrderSuccessModal 
+        isOpen={isOrderSuccessModalOpen} 
+        onClose={closeOrderSuccessModal} 
+        order={lastCompletedOrder} 
+      />
+      <WhatsAppFloatingButton />
     </div>
   );
 };

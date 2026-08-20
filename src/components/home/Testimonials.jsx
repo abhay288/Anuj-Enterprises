@@ -9,7 +9,7 @@ export const Testimonials = () => {
       name: "Rajiv Kulkarni",
       role: "VP Supply Chain & Procurement",
       company: "Tata Steel Construction Div",
-      content: "Anuj Enterprises has revolutionized our site procurement. The instant B2B GST tax invoice generation and 24h dispatch of Schneider MCCBs and SKF bearings saved us over 40 hours of downtime.",
+      content: "Anuj Enterprises has revolutionized our site procurement. The instant B2B sales invoice generation and 24h dispatch of Schneider MCCBs and SKF bearings saved us over 40 hours of downtime.",
       rating: 5,
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
     },

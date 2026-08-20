@@ -1,0 +1,26 @@
+{
+  "short_name": "Anuj B2B",
+  "name": "Anuj Enterprises — B2B FMCG Distribution",
+  "description": "Enterprise B2B E-Commerce & Field Sales Sourcing Platform",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "background_color": "#020617",
+  "theme_color": "#1e3a8a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["business", "shopping", "productivity"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
