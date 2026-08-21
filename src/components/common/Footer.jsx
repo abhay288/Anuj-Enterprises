@@ -28,13 +28,13 @@ export const Footer = () => {
           
           {/* Col 1: Company Profile */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigateTo('home')}>
-              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg relative">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-amber-400/80 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md relative">
                 <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" />
               </div>
               <div>
-                <span className="text-xl sm:text-2xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>
-                <span className="text-[10px] sm:text-xs text-amber-400 block font-bold tracking-widest uppercase mt-0.5">
+                <span className="text-lg sm:text-xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>
+                <span className="text-[10px] text-amber-400 block font-bold tracking-widest uppercase mt-0.5">
                   Your Trusted Supply Partner
                 </span>
               </div>

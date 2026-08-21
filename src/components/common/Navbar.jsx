@@ -38,7 +38,7 @@ export const Navbar = () => {
           onClick={() => navigateTo('home')}
           className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
-          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 ring-amber-500/20">
             <img 
               src="/logo.png" 
               alt="Anuj Enterprises Logo" 
