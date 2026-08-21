@@ -126,12 +126,6 @@ export const ProductCard = ({ product }) => {
               </span>
             )}
           </div>
-
-          <div className="flex items-center gap-1 text-xs text-amber-500 mb-3">
-            <Star className="w-3.5 h-3.5 fill-amber-500" />
-            <span className="font-bold text-slate-800 dark:text-slate-200">{product.rating || 5.0}</span>
-            <span className="text-slate-400">({product.reviewCount || 10} reviews)</span>
-          </div>
         </div>
 
         {/* Action Trigger */}

@@ -129,7 +129,7 @@ export const toggleSalesmanStatus = async (req: AuthRequest, res: Response) => {
     const salesman = await Salesman.findOne({ $or: [{ salesmanId: idStr.toUpperCase() }, { _id: isObjectId ? idStr : null }] });
     if (!salesman) return res.status(404).json({ success: false, message: 'Salesman not found' });
 
-    salesman.status = salesman.status === 'Active' ? 'Disabled' : 'Active';
+    salesman.status = salesman.status === 'Active' ? 'Paused' : 'Active';
     await salesman.save();
 
     await AdminActivity.create({
@@ -144,6 +144,25 @@ export const toggleSalesmanStatus = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteSalesman = async (req: AuthRequest, res: Response) => {
+  try {
+    const idStr = String(req.params.id);
+    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
+    const salesman = await Salesman.findOneAndDelete({ $or: [{ salesmanId: idStr.toUpperCase() }, { _id: isObjectId ? idStr : null }] });
+    if (!salesman) return res.status(404).json({ success: false, message: 'Salesman not found' });
+
+    await AdminActivity.create({
+      action: 'SALESMAN_DELETED',
+      adminId: req.user?.id || 'ADMIN',
+      details: `Permanently deleted salesman ${salesman.name} (${salesman.salesmanId})`
+    });
+
+    return res.json({ success: true, message: `Salesman ${salesman.salesmanId} permanently deleted` });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const resetPassword = async (req: AuthRequest, res: Response) => {
   try {
     const idStr = String(req.params.id);
@@ -151,7 +170,7 @@ export const resetPassword = async (req: AuthRequest, res: Response) => {
     const salesman = await Salesman.findOne({ $or: [{ salesmanId: idStr.toUpperCase() }, { _id: isObjectId ? idStr : null }] });
     if (!salesman) return res.status(404).json({ success: false, message: 'Salesman not found' });
 
-    const newPassword = 'Sales@123';
+    const newPassword = req.body?.password || 'Sales@123';
     salesman.passwordHash = await bcrypt.hash(newPassword, 10);
     await salesman.save();
 

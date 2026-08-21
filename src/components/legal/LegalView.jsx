@@ -4,7 +4,7 @@ import {
   ShieldCheck, FileText, RotateCcw, Search, Printer, 
   Download, ArrowRight, CheckCircle2, AlertTriangle, 
   MapPin, Phone, Mail, Clock, Scale, Building2, 
-  ExternalLink, Edit3, ChevronRight, Lock, Sparkles, HelpCircle
+  Edit3, ChevronRight, Lock, Sparkles, HelpCircle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -32,11 +32,6 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    showToast('Policy URL copied to clipboard', 'success');
   };
 
   return (
@@ -94,13 +89,6 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
                 className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 shadow flex items-center gap-2 transition-colors"
               >
                 <Printer className="w-4 h-4 text-amber-400" /> Print Official Copy
-              </button>
-
-              <button
-                onClick={handleCopyLink}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 shadow flex items-center gap-2 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4 text-blue-400" /> Share Document
               </button>
 
               {user?.role === 'admin' && (

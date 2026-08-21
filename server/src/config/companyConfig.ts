@@ -11,6 +11,6 @@ export const companyConfig = {
   supportPhones: ['+91 88876 83782', '+91 70719 79894'],
   email: process.env.COMPANY_EMAIL || 'anujenterprises.fmcg.006@gmail.com',
   website: process.env.COMPANY_WEBSITE || 'https://anujenterprises.com',
-  signatory: process.env.COMPANY_SIGNATORY || 'Anuj Sharma (Managing Director)',
+  signatory: process.env.COMPANY_SIGNATORY || 'ANUJ',
   resendApiKey: process.env.RESEND_API_KEY || ''
 };

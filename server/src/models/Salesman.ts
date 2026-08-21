@@ -6,7 +6,7 @@ export interface ISalesman extends Document {
   email: string;
   phone: string;
   passwordHash: string;
-  status: 'Active' | 'Disabled';
+  status: 'Active' | 'Paused' | 'Disabled';
   avatar?: string;
   region?: string;
   totalOrders: number;
@@ -23,7 +23,7 @@ const SalesmanSchema: Schema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone: { type: String, required: true },
     passwordHash: { type: String, required: true, select: false },
-    status: { type: String, enum: ['Active', 'Disabled'], default: 'Active' },
+    status: { type: String, enum: ['Active', 'Paused', 'Disabled'], default: 'Active' },
     avatar: { type: String, default: '' },
     region: { type: String, default: 'West India (Mumbai HQ)' },
     totalOrders: { type: Number, default: 0 },

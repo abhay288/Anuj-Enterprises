@@ -97,7 +97,16 @@ export const AppProvider = ({ children }) => {
 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('anuj_user');
-    return saved ? JSON.parse(saved) : { role: 'guest', name: 'Guest Visitor' };
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role === 'admin') {
+          parsed.name = 'ANUJ';
+        }
+        return parsed;
+      } catch (e) {}
+    }
+    return { role: 'guest', name: 'Guest Visitor' };
   });
 
   const resolveInitialRoute = () => {
@@ -540,6 +549,10 @@ export const AppProvider = ({ children }) => {
 
     const found = salesmen.find(s => s.id.toUpperCase() === sId);
     if (found) {
+      if (found.status === 'Paused' || found.status === 'Disabled') {
+        showToast(`Salesman ID ${found.id} (${found.name}) is currently PAUSED by Admin. Please contact anujenterprises.fmcg.006@gmail.com`, 'error');
+        return false;
+      }
       const expectedPassword = found.password || 'Sales@123';
       if (sPwd && sPwd !== expectedPassword && sPwd !== 'Sales@123' && sPwd !== 'Anuj@2026' && sPwd !== 'Admin@123') {
         showToast(`Incorrect password for ${found.name}. Please check the password created by Admin.`, 'error');
@@ -559,7 +572,11 @@ export const AppProvider = ({ children }) => {
     }
 
     if (sId === 'AE-SM-001' || sId === 'SLS-101' || sId === 'SLS-DEMO') {
-      const sUser = salesmen[0] || { name: 'Rajesh Kumar', email: 'rajesh@anujenterprises.demo', phone: '+91 88876 83782', region: 'Central UP (Kanpur HQ)' };
+      const sUser = salesmen[0] || { name: 'Rajesh Kumar', email: 'rajesh@anujenterprises.demo', phone: '+91 88876 83782', region: 'Central UP (Kanpur HQ)', status: 'Active' };
+      if (sUser.status === 'Paused' || sUser.status === 'Disabled') {
+        showToast(`Salesman ID ${sId} is currently PAUSED by Admin. Contact anujenterprises.fmcg.006@gmail.com`, 'error');
+        return false;
+      }
       setUser({
         role: 'salesman',
         name: sUser.name,
@@ -591,13 +608,15 @@ export const AppProvider = ({ children }) => {
   };
 
   const loginAdmin = async (email = '', password = '') => {
+    const targetEmail = (email || 'anujenterprises.fmcg.006@gmail.com').trim();
+    const targetPassword = (password || 'Anuj@2026').trim();
     try {
-      const res = await authService.login(email || 'admin@anujenterprises.demo', password || 'Admin@123', 'admin');
+      const res = await authService.login(targetEmail, targetPassword, 'admin');
       if (res.data?.user) {
         setUser({
           role: 'admin',
-          name: res.data.user.name,
-          email: res.data.user.email
+          name: res.data.user.name || 'ANUJ',
+          email: res.data.user.email || targetEmail
         });
         setIsSalesmanModalOpen(false);
         showToast('Enterprise Admin Session Granted', 'success');
@@ -610,8 +629,8 @@ export const AppProvider = ({ children }) => {
 
     setUser({
       role: 'admin',
-      name: 'Anuj Sharma (Managing Director)',
-      email: email || 'admin@anujenterprises.demo'
+      name: 'ANUJ',
+      email: targetEmail
     });
     setIsSalesmanModalOpen(false);
     showToast('Enterprise Admin Session Granted', 'success');
@@ -927,14 +946,33 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleSalesmanStatus = async (id) => {
+    let nextStatus = 'Paused';
     setSalesmen(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, status: s.status === 'Active' ? 'Disabled' : 'Active' } : s);
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          nextStatus = s.status === 'Active' ? 'Paused' : 'Active';
+          return { ...s, status: nextStatus };
+        }
+        return s;
+      });
       broadcastSync('SYNC_SALESMEN', updated);
       return updated;
     });
-    showToast('Salesman status toggled live', 'info');
+    showToast(`Salesman ${id} ID status is now ${nextStatus.toUpperCase()}`, nextStatus === 'Active' ? 'success' : 'warning');
     try {
       await salesmanService.toggleStatus(id);
+    } catch (e) {}
+  };
+
+  const deleteSalesman = async (id) => {
+    setSalesmen(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      broadcastSync('SYNC_SALESMEN', updated);
+      return updated;
+    });
+    showToast(`Salesman ${id} permanently removed from roster`, 'info');
+    try {
+      await salesmanService.deleteSalesman(id);
     } catch (e) {}
   };
 
@@ -1275,6 +1313,7 @@ export const AppProvider = ({ children }) => {
       bulkAddProducts,
       addSalesman,
       updateSalesman,
+      deleteSalesman,
       toggleSalesmanStatus,
       resetSalesmanPassword,
       addCategory,

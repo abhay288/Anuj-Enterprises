@@ -35,7 +35,7 @@ HANDOVER PACKAGE:   COMPLETED (All 12 Operational Documents Delivered)
 By signing below, **Anuj Enterprises** confirms full receipt, complete user acceptance testing, source code handover, and operational closure of the B2B E-Commerce Platform built by **Qyvero Technologies**.
 
 ### Client Representative
-**Client Name:** Anuj Sharma  
+**Client Name:** ANUJ  
 **Designation:** Managing Director, Anuj Enterprises  
 
 **Signature:** _____________________________________  

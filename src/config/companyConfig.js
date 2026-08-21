@@ -7,7 +7,7 @@ export const companyConfig = {
   supportPhones: ['+91 88876 83782', '+91 70719 79894'],
   email: import.meta.env.VITE_COMPANY_EMAIL || 'anujenterprises.fmcg.006@gmail.com',
   website: import.meta.env.VITE_COMPANY_WEBSITE || 'https://anujenterprises.com',
-  signatory: import.meta.env.VITE_COMPANY_SIGNATORY || 'Anuj Sharma (Managing Director)',
+  signatory: import.meta.env.VITE_COMPANY_SIGNATORY || 'ANUJ',
   terms: [
     'Collection is offline and marked as Pending upon invoice creation.',
     'Customer Classification (Normal / Damage / Expiry) determines inspection rules.',

@@ -22,7 +22,7 @@ export const seedDatabase = async () => {
     const adminPasswordHash = await bcrypt.hash('Admin@123', 10);
     await User.deleteMany({ email: 'admin@anujenterprises.demo' });
     await User.create({
-      name: 'Anuj Sharma (Managing Director)',
+      name: 'ANUJ',
       email: 'admin@anujenterprises.demo',
       phone: '+91 98765 43210',
       passwordHash: adminPasswordHash,

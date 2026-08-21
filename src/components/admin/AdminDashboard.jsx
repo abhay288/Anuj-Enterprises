@@ -9,7 +9,7 @@ import {
   Store, Clock, AlertCircle, ArrowUpRight, ArrowDownRight, PackageCheck,
   PackageX, ShieldAlert, ArrowRight, PackagePlus, History, SlidersHorizontal,
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
-  BookOpen, FileCheck, HelpCircle
+  BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -18,6 +18,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { analyticsService } from '../../services/analyticsService';
 import { inventoryService } from '../../services/inventoryService';
+import { uploadToCloudinary, CLOUDINARY_CONFIG, setCloudinaryConfig } from '../../services/cloudinaryService';
 import { BulkCsvModal } from './BulkCsvModal';
 import { BulkInventoryModal } from './BulkInventoryModal';
 import { AdminPasswordModal } from './AdminPasswordModal';
@@ -37,6 +38,7 @@ export const AdminDashboard = () => {
     brands, 
     salesmen, 
     orders, 
+    customers, 
     addProduct, 
     updateProduct, 
     deleteProduct, 
@@ -46,6 +48,7 @@ export const AdminDashboard = () => {
     toggleProductStatus,
     addSalesman,
     updateSalesman,
+    deleteSalesman,
     toggleSalesmanStatus,
     resetSalesmanPassword,
     addCategory,
@@ -152,6 +155,7 @@ export const AdminDashboard = () => {
     isNew: true,
     status: 'Published',
     image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+    images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
     description: 'High-margin enterprise B2B product item.'
   });
 
@@ -166,7 +170,86 @@ export const AdminDashboard = () => {
   });
 
   const [salesmanPasswordTarget, setSalesmanPasswordTarget] = useState(null);
-  const [customSalesmanPassword, setCustomSalesmanPassword] = useState('Sales@123');
+  const [salesmanToDelete, setSalesmanToDelete] = useState(null);
+
+  // Cloudinary Image Upload State (Max 3 Photos, Max 2MB per photo)
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleProductImageFile = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const currentImages = prodForm.images || (prodForm.image ? [prodForm.image] : []);
+    
+    // 1. Strict 3 Photos Boundation
+    if (currentImages.length >= 3) {
+      showToast('Maximum 3 photos allowed per product. Please delete a photo first.', 'warning');
+      return;
+    }
+
+    const availableSlots = 3 - currentImages.length;
+    const filesToUpload = files.slice(0, availableSlots);
+
+    // 2. Strict 2MB Size Boundation
+    const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+    for (const file of filesToUpload) {
+      if (!file.type.startsWith('image/')) {
+        showToast(`"${file.name}" is not a valid image. Please select PNG, JPG, or WEBP.`, 'error');
+        return;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 2MB. Please compress or resize.`, 'error');
+        return;
+      }
+    }
+
+    setIsImageUploading(true);
+    setUploadProgress(20);
+
+    try {
+      const uploadedUrls = [];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+        const res = await uploadToCloudinary(file, (prog) => {
+          const stepProg = Math.round(((i + prog / 100) / filesToUpload.length) * 100);
+          setUploadProgress(stepProg);
+        });
+        if (res?.url) {
+          uploadedUrls.push(res.url);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        const combined = [...currentImages, ...uploadedUrls].slice(0, 3);
+        setProdForm(prev => ({
+          ...prev,
+          images: combined,
+          image: combined[0] || prev.image
+        }));
+        showToast(`${uploadedUrls.length} photo(s) uploaded to Cloudinary CDN successfully!`, 'success');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      showToast('Upload error. Please check network connection.', 'error');
+    } finally {
+      setIsImageUploading(false);
+      setUploadProgress(0);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveProductImage = (indexToRemove) => {
+    const currentImages = prodForm.images || [prodForm.image];
+    const filtered = currentImages.filter((_, idx) => idx !== indexToRemove);
+    setProdForm(prev => ({
+      ...prev,
+      images: filtered,
+      image: filtered[0] || ''
+    }));
+    showToast('Photo removed', 'info');
+  };
 
   const [prodSearch, setProdSearch] = useState('');
   const [salesmanSearch, setSalesmanSearch] = useState('');
@@ -362,8 +445,12 @@ export const AdminDashboard = () => {
   };
 
   const handleSaveProduct = (statusOverride = null) => {
+    const finalImages = (prodForm.images && prodForm.images.length > 0 ? prodForm.images : [prodForm.image]).filter(Boolean).slice(0, 3);
     const finalForm = {
       ...prodForm,
+      image: finalImages[0] || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      gallery: finalImages,
+      images: finalImages,
       status: statusOverride || prodForm.status
     };
 
@@ -378,14 +465,19 @@ export const AdminDashboard = () => {
 
   const handleEditProductClick = (product) => {
     setEditingProduct(product);
+    const productImages = (product.gallery && product.gallery.length > 0 
+      ? product.gallery 
+      : (product.images && product.images.length > 0 ? product.images : [product.image])
+    ).filter(Boolean).slice(0, 3);
+
     setProdForm({
       name: product.name,
       brand: product.brand,
       category: product.category,
       sku: product.sku,
       hsn: product.hsn || '19053100',
-      price: product.price,
-      mrp: product.mrp,
+      price: product.price || 0,
+      mrp: product.mrp || 0,
       stock: product.stock,
       lowStockThreshold: product.lowStockThreshold || 20,
       packSize: product.packSize || '1 Unit',
@@ -394,7 +486,8 @@ export const AdminDashboard = () => {
       isFeatured: product.isFeatured ?? true,
       isNew: product.isNew ?? false,
       status: product.status || 'Published',
-      image: product.image,
+      image: productImages[0] || product.image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      images: productImages.length > 0 ? productImages : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
       description: product.description
     });
     setIsAddProductOpen(true);
@@ -448,14 +541,8 @@ export const AdminDashboard = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => setIsBulkInventoryOpen(true)}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
-            >
-              <PackagePlus className="w-4 h-4" /> Bulk Restock
-            </button>
-            <button
               onClick={() => setIsCsvModalOpen(true)}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
             >
               <UploadCloud className="w-4 h-4" /> CSV Product Import
             </button>
@@ -526,10 +613,10 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Layout Grid: Sidebar Navigation + Main Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative">
           
-          {/* Sidebar Navigation */}
-          <aside className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm h-fit space-y-1">
+          {/* Left Sidebar Navigation (Sticky & Independent Scroll) */}
+          <aside className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto space-y-1 self-start z-10">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 py-2 block">
               BI Modules
             </span>
@@ -564,8 +651,8 @@ export const AdminDashboard = () => {
             })}
           </aside>
 
-          {/* Main Content Area */}
-          <main className="lg:col-span-9 space-y-6">
+          {/* Right Main Content Area (Scrolls Independently) */}
+          <main className="lg:col-span-9 space-y-6 min-w-0">
             
             {/* ================= TAB 1: EXECUTIVE ANALYTICS DASHBOARD ================= */}
             {activeTab === 'analytics' && (
@@ -690,16 +777,10 @@ export const AdminDashboard = () => {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setIsBulkInventoryOpen(true)}
-                        className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5"
-                      >
-                        <PackagePlus className="w-4 h-4" /> Bulk Restock
-                      </button>
-                      <button
                         onClick={() => exportInventoryReportCSV(products)}
-                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
                       >
-                        <Download className="w-3.5 h-3.5" /> Export Stock CSV
+                        <Download className="w-3.5 h-3.5 text-emerald-500" /> Export Stock Excel (.XLSX)
                       </button>
                     </div>
                   </div>
@@ -897,9 +978,9 @@ export const AdminDashboard = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => exportProductsCSV(products)}
-                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> Export Catalog CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-500" /> Export Catalog Excel (.XLSX)
                     </button>
                     <button
                       onClick={() => {
@@ -982,9 +1063,6 @@ export const AdminDashboard = () => {
                             <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-slate-400 hover:text-amber-500" title="Edit Product">
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => duplicateProduct(prod)} className="p-1.5 text-slate-400 hover:text-brand-500" title="Duplicate Product">
-                              <Copy className="w-4 h-4" />
-                            </button>
                             <button onClick={() => deleteProduct(prod.id)} className="p-1.5 text-slate-400 hover:text-red-600" title="Delete Product">
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1041,9 +1119,9 @@ export const AdminDashboard = () => {
 
                   <button
                     onClick={() => exportOrdersCSV(orders)}
-                    className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 shrink-0"
+                    className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 shrink-0 transition-colors"
                   >
-                    <Download className="w-4 h-4" /> Export CSV
+                    <Download className="w-4 h-4 text-emerald-400" /> Export Orders Excel (.XLSX)
                   </button>
                 </div>
 
@@ -1148,9 +1226,9 @@ export const AdminDashboard = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => exportSalesmenCSV(salesmen)}
-                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> Export Roster CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-500" /> Export Roster Excel (.XLSX)
                     </button>
                     <button
                       onClick={() => {
@@ -1201,24 +1279,68 @@ export const AdminDashboard = () => {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => toggleSalesmanStatus(s.id)}
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-flex items-center gap-1 ${
+                                s.status === 'Active' 
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' 
+                                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                              }`}
                             >
-                              {s.status}
-                            </button>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                              {s.status === 'Active' ? 'Active' : 'Paused'}
+                            </span>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => {
-                                setSalesmanPasswordTarget(s);
-                                setCustomSalesmanPassword(s.password || 'Sales@123');
-                              }}
-                              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors"
-                              title="Set or change password for this salesman"
-                            >
-                              <Key className="w-3 h-3" /> Set Password
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Pause / Resume ID Button */}
+                              <button
+                                type="button"
+                                onClick={() => toggleSalesmanStatus(s.id)}
+                                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors border ${
+                                  s.status === 'Active'
+                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 dark:text-amber-300 border-amber-200 dark:border-amber-900/50'
+                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50'
+                                }`}
+                                title={s.status === 'Active' ? 'Pause this Salesman ID' : 'Resume this Salesman ID'}
+                              >
+                                {s.status === 'Active' ? (
+                                  <>
+                                    <PauseCircle className="w-3 h-3 text-amber-600" />
+                                    <span>Pause ID</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <PlayCircle className="w-3 h-3 text-emerald-600" />
+                                    <span>Resume ID</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Set Password Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSalesmanPasswordTarget(s);
+                                  setCustomSalesmanPassword(s.password || 'Sales@123');
+                                }}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors border border-slate-200 dark:border-slate-700"
+                                title="Set or change password for this salesman"
+                              >
+                                <Key className="w-3 h-3 text-amber-500" />
+                                <span>Password</span>
+                              </button>
+
+                              {/* Delete Salesman ID Button */}
+                              <button
+                                type="button"
+                                onClick={() => setSalesmanToDelete(s)}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors border border-rose-200 dark:border-rose-900/50"
+                                title="Permanently delete this salesman account"
+                              >
+                                <Trash2 className="w-3 h-3 text-rose-500" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1305,10 +1427,10 @@ export const AdminDashboard = () => {
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <FileText className="w-5 h-5 text-amber-500" />
-                    Business Reports & CSV Data Export Center
+                    Business Reports & Microsoft Excel (.XLSX) Export Center
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Generate instant, un-truncated CSV spreadsheets for audit, accounting, and inventory tracking.
+                    Generate instant, auto-formatted Microsoft Excel workbooks for audit, accounting, and inventory tracking.
                   </p>
                 </div>
 
@@ -1320,9 +1442,9 @@ export const AdminDashboard = () => {
                     </div>
                     <button
                       onClick={() => exportOrdersCSV(orders)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
+                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
                     </button>
                   </div>
 
@@ -1333,9 +1455,9 @@ export const AdminDashboard = () => {
                     </div>
                     <button
                       onClick={() => exportProductsCSV(products)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
+                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
                     </button>
                   </div>
 
@@ -1346,9 +1468,9 @@ export const AdminDashboard = () => {
                     </div>
                     <button
                       onClick={() => exportSalesmenCSV(salesmen)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
+                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
                     </button>
                   </div>
 
@@ -1359,9 +1481,9 @@ export const AdminDashboard = () => {
                     </div>
                     <button
                       onClick={() => exportInventoryReportCSV(products)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
+                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" /> CSV
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
                     </button>
                   </div>
                 </div>
@@ -2190,124 +2312,312 @@ export const AdminDashboard = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
             >
-              <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
-                <h3 className="font-extrabold text-base">
-                  {editingProduct ? 'Edit B2B Product Details' : 'Add New B2B Product to Database'}
-                </h3>
-                <button onClick={() => setIsAddProductOpen(false)} className="text-slate-400 hover:text-white">
+              <div className="bg-slate-900 text-white p-6 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base">
+                      {editingProduct ? 'Edit B2B Product Details' : 'Add New B2B Product to Database'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Enter FMCG specifications and warehouse inventory details</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsAddProductOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+                {/* 1. Basic Identification */}
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Product Title</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Product Title / Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={prodForm.name}
                     onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
+                    placeholder="e.g. Amul Taaza Homogenised Toned Milk 1L Tetra Pak (Case of 12)"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Brand / Company</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Brand / Company *
+                    </label>
                     <select
                       value={prodForm.brand}
                       onChange={(e) => setProdForm({ ...prodForm, brand: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
                     >
                       {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
                     </select>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Category</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Category *
+                    </label>
                     <select
                       value={prodForm.category}
                       onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
                     >
                       {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Pack Size</label>
-                    <input
-                      type="text"
-                      value={prodForm.packSize}
-                      onChange={(e) => setProdForm({ ...prodForm, packSize: e.target.value })}
-                      placeholder="1 Litre"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Bundle Size</label>
-                    <input
-                      type="text"
-                      value={prodForm.bundleSize}
-                      onChange={(e) => setProdForm({ ...prodForm, bundleSize: e.target.value })}
-                      placeholder="6 Packs"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Case Size</label>
-                    <input
-                      type="text"
-                      value={prodForm.caseSize}
-                      onChange={(e) => setProdForm({ ...prodForm, caseSize: e.target.value })}
-                      placeholder="12 Units"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">SKU</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        SKU Code *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const prefix = (prodForm.brand || 'PRD').slice(0, 3).toUpperCase();
+                          const slugName = (prodForm.name || 'ITEM').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+                          const randomSuffix = Math.floor(100 + Math.random() * 900);
+                          setProdForm({ ...prodForm, sku: `${prefix}-${slugName}-${randomSuffix}` });
+                        }}
+                        className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
+                      >
+                        Auto-Gen
+                      </button>
+                    </div>
                     <input
                       type="text"
                       required
                       value={prodForm.sku}
-                      onChange={(e) => setProdForm({ ...prodForm, sku: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-mono"
+                      onChange={(e) => setProdForm({ ...prodForm, sku: e.target.value.toUpperCase() })}
+                      placeholder="e.g. AML-TAZ-1L-12"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-slate-900 dark:text-white uppercase"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Wholesale Price (₹)</label>
-                    <input
-                      type="number"
-                      required
-                      value={prodForm.price}
-                      onChange={(e) => setProdForm({ ...prodForm, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
-                    />
+                </div>
+
+                {/* 2. B2B Packaging Breakdown */}
+                <div className="p-3.5 bg-gradient-to-r from-amber-500/10 via-brand-500/5 to-slate-100 dark:to-slate-950 rounded-2xl border border-amber-500/30 space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-300 block">
+                    📦 B2B Packaging Hierarchy
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Unit Pack Size</label>
+                      <input
+                        type="text"
+                        value={prodForm.packSize}
+                        onChange={(e) => setProdForm({ ...prodForm, packSize: e.target.value })}
+                        placeholder="e.g. 1 Litre Tetra / 500g"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Inner Bundle Size</label>
+                      <input
+                        type="text"
+                        value={prodForm.bundleSize}
+                        onChange={(e) => setProdForm({ ...prodForm, bundleSize: e.target.value })}
+                        placeholder="e.g. 6 Packs Shrink Wrap"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Master Case Size</label>
+                      <input
+                        type="text"
+                        value={prodForm.caseSize}
+                        onChange={(e) => setProdForm({ ...prodForm, caseSize: e.target.value })}
+                        placeholder="e.g. 12 Units / Master Case"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-400 dark:border-amber-800 rounded-xl font-bold text-brand-900 dark:text-amber-300"
+                      />
+                    </div>
                   </div>
+                </div>
+
+                {/* 3. Warehouse Inventory & Alert Thresholds */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Stock Count</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Current Stock Count (Units) *
+                    </label>
                     <input
                       type="number"
+                      min="0"
                       required
                       value={prodForm.stock}
-                      onChange={(e) => setProdForm({ ...prodForm, stock: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
+                      onChange={(e) => setProdForm({ ...prodForm, stock: Math.max(0, Number(e.target.value)) })}
+                      placeholder="e.g. 250"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">Alert Threshold</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Low Stock Alert Threshold *
+                    </label>
                     <input
                       type="number"
+                      min="1"
                       required
                       value={prodForm.lowStockThreshold}
-                      onChange={(e) => setProdForm({ ...prodForm, lowStockThreshold: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-bold"
+                      onChange={(e) => setProdForm({ ...prodForm, lowStockThreshold: Math.max(1, Number(e.target.value)) })}
+                      placeholder="e.g. 25"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-amber-600 dark:text-amber-400"
                     />
                   </div>
+                </div>
+
+                {/* 4. Product Photos (Max 3 Photos, Cloudinary CDN Storage, Max 2MB per Photo) */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <UploadCloud className="w-4 h-4 text-amber-500" />
+                      <span>Product Photos ({(prodForm.images || []).length}/3)</span>
+                    </label>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
+                      Max 3 Photos • Max 2MB each
+                    </span>
+                  </div>
+
+                  {/* 3 Photos Grid Slots */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {[0, 1, 2].map((slotIdx) => {
+                      const imgUrl = (prodForm.images || [])[slotIdx];
+                      return (
+                        <div
+                          key={slotIdx}
+                          className={`relative rounded-2xl border aspect-square overflow-hidden flex flex-col items-center justify-center p-1.5 transition-all ${
+                            imgUrl
+                              ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm'
+                              : 'bg-slate-100/50 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-800'
+                          }`}
+                        >
+                          {imgUrl ? (
+                            <>
+                              <img
+                                src={imgUrl}
+                                alt={`Product slot ${slotIdx + 1}`}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  e.target.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                                }}
+                              />
+                              {/* Slot Tag Badge */}
+                              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-950/80 text-white backdrop-blur-xs">
+                                {slotIdx === 0 ? '★ Cover' : `Photo ${slotIdx + 1}`}
+                              </span>
+
+                              {/* Delete Photo Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProductImage(slotIdx)}
+                                className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-transform hover:scale-110"
+                                title="Remove this photo"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20 rounded-xl transition-colors">
+                              <input
+                                type="file"
+                                accept="image/png, image/jpeg, image/webp, image/jpg"
+                                onChange={handleProductImageFile}
+                                disabled={isImageUploading}
+                                className="hidden"
+                              />
+                              <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-500 mb-1">
+                                <Plus className="w-4 h-4" />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                {slotIdx === 0 ? '+ Cover Photo' : `+ Photo ${slotIdx + 1}`}
+                              </span>
+                              <span className="text-[8px] text-slate-400">Max 2MB</span>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Upload Dropzone / Action Bar */}
+                  {(prodForm.images || []).length < 3 ? (
+                    <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-amber-500/40 hover:border-amber-500 dark:border-amber-500/30 dark:hover:border-amber-500 rounded-2xl cursor-pointer bg-white/60 dark:bg-slate-900/60 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all text-center group">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp, image/jpg"
+                        onChange={handleProductImageFile}
+                        disabled={isImageUploading}
+                        className="hidden"
+                      />
+                      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold text-xs">
+                        {isImageUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Uploading & Optimizing on Cloudinary CDN ({uploadProgress}%)...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <span>Click to Upload Photo to Cloudinary (Slot {(prodForm.images || []).length + 1} of 3)</span>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-0.5">
+                        PNG, JPG, WEBP • Max 2MB per photo • Stored on Cloudinary CDN
+                      </span>
+                    </label>
+                  ) : (
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+                      <div className="flex items-center gap-2 font-bold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>Maximum 3 product photos uploaded & active on Cloudinary CDN</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">3 / 3 Photos</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Product Description & Specifications */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Product Overview & Specifications
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={prodForm.description}
+                    onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
+                    placeholder="Enter sourcing specifications, shelf life, storage instructions, or institutional wholesale highlights..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs"
+                  />
+                </div>
+
+                {/* 6. Display Toggles */}
+                <div className="flex items-center gap-6 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={prodForm.isFeatured}
+                      onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })}
+                      className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"
+                    />
+                    <span>⭐ Featured on Homepage</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={prodForm.isNew}
+                      onChange={(e) => setProdForm({ ...prodForm, isNew: e.target.checked })}
+                      className="w-4 h-4 rounded text-blue-500 focus:ring-blue-500"
+                    />
+                    <span>✨ Mark as New Arrival</span>
+                  </label>
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -2321,16 +2631,16 @@ export const AdminDashboard = () => {
                   <button
                     type="button"
                     onClick={() => handleSaveProduct('Draft')}
-                    className="flex-1 py-2.5 bg-amber-500 text-slate-950 font-extrabold rounded-xl"
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl shadow transition-colors"
                   >
-                    Save Draft
+                    Save as Draft
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSaveProduct('Published')}
-                    className="flex-1 py-2.5 bg-brand-900 text-white font-extrabold rounded-xl"
+                    className="flex-1 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-extrabold rounded-xl shadow-lg transition-colors"
                   >
-                    Publish Product
+                    {editingProduct ? 'Update Product' : 'Publish to Catalog'}
                   </button>
                 </div>
               </div>
@@ -2601,6 +2911,70 @@ export const AdminDashboard = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Salesman Confirmation Modal */}
+      <AnimatePresence>
+        {salesmanToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-rose-200 dark:border-rose-900/50 p-6 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Delete Salesman ID?</h3>
+                  <p className="text-xs text-slate-500">This action cannot be undone.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Representative:</span>
+                  <strong className="text-slate-900 dark:text-white font-bold">{salesmanToDelete.name}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Salesman ID:</span>
+                  <span className="font-mono font-bold text-brand-900 dark:text-amber-400">{salesmanToDelete.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Assigned Territory:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{salesmanToDelete.region}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Are you sure you want to permanently delete this salesman account from the active field roster?
+              </p>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSalesmanToDelete(null)}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteSalesman(salesmanToDelete.id);
+                    setSalesmanToDelete(null);
+                  }}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-rose-600/30 flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Account</span>
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

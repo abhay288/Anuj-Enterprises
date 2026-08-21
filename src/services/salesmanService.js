@@ -23,7 +23,14 @@ export const salesmanService = {
     return apiClient(`/salesmen/${id}/status`, { method: 'PATCH' });
   },
 
-  resetPassword: async (id) => {
-    return apiClient(`/salesmen/${id}/reset-password`, { method: 'POST' });
+  resetPassword: async (id, password) => {
+    return apiClient(`/salesmen/${id}/reset-password`, { 
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+  },
+
+  deleteSalesman: async (id) => {
+    return apiClient(`/salesmen/${id}`, { method: 'DELETE' });
   }
 };

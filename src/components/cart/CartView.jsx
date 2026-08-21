@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
+import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
 
 export const CartView = () => {
   const { 
@@ -466,7 +467,7 @@ export const CartView = () => {
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                        Shipping Address
+                        Address
                       </label>
                       <input
                         type="text"
@@ -477,24 +478,50 @@ export const CartView = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">City</label>
-                        <input
-                          type="text"
-                          value={customerCity}
-                          onChange={(e) => setCustomerCity(e.target.value)}
-                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">State</label>
-                        <input
-                          type="text"
+                        <select
                           value={customerState}
-                          onChange={(e) => setCustomerState(e.target.value)}
-                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                        />
+                          onChange={(e) => {
+                            const newState = e.target.value;
+                            setCustomerState(newState);
+                            const districts = getDistrictsByState(newState);
+                            if (districts.length > 0) {
+                              setCustomerCity(districts[0]);
+                            }
+                          }}
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white cursor-pointer"
+                        >
+                          <option value="">-- Select State / UT --</option>
+                          {ALL_INDIAN_STATES.map((st) => (
+                            <option key={st} value={st}>{st}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">District / City</label>
+                        {getDistrictsByState(customerState).length > 0 ? (
+                          <select
+                            value={customerCity}
+                            onChange={(e) => setCustomerCity(e.target.value)}
+                            className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white cursor-pointer"
+                          >
+                            <option value="">-- Select District --</option>
+                            {getDistrictsByState(customerState).map((dst) => (
+                              <option key={dst} value={dst}>{dst}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={customerCity}
+                            onChange={(e) => setCustomerCity(e.target.value)}
+                            placeholder="Enter District / City"
+                            className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                          />
+                        )}
                       </div>
                     </div>
                   </motion.div>

@@ -15,7 +15,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/anuj_e
 export const createAdminUser = async (email?: string, password?: string, name?: string) => {
   const adminEmail = (email || process.argv[2] || 'anujenterprises.fmcg.006@gmail.com').toLowerCase().trim();
   const adminPassword = password || process.argv[3] || 'Anuj@2026';
-  const adminName = name || process.argv[4] || 'Anuj Sharma (Managing Director)';
+  const adminName = name || process.argv[4] || 'ANUJ';
 
   console.log('----------------------------------------------------');
   console.log('👑 ANUJ ENTERPRISES — ADMIN ACCOUNT CREATOR / RESET');

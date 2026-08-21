@@ -22,6 +22,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // Frontend Static Bundle Hosting (Single Server Option)
 const possibleDistPaths = [

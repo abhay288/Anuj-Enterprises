@@ -370,8 +370,8 @@ export const InvoiceModal = () => {
               </div>
 
               <div className="text-right space-y-4">
-                <div className="h-10 border-b border-slate-900 w-48 ml-auto flex items-end justify-center font-serif italic text-slate-700 text-sm">
-                  Anuj Sharma (MD)
+                <div className="h-10 border-b border-slate-900 w-48 ml-auto flex items-end justify-center font-serif italic text-slate-700 text-sm font-bold">
+                  ANUJ
                 </div>
                 <p className="font-extrabold text-slate-900 uppercase tracking-wider text-[10px]">Authorized Signatory</p>
               </div>

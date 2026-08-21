@@ -58,7 +58,7 @@ export const login = async (req: Request, res: Response) => {
       // Hardcoded fallback for seed/demo if DB user not initialized
       if (cleanId === 'admin@anujenterprises.demo' && password === 'Admin@123') {
         const token = jwt.sign(
-          { id: 'admin-1', email: cleanId, role: 'ADMIN', name: 'Anuj Sharma (Managing Director)' },
+          { id: 'admin-1', email: cleanId, role: 'ADMIN', name: 'ANUJ' },
           JWT_SECRET,
           { expiresIn: '24h' }
         );
@@ -68,7 +68,7 @@ export const login = async (req: Request, res: Response) => {
             token,
             user: {
               id: 'admin-1',
-              name: 'Anuj Sharma (Managing Director)',
+              name: 'ANUJ',
               email: cleanId,
               role: 'admin'
             }

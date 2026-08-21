@@ -31,8 +31,8 @@ export const SalesmanLoginModal = () => {
   const [salesmanPassword, setSalesmanPassword] = useState('Sales@123');
 
   // Admin State
-  const [adminEmail, setAdminEmail] = useState('admin@anujenterprises.demo');
-  const [adminPassword, setAdminPassword] = useState('Admin@123');
+  const [adminEmail, setAdminEmail] = useState('anujenterprises.fmcg.006@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('Anuj@2026');
 
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -293,7 +293,7 @@ export const SalesmanLoginModal = () => {
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       required
-                      placeholder="admin@anujenterprises.demo"
+                      placeholder="anujenterprises.fmcg.006@gmail.com"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>
@@ -310,7 +310,7 @@ export const SalesmanLoginModal = () => {
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required
-                      placeholder="Admin@123"
+                      placeholder="Anuj@2026"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>

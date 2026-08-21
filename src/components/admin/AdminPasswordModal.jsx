@@ -98,7 +98,7 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
                   Change Admin Password
                 </h3>
                 <span className="text-xs text-amber-400 font-bold block">
-                  Account: {user?.email || 'admin@anujenterprises.demo'}
+                  Account: {user?.email || 'anujenterprises.fmcg.006@gmail.com'}
                 </span>
               </div>
             </div>

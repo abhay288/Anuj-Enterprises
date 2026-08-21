@@ -58,19 +58,15 @@ export const QuickViewModal = () => {
 
             <div className="w-full text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-800">
               <span>SKU: <strong className="text-slate-700 dark:text-slate-300 font-mono">{quickViewProduct.sku}</strong></span>
-              <span>HSN: <strong className="text-slate-700 dark:text-slate-300 font-mono">{quickViewProduct.hsn || '19053100'}</strong></span>
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">{quickViewProduct.brand}</span>
             </div>
           </div>
 
           {/* Right Column - Comprehensive B2B Product Info */}
           <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto space-y-4">
             <div>
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
                 <span>{quickViewProduct.category}</span>
-                <div className="flex items-center text-amber-500">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 mr-1" />
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{quickViewProduct.rating || 5.0}</span>
-                </div>
               </div>
 
               <h2 
