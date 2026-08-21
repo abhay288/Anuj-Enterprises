@@ -38,11 +38,11 @@ export const Navbar = () => {
           onClick={() => navigateTo('home')}
           className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white border-2 border-amber-500/60 p-1 flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative">
             <img 
               src="/logo.png" 
               alt="Anuj Enterprises Logo" 
-              className="w-full h-full object-contain scale-[1.85]" 
+              className="w-full h-full object-contain" 
             />
           </div>
           <div>

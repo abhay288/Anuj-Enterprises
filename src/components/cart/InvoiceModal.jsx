@@ -161,8 +161,8 @@ export const InvoiceModal = () => {
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 p-1 flex items-center justify-center overflow-hidden shadow-md flex-shrink-0 border-2 border-amber-500/50">
-                    <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain scale-[1.9]" />
+                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-1.5 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0 border-2 border-amber-400">
+                    <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" />
                   </div>
                   <div>
                     <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">ANUJ ENTERPRISES</span>

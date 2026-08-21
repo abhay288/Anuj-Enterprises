@@ -1378,10 +1378,10 @@ export const AdminDashboard = () => {
                     <div>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                         <Megaphone className="w-5 h-5 text-amber-500" />
-                        Admin Notification & Broadcast Headline Bar
+                        Floating Headline & Live Announcement Marquee Bar
                       </h3>
                       <p className="text-xs text-slate-500 mt-1">
-                        Control real-time announcement ticker headlines displayed right beneath the top navbar exclusively in the Admin Dashboard.
+                        Control real-time announcement ticker headlines displayed right beneath the top navbar across the Home page and all visitor screens.
                       </p>
                     </div>
 
@@ -1397,7 +1397,7 @@ export const AdminDashboard = () => {
                         }`}
                       >
                         <Radio className="w-3.5 h-3.5" />
-                        <span>{headlineForm.isVisible ? '● Live in Admin' : '○ Disabled (Hidden)'}</span>
+                        <span>{headlineForm.isVisible ? '● Live on Website' : '○ Disabled (Hidden)'}</span>
                       </button>
                     </div>
                   </div>
@@ -1405,7 +1405,7 @@ export const AdminDashboard = () => {
                   {/* Live Simulation Preview */}
                   <div className="space-y-2">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                      Live Admin Notification Preview (Displayed under Navbar in Admin Dashboard):
+                      Live Customer Preview (How it appears under Navbar on Home Page):
                     </span>
 
                     <div className={`p-3 rounded-2xl border ${

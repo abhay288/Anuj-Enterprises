@@ -23,9 +23,8 @@ import { HeadlineBar } from './components/common/HeadlineBar';
 import { LegalView } from './components/legal/LegalView';
 
 const MainContent = () => {
-  const { view, user, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
-  const isEligibleAdminView = view === 'admin-dash' || user?.role === 'admin';
-  const hasHeadline = isEligibleAdminView && headlineConfig?.isVisible;
+  const { view, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
+  const hasHeadline = headlineConfig?.isVisible;
 
   return (
     <div className={`flex flex-col min-h-screen ${hasHeadline ? 'pt-28 sm:pt-30' : 'pt-20 sm:pt-22'} pb-16 md:pb-0 transition-all`}>

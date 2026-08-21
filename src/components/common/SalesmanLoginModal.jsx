@@ -94,8 +94,8 @@ export const SalesmanLoginModal = () => {
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-slate-950 via-brand-950 to-slate-900 p-1.5 text-slate-950 flex items-center justify-center mb-3.5 shadow-xl shadow-amber-500/20 border-2 border-amber-500/50 overflow-hidden flex-shrink-0 relative">
-              <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain scale-[1.9] drop-shadow-md" />
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white p-2.5 flex items-center justify-center mb-4 shadow-2xl shadow-amber-500/30 border-2 border-amber-400 overflow-hidden flex-shrink-0 relative ring-4 ring-white/20">
+              <img src="/logo.png" alt="Anuj Enterprises Logo" className="w-full h-full object-contain filter drop-shadow-sm scale-110" />
             </div>
             <h3 className="text-xl sm:text-2xl font-black tracking-tight">Anuj Enterprises Portal</h3>
             <p className="text-xs text-slate-300 mt-1">

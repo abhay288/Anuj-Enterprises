@@ -4,13 +4,10 @@ import { Megaphone, X, ArrowRight, Sparkles, AlertCircle, Phone, MessageSquare }
 import { useApp } from '../../context/AppContext';
 
 export const HeadlineBar = () => {
-  const { headlineConfig, view, user } = useApp();
+  const { headlineConfig } = useApp();
   const [isDismissed, setIsDismissed] = useState(false);
 
-  // Notification bar only rendered in Admin view
-  const isEligibleAdminView = view === 'admin-dash' || user?.role === 'admin';
-
-  if (!isEligibleAdminView || !headlineConfig || !headlineConfig.isVisible || isDismissed) {
+  if (!headlineConfig || !headlineConfig.isVisible || isDismissed) {
     return null;
   }
 
@@ -60,14 +57,21 @@ export const HeadlineBar = () => {
 
             {/* Continuous Marquee Text Container */}
             <div className="overflow-hidden flex-1 relative select-none">
-              <div className="animate-marquee whitespace-nowrap">
-                <span className={`font-bold text-xs sm:text-sm tracking-tight ${style.text} pr-16 inline-block`}>
+              <div className="animate-marquee whitespace-nowrap flex items-center">
+                <span className={`font-extrabold text-xs sm:text-sm tracking-tight ${style.text} pr-20 inline-flex items-center gap-2`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   {headlineConfig.text}
                 </span>
-                <span className={`font-bold text-xs sm:text-sm tracking-tight ${style.text} pr-16 inline-block`}>
+                <span className={`font-extrabold text-xs sm:text-sm tracking-tight ${style.text} pr-20 inline-flex items-center gap-2`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   {headlineConfig.text}
                 </span>
-                <span className={`font-bold text-xs sm:text-sm tracking-tight ${style.text} pr-16 inline-block`}>
+                <span className={`font-extrabold text-xs sm:text-sm tracking-tight ${style.text} pr-20 inline-flex items-center gap-2`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  {headlineConfig.text}
+                </span>
+                <span className={`font-extrabold text-xs sm:text-sm tracking-tight ${style.text} pr-20 inline-flex items-center gap-2`}>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   {headlineConfig.text}
                 </span>
               </div>

@@ -29,8 +29,8 @@ export const Footer = () => {
           {/* Col 1: Company Profile */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigateTo('home')}>
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-500/60 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg relative">
-                <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain scale-[1.9]" />
+              <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg relative">
+                <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" />
               </div>
               <div>
                 <span className="text-xl sm:text-2xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>
