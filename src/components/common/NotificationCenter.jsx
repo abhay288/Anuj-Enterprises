@@ -11,6 +11,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
     user,
     notifications = [], 
     markNotificationAsRead, 
+    markAllNotificationsAsRead,
     clearAllNotifications, 
     openInvoiceModal,
     orders,
@@ -43,7 +44,8 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
       }
     }
     if (notif.actionView) {
-      navigateTo(notif.actionView);
+      const target = notif.actionView === 'admin' ? 'admin-dash' : notif.actionView;
+      navigateTo(target);
       setIsOpen(false);
     }
   };
@@ -90,11 +92,21 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-bold transition-colors"
+                      title="Mark all as read"
+                    >
+                      <Check className="w-3 h-3" /> Mark all read
+                    </button>
+                  )}
                   {roleNotifications.length > 0 && (
                     <button
                       onClick={clearAllNotifications}
-                      className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-bold"
+                      className="text-[10px] text-slate-400 hover:text-rose-400 flex items-center gap-1 font-bold transition-colors"
+                      title="Clear all notifications"
                     >
                       <Trash2 className="w-3 h-3" /> Clear
                     </button>

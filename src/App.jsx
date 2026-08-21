@@ -36,8 +36,8 @@ const MainContent = () => {
         {view === 'catalogue' && <ProductGrid />}
         {view === 'product-detail' && <ProductDetailView />}
         {view === 'cart' && <CartView />}
-        {view === 'salesman-dash' && <SalesmanDashboard />}
-        {view === 'admin-dash' && <AdminDashboard />}
+        {(view === 'salesman-dash' || view === 'salesman') && <SalesmanDashboard />}
+        {(view === 'admin-dash' || view === 'admin') && <AdminDashboard />}
         {view === 'about' && <AboutView />}
         {(view === 'contact' || view === 'support') && <SupportView />}
         {view === 'privacy-policy' && <LegalView initialTab="privacy" />}

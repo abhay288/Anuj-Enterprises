@@ -333,6 +333,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('anuj_salesmen_v3', JSON.stringify(salesmen)); }, [salesmen]);
   useEffect(() => { localStorage.setItem('anuj_orders_v3', JSON.stringify(orders)); }, [orders]);
   useEffect(() => { localStorage.setItem('anuj_customers_v3', JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { localStorage.setItem('anuj_notifications_v1', JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem('anuj_headline_config_v2', JSON.stringify(headlineConfig)); }, [headlineConfig]);
   useEffect(() => { localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(legalPolicies)); }, [legalPolicies]);
   useEffect(() => { localStorage.setItem('anuj_cart', JSON.stringify(cart)); }, [cart]);
@@ -353,6 +354,7 @@ export const AppProvider = ({ children }) => {
           if (type === 'SYNC_BRANDS' && payload) setBrands(payload);
           if (type === 'SYNC_SALESMEN' && payload) setSalesmen(payload);
           if (type === 'SYNC_ORDERS' && payload) setOrders(payload);
+          if (type === 'SYNC_NOTIFICATIONS' && payload) setNotifications(payload);
         };
       }
     } catch (e) {}
@@ -367,6 +369,7 @@ export const AppProvider = ({ children }) => {
         if (e.key === 'anuj_brands_v3') setBrands(JSON.parse(e.newValue));
         if (e.key === 'anuj_salesmen_v3') setSalesmen(JSON.parse(e.newValue));
         if (e.key === 'anuj_orders_v3') setOrders(JSON.parse(e.newValue));
+        if (e.key === 'anuj_notifications_v1') setNotifications(JSON.parse(e.newValue));
       } catch (err) {}
     };
 
@@ -386,7 +389,11 @@ export const AppProvider = ({ children }) => {
 
   const navigateTo = (targetView, productOrId = null, pushHistory = true) => {
     let resolvedId = null;
-    let urlSlug = targetView;
+    let resolvedView = targetView;
+    if (targetView === 'admin') resolvedView = 'admin-dash';
+    if (targetView === 'salesman') resolvedView = 'salesman-dash';
+    if (targetView === 'contact') resolvedView = 'support';
+    let urlSlug = resolvedView;
 
     if (productOrId) {
       if (typeof productOrId === 'object') {
@@ -400,9 +407,9 @@ export const AppProvider = ({ children }) => {
       setSelectedProductId(resolvedId);
     }
 
-    setView(targetView);
+    setView(resolvedView);
     if (pushHistory) {
-      window.history.pushState({ view: targetView, productId: resolvedId }, '', `#/${urlSlug}`);
+      window.history.pushState({ view: resolvedView, productId: resolvedId }, '', `#/${urlSlug}`);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1141,15 +1148,38 @@ export const AppProvider = ({ children }) => {
       isRead: false,
       ...notif
     };
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev];
+      localStorage.setItem('anuj_notifications_v1', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
+      return updated;
+    });
   };
 
   const markNotificationAsRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
+      localStorage.setItem('anuj_notifications_v1', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
+      return updated;
+    });
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem('anuj_notifications_v1', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
+      return updated;
+    });
+    showToast('All notifications marked as read', 'info');
   };
 
   const clearAllNotifications = () => {
     setNotifications([]);
+    localStorage.setItem('anuj_notifications_v1', JSON.stringify([]));
+    broadcastSync('SYNC_NOTIFICATIONS', []);
+    showToast('All notifications cleared', 'info');
   };
 
   const closeOrderSuccessModal = () => {
@@ -1188,6 +1218,7 @@ export const AppProvider = ({ children }) => {
       notifications,
       addNotification,
       markNotificationAsRead,
+      markAllNotificationsAsRead,
       clearAllNotifications,
       isOrderSuccessModalOpen,
       setIsOrderSuccessModalOpen,
