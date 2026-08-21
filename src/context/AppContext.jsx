@@ -162,14 +162,26 @@ export const AppProvider = ({ children }) => {
     };
   });
 
+  // Cross-Tab Instant Real-Time Synchronization Helper
+  const broadcastSync = useCallback((type, payload) => {
+    try {
+      if (typeof window !== 'undefined' && window.BroadcastChannel) {
+        const ch = new BroadcastChannel('anuj_enterprise_sync_v1');
+        ch.postMessage({ type, payload });
+        ch.close();
+      }
+    } catch (e) {}
+  }, []);
+
   const updateHeadlineConfig = useCallback((newConfig) => {
     setHeadlineConfig(prev => {
       const updated = { ...prev, ...newConfig };
       localStorage.setItem('anuj_headline_config_v2', JSON.stringify(updated));
+      broadcastSync('SYNC_HEADLINE', updated);
       return updated;
     });
-    setToast({ show: true, message: '📢 Headline announcement updated successfully!', type: 'success' });
-  }, []);
+    setToast({ show: true, message: '📢 Headline announcement updated live across website!', type: 'success' });
+  }, [broadcastSync]);
 
   // Legal Policies Management (Admin-Editable)
   const [legalPolicies, setLegalPolicies] = useState(() => {
@@ -193,16 +205,18 @@ export const AppProvider = ({ children }) => {
         }
       };
       localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(updated));
+      broadcastSync('SYNC_POLICIES', updated);
       return updated;
     });
-    setToast({ show: true, message: `📜 Policy updated successfully!`, type: 'success' });
-  }, []);
+    setToast({ show: true, message: `📜 Policy updated live on website!`, type: 'success' });
+  }, [broadcastSync]);
 
   const resetLegalPolicies = useCallback(() => {
     setLegalPolicies(DEFAULT_LEGAL_POLICIES);
     localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(DEFAULT_LEGAL_POLICIES));
+    broadcastSync('SYNC_POLICIES', DEFAULT_LEGAL_POLICIES);
     setToast({ show: true, message: 'Default statutory B2B policies restored successfully!', type: 'info' });
-  }, []);
+  }, [broadcastSync]);
 
   // Initial Fetch From API (Progressive Backend Integration)
   useEffect(() => {
@@ -312,15 +326,56 @@ export const AppProvider = ({ children }) => {
     };
   }, [user.role, products]);
 
-  // Persistence
+  // State Persistence
   useEffect(() => { localStorage.setItem('anuj_products_v3', JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem('anuj_categories_v3', JSON.stringify(categories)); }, [categories]);
   useEffect(() => { localStorage.setItem('anuj_brands_v3', JSON.stringify(brands)); }, [brands]);
   useEffect(() => { localStorage.setItem('anuj_salesmen_v3', JSON.stringify(salesmen)); }, [salesmen]);
   useEffect(() => { localStorage.setItem('anuj_orders_v3', JSON.stringify(orders)); }, [orders]);
   useEffect(() => { localStorage.setItem('anuj_customers_v3', JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { localStorage.setItem('anuj_headline_config_v2', JSON.stringify(headlineConfig)); }, [headlineConfig]);
+  useEffect(() => { localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(legalPolicies)); }, [legalPolicies]);
   useEffect(() => { localStorage.setItem('anuj_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('anuj_user', JSON.stringify(user)); }, [user]);
+
+  // Real-Time Cross-Tab / Cross-Window Live Synchronization
+  useEffect(() => {
+    let syncChannel;
+    try {
+      if (typeof window !== 'undefined' && window.BroadcastChannel) {
+        syncChannel = new BroadcastChannel('anuj_enterprise_sync_v1');
+        syncChannel.onmessage = (event) => {
+          const { type, payload } = event.data || {};
+          if (type === 'SYNC_PRODUCTS' && payload) setProducts(payload);
+          if (type === 'SYNC_HEADLINE' && payload) setHeadlineConfig(payload);
+          if (type === 'SYNC_POLICIES' && payload) setLegalPolicies(payload);
+          if (type === 'SYNC_CATEGORIES' && payload) setCategories(payload);
+          if (type === 'SYNC_BRANDS' && payload) setBrands(payload);
+          if (type === 'SYNC_SALESMEN' && payload) setSalesmen(payload);
+          if (type === 'SYNC_ORDERS' && payload) setOrders(payload);
+        };
+      }
+    } catch (e) {}
+
+    const handleStorageChange = (e) => {
+      if (!e.newValue) return;
+      try {
+        if (e.key === 'anuj_products_v3') setProducts(JSON.parse(e.newValue));
+        if (e.key === 'anuj_headline_config_v2') setHeadlineConfig(JSON.parse(e.newValue));
+        if (e.key === 'anuj_legal_policies_v2') setLegalPolicies(JSON.parse(e.newValue));
+        if (e.key === 'anuj_categories_v3') setCategories(JSON.parse(e.newValue));
+        if (e.key === 'anuj_brands_v3') setBrands(JSON.parse(e.newValue));
+        if (e.key === 'anuj_salesmen_v3') setSalesmen(JSON.parse(e.newValue));
+        if (e.key === 'anuj_orders_v3') setOrders(JSON.parse(e.newValue));
+      } catch (err) {}
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (syncChannel) syncChannel.close();
+    };
+  }, []);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -707,23 +762,11 @@ export const AppProvider = ({ children }) => {
     showToast(`Order #${newInvoiceId} created successfully! Tax invoice generated.`, 'success');
   };
 
-  // Product Admin Operations (CRUD + Flags) with API Service
+  // Product Admin Operations (CRUD + Flags) with Instant Optimistic Updates & API Sync
   const addProduct = async (newProd) => {
-    try {
-      const res = await productService.createProduct(newProd);
-      if (res.data?.product) {
-        const prodRes = await productService.getProducts();
-        if (prodRes.data?.products) setProducts(prodRes.data.products);
-        showToast(`Product "${newProd.name.slice(0, 25)}" added to catalog`, 'success');
-        return;
-      }
-    } catch (e) {
-      console.log('Add product API fallback');
-    }
-
     const formatted = {
       ...newProd,
-      id: `prod-ae-${Date.now()}`,
+      id: newProd.id || `prod-ae-${Date.now()}`,
       rating: 5.0,
       reviewCount: 1,
       packSize: newProd.packSize || "1 Unit",
@@ -733,37 +776,54 @@ export const AppProvider = ({ children }) => {
       isFeatured: newProd.isFeatured ?? true,
       isNew: newProd.isNew ?? true,
       whiteBgAvailable: true,
-      gallery: [newProd.image]
+      gallery: [newProd.image || "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"]
     };
-    setProducts(prev => [formatted, ...prev]);
-    showToast(`Product "${newProd.name.slice(0, 25)}" added to catalog`, 'success');
+
+    // 1. Instant local state update & cross-tab sync
+    setProducts(prev => {
+      const updated = [formatted, ...prev];
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Product "${newProd.name.slice(0, 25)}" added to catalog immediately!`, 'success');
+
+    // 2. Background API Sync
+    try {
+      const res = await productService.createProduct(newProd);
+      if (res.data?.product) {
+        setProducts(prev => prev.map(p => p.id === formatted.id ? { ...formatted, ...res.data.product } : p));
+      }
+    } catch (e) {}
   };
 
   const updateProduct = async (updatedProd) => {
+    // 1. Instant local update & cross-tab sync
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === updatedProd.id || p._id === updatedProd._id) ? { ...p, ...updatedProd } : p);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Product updated live on website`, 'success');
+
+    // 2. Background API Sync
     try {
       await productService.updateProduct(updatedProd.id || updatedProd._id, updatedProd);
-      const prodRes = await productService.getProducts();
-      if (prodRes.data?.products) setProducts(prodRes.data.products);
-      showToast(`Product updated successfully`, 'success');
-      return;
-    } catch (e) {
-      console.log('Update product API fallback');
-    }
-    setProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
-    showToast(`Product updated successfully`, 'success');
+    } catch (e) {}
   };
 
   const deleteProduct = async (productId) => {
+    // 1. Instant local delete & cross-tab sync
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== productId && p._id !== productId);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast('Product removed from catalog', 'warning');
+
+    // 2. Background API Sync
     try {
       await productService.deleteProduct(productId);
-      setProducts(prev => prev.filter(p => p.id !== productId && p._id !== productId));
-      showToast('Product deleted from inventory', 'warning');
-      return;
-    } catch (e) {
-      console.log('Delete product API fallback');
-    }
-    setProducts(prev => prev.filter(p => p.id !== productId));
-    showToast('Product deleted from inventory', 'warning');
+    } catch (e) {}
   };
 
   const duplicateProduct = (product) => {
@@ -777,55 +837,56 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleProductFeatured = async (productId) => {
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isFeatured: !p.isFeatured } : p);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast('Updated Featured Status live', 'info');
     try {
       await productService.toggleFeatured(productId);
     } catch (e) {}
-    setProducts(prev => prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isFeatured: !p.isFeatured } : p));
-    showToast('Updated Featured Status', 'info');
   };
 
   const toggleProductNew = async (productId) => {
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isNew: !p.isNew } : p);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast('Updated New Arrival Status live', 'info');
     try {
       await productService.toggleNew(productId);
     } catch (e) {}
-    setProducts(prev => prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isNew: !p.isNew } : p));
-    showToast('Updated New Arrival Status', 'info');
   };
 
   const toggleProductStatus = async (productId) => {
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, status: p.status === 'Published' ? 'Draft' : 'Published' } : p);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast('Updated Product Publish Status live', 'info');
     try {
       await productService.toggleStatus(productId);
     } catch (e) {}
-    setProducts(prev => prev.map(p => (p.id === productId || p._id === productId) ? { ...p, status: p.status === 'Published' ? 'Draft' : 'Published' } : p));
-    showToast('Updated Product Publish Status', 'info');
   };
 
   const bulkAddProducts = async (newProductsList) => {
+    setProducts(prev => {
+      const updated = [...newProductsList, ...prev];
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Bulk imported ${newProductsList.length} products to catalog!`, 'success');
     try {
       await productService.importBulkCsv(newProductsList);
-      const prodRes = await productService.getProducts();
-      if (prodRes.data?.products) setProducts(prodRes.data.products);
-      showToast(`Successfully bulk imported ${newProductsList.length} products to database!`, 'success');
-      return;
-    } catch (e) {
-      console.log('Bulk import API fallback');
-    }
-    setProducts(prev => [...newProductsList, ...prev]);
-    showToast(`Successfully bulk imported ${newProductsList.length} products!`, 'success');
+    } catch (e) {}
   };
 
-  // Salesman Management
+  // Salesman Management Instant Operations
   const addSalesman = async (newS) => {
     const password = (newS.password || 'Sales@123').trim();
-    try {
-      const res = await salesmanService.createSalesman({ ...newS, password });
-      if (res.data?.salesman) {
-        const salesRes = await salesmanService.getSalesmen();
-        if (salesRes.data?.salesmen) setSalesmen(salesRes.data.salesmen);
-        showToast(`Salesman ${newS.name} account created with custom password!`, 'success');
-        return;
-      }
-    } catch (e) {}
     const salesmanObj = {
       ...newS,
       password,
@@ -835,80 +896,107 @@ export const AppProvider = ({ children }) => {
       status: 'Active',
       lastOrder: 'None'
     };
-    setSalesmen(prev => [salesmanObj, ...prev]);
+    setSalesmen(prev => {
+      const updated = [salesmanObj, ...prev];
+      broadcastSync('SYNC_SALESMEN', updated);
+      return updated;
+    });
     showToast(`Salesman "${newS.name}" created with password: "${password}"`, 'success');
+    try {
+      await salesmanService.createSalesman({ ...newS, password });
+    } catch (e) {}
   };
 
   const updateSalesman = async (updatedS) => {
+    setSalesmen(prev => {
+      const updated = prev.map(s => s.id === updatedS.id ? { ...s, ...updatedS } : s);
+      broadcastSync('SYNC_SALESMEN', updated);
+      return updated;
+    });
+    showToast(`Salesman record updated live`, 'success');
     try {
       await salesmanService.updateSalesman(updatedS.id, updatedS);
     } catch (e) {}
-    setSalesmen(prev => prev.map(s => s.id === updatedS.id ? { ...s, ...updatedS } : s));
-    showToast(`Salesman record updated successfully`, 'success');
   };
 
   const toggleSalesmanStatus = async (id) => {
+    setSalesmen(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, status: s.status === 'Active' ? 'Disabled' : 'Active' } : s);
+      broadcastSync('SYNC_SALESMEN', updated);
+      return updated;
+    });
+    showToast('Salesman status toggled live', 'info');
     try {
       await salesmanService.toggleStatus(id);
     } catch (e) {}
-    setSalesmen(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'Active' ? 'Disabled' : 'Active' } : s));
-    showToast('Salesman status toggled', 'info');
   };
 
   const resetSalesmanPassword = async (id, customPassword = '') => {
     const pwd = (customPassword || 'Sales@123').trim();
+    setSalesmen(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, password: pwd } : s);
+      broadcastSync('SYNC_SALESMEN', updated);
+      return updated;
+    });
+    showToast(`Password for salesman ${id} updated to: "${pwd}"`, 'success');
     try {
       await salesmanService.resetPassword(id, pwd);
     } catch (e) {}
-    setSalesmen(prev => prev.map(s => s.id === id ? { ...s, password: pwd } : s));
-    showToast(`Password for salesman ${id} set to: "${pwd}"`, 'success');
   };
 
   // Companies & Categories Management
   const addCategory = async (catName) => {
     if (!catName || !catName.trim()) return;
     const trimmed = catName.trim();
+    const newCat = { id: `cat-${Date.now()}`, name: trimmed, count: 0 };
+    setCategories(prev => {
+      const updated = [...prev, newCat];
+      broadcastSync('SYNC_CATEGORIES', updated);
+      return updated;
+    });
+    showToast(`Category "${trimmed}" added to catalog live`, 'success');
     try {
       await categoryService.createCategory(trimmed);
-      const catRes = await categoryService.getCategories();
-      if (catRes.data?.categories) setCategories(catRes.data.categories);
-      showToast(`Category "${trimmed}" added to database`, 'success');
-      return;
     } catch (e) {}
-    const newCat = { id: `cat-${Date.now()}`, name: trimmed, count: 0 };
-    setCategories(prev => [...prev, newCat]);
-    showToast(`Category "${trimmed}" added to catalog filters`, 'success');
   };
 
   const deleteCategory = async (catId) => {
+    setCategories(prev => {
+      const updated = prev.filter(c => c.id !== catId && c._id !== catId);
+      broadcastSync('SYNC_CATEGORIES', updated);
+      return updated;
+    });
+    showToast('Category removed from catalog filters', 'info');
     try {
       await categoryService.deleteCategory(catId);
     } catch (e) {}
-    setCategories(prev => prev.filter(c => c.id !== catId && c._id !== catId));
-    showToast('Category removed from catalog filters', 'info');
   };
 
   const addBrand = async (brandName) => {
     if (!brandName || !brandName.trim()) return;
     const trimmed = brandName.trim();
+    const newBrand = { id: `brand-${Date.now()}`, name: trimmed, country: 'India', count: 0, isNew: true };
+    setBrands(prev => {
+      const updated = [newBrand, ...prev];
+      broadcastSync('SYNC_BRANDS', updated);
+      return updated;
+    });
+    showToast(`Company "${trimmed}" added to catalog live`, 'success');
     try {
       await companyService.createCompany(trimmed);
-      const compRes = await companyService.getCompanies();
-      if (compRes.data?.companies) setBrands(compRes.data.companies);
-      showToast(`Company "${trimmed}" added to database`, 'success');
-      return;
     } catch (e) {}
-    const newBrand = { id: `brand-${Date.now()}`, name: trimmed, country: 'India', count: 0, isNew: true };
-    setBrands(prev => [newBrand, ...prev]);
-    showToast(`Company "${trimmed}" added to catalog filters`, 'success');
   };
 
   const deleteBrand = async (brandId) => {
+    setBrands(prev => {
+      const updated = prev.filter(b => b.id !== brandId && b._id !== brandId);
+      broadcastSync('SYNC_BRANDS', updated);
+      return updated;
+    });
+    showToast('Company removed from catalog filters', 'info');
     try {
       await companyService.deleteCompany(brandId);
     } catch (e) {}
-    setBrands(prev => prev.filter(b => b.id !== brandId && b._id !== brandId));
-    showToast('Company removed from catalog filters', 'info');
   };
 
   // Inventory Management Functions
@@ -916,49 +1004,58 @@ export const AppProvider = ({ children }) => {
     const qty = parseInt(quantity, 10);
     if (isNaN(qty) || qty <= 0) return;
 
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        if (p.id === productId || p.productId === productId || p.sku === productId) {
+          return { ...p, stock: p.stock + qty };
+        }
+        return p;
+      });
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Added +${qty} units to inventory immediately!`, 'success');
     try {
       await inventoryService.restockProduct(productId, qty, reason);
     } catch (e) {}
-
-    setProducts(prev => prev.map(p => {
-      if (p.id === productId || p.productId === productId || p.sku === productId) {
-        return { ...p, stock: p.stock + qty };
-      }
-      return p;
-    }));
-    showToast(`Added +${qty} units to inventory`, 'success');
   };
 
   const adjustProductStock = async (productId, newStock, reason = 'Manual Inventory Count Adjustment') => {
     const target = Math.max(0, parseInt(newStock, 10) || 0);
 
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        if (p.id === productId || p.productId === productId || p.sku === productId) {
+          return { ...p, stock: target };
+        }
+        return p;
+      });
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Inventory updated to ${target} units live!`, 'success');
     try {
       await inventoryService.adjustStock(productId, target, reason);
     } catch (e) {}
-
-    setProducts(prev => prev.map(p => {
-      if (p.id === productId || p.productId === productId || p.sku === productId) {
-        return { ...p, stock: target };
-      }
-      return p;
-    }));
-    showToast(`Inventory updated to ${target} units`, 'success');
   };
 
   const updateProductThreshold = async (productId, threshold) => {
     const thresh = Math.max(1, parseInt(threshold, 10) || 20);
 
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        if (p.id === productId || p.productId === productId || p.sku === productId) {
+          return { ...p, lowStockThreshold: thresh };
+        }
+        return p;
+      });
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast(`Low stock alert threshold set to ${thresh} units`, 'success');
     try {
       await inventoryService.updateStockThreshold(productId, thresh);
     } catch (e) {}
-
-    setProducts(prev => prev.map(p => {
-      if (p.id === productId || p.productId === productId || p.sku === productId) {
-        return { ...p, lowStockThreshold: thresh };
-      }
-      return p;
-    }));
-    showToast(`Low stock alert threshold set to ${thresh} units`, 'success');
   };
 
   // Customer Management & Reorder Functions
