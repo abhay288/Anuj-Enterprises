@@ -154,14 +154,29 @@ export const Footer = () => {
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <span>© 2026 Anuj Enterprises. All Rights Reserved.</span>
             <span>•</span>
-            <a href="#privacy" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy: Strict B2B Data Encryption', 'info'); }} className="hover:text-amber-400">Privacy Policy</a>
+            <button 
+              onClick={() => { navigateTo('privacy-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+              className="hover:text-amber-400 transition-colors font-medium"
+            >
+              Privacy Policy
+            </button>
             <span>•</span>
-            <a href="#terms" onClick={(e) => { e.preventDefault(); showToast('Terms of B2B Supply: Net 30 Credit Policy Applies', 'info'); }} className="hover:text-amber-400">Terms of Supply</a>
+            <button 
+              onClick={() => { navigateTo('terms-of-supply'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+              className="hover:text-amber-400 transition-colors font-medium"
+            >
+              Terms of Supply
+            </button>
             <span>•</span>
-            <a href="#refund" onClick={(e) => { e.preventDefault(); showToast('GST Replacement Guarantee on Defective Goods', 'info'); }} className="hover:text-amber-400">Return Policy</a>
+            <button 
+              onClick={() => { navigateTo('return-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+              className="hover:text-amber-400 transition-colors font-medium"
+            >
+              Return & Claims Policy
+            </button>
           </div>
           <div className="text-slate-400 text-xs">
-            Official B2B FMCG Distribution & Sourcing Platform
+            Official B2B FMCG Distribution & Sourcing Platform • Kanpur HQ
           </div>
         </div>
       </div>

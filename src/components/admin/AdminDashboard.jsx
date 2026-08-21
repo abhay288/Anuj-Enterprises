@@ -8,7 +8,8 @@ import {
   Calendar, RefreshCw, BarChart3, PieChart as PieChartIcon, 
   Store, Clock, AlertCircle, ArrowUpRight, ArrowDownRight, PackageCheck,
   PackageX, ShieldAlert, ArrowRight, PackagePlus, History, SlidersHorizontal,
-  RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon
+  RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
+  BookOpen, FileCheck, HelpCircle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -57,12 +58,26 @@ export const AdminDashboard = () => {
     updateProductThreshold,
     headlineConfig,
     updateHeadlineConfig,
+    legalPolicies,
+    updateLegalPolicy,
+    resetLegalPolicies,
+    navigateTo,
     logout, 
     showToast 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'inventory' | 'products' | 'orders' | 'salesmen' | 'categories' | 'reports' | 'announcement'
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'inventory' | 'products' | 'orders' | 'salesmen' | 'categories' | 'reports' | 'announcement' | 'policies'
   
+  // Legal Policy Editor State
+  const [selectedPolicyKey, setSelectedPolicyKey] = useState('privacy'); // 'privacy' | 'terms' | 'returns'
+  const [policyForm, setPolicyForm] = useState(() => legalPolicies?.[selectedPolicyKey] || {});
+
+  useEffect(() => {
+    if (legalPolicies?.[selectedPolicyKey]) {
+      setPolicyForm(JSON.parse(JSON.stringify(legalPolicies[selectedPolicyKey])));
+    }
+  }, [selectedPolicyKey, legalPolicies]);
+
   // Headline Announcement Form State
   const [headlineForm, setHeadlineForm] = useState({
     isVisible: headlineConfig?.isVisible ?? true,
@@ -522,6 +537,7 @@ export const AdminDashboard = () => {
             {[
               { id: 'analytics', label: 'Executive Dashboard', icon: LayoutDashboard },
               { id: 'announcement', label: 'Floating Headline Bar', icon: Megaphone },
+              { id: 'policies', label: 'Legal Policies Editor', icon: Scale },
               { id: 'inventory', label: 'Inventory & Restock Operations', icon: AlertTriangle },
               { id: 'products', label: 'Products Master (CRUD)', icon: Package },
               { id: 'orders', label: 'Orders & GST Invoices', icon: ShoppingBag },
@@ -1563,6 +1579,355 @@ export const AdminDashboard = () => {
 
                   </form>
                 </div>
+
+              </div>
+            )}
+
+            {/* ================= TAB 9: LEGAL & POLICY CONTENT EDITOR ================= */}
+            {activeTab === 'policies' && (
+              <div className="space-y-6">
+                
+                {/* Header Management Card */}
+                <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <Scale className="w-5 h-5 text-amber-500" />
+                        Legal & Compliance Policy Content Editor
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Edit and publish real-time statutory B2B trade policies (Privacy Policy, Terms of Supply, Return & Replacement Policy).
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targetView = selectedPolicyKey === 'terms' ? 'terms-of-supply' : selectedPolicyKey === 'returns' ? 'return-policy' : 'privacy-policy';
+                          navigateTo(targetView);
+                        }}
+                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Preview Live Page</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Reset all legal policies back to standard statutory defaults?')) {
+                            resetLegalPolicies();
+                          }
+                        }}
+                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-red-100 hover:text-red-700 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reset Defaults</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Policy Switcher Tabs */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    {[
+                      { id: 'privacy', label: 'Privacy Policy', icon: ShieldCheck, sub: 'B2B Data Encryption & Security' },
+                      { id: 'terms', label: 'Terms of Supply', icon: FileText, sub: 'Wholesale Trade & Credit Terms' },
+                      { id: 'returns', label: 'Return & Claims Policy', icon: RotateCcw, sub: 'OEM Guarantee & Expiry Dockets' }
+                    ].map(p => {
+                      const Icon = p.icon;
+                      const isSelected = selectedPolicyKey === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelectedPolicyKey(p.id)}
+                          className={`flex-1 min-w-[200px] p-3 rounded-2xl font-extrabold text-xs transition-all flex items-center gap-3 border ${
+                            isSelected
+                              ? 'bg-brand-900 text-white dark:bg-brand-700 border-brand-900 shadow-md scale-[1.01]'
+                              : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-400'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-xl ${isSelected ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="text-left">
+                            <span className="block text-xs font-bold">{p.label}</span>
+                            <span className={`text-[10px] font-normal block ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
+                              {p.sub}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Form Editor Body */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    updateLegalPolicy(selectedPolicyKey, policyForm);
+                  }}
+                  className="space-y-6 text-xs"
+                >
+                  
+                  {/* Meta Information Card */}
+                  <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-500" />
+                      1. Document Metadata & Identification
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                          Document Title *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={policyForm.title || ''}
+                          onChange={(e) => setPolicyForm({ ...policyForm, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                          Framework / Subtitle Description
+                        </label>
+                        <input
+                          type="text"
+                          value={policyForm.subtitle || ''}
+                          onChange={(e) => setPolicyForm({ ...policyForm, subtitle: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                          Version String
+                        </label>
+                        <input
+                          type="text"
+                          value={policyForm.version || ''}
+                          onChange={(e) => setPolicyForm({ ...policyForm, version: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                          Last Updated Date
+                        </label>
+                        <input
+                          type="text"
+                          value={policyForm.lastUpdated || ''}
+                          onChange={(e) => setPolicyForm({ ...policyForm, lastUpdated: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
+                          placeholder="August 2026"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                          Governing Jurisdiction
+                        </label>
+                        <input
+                          type="text"
+                          value={policyForm.jurisdiction || ''}
+                          onChange={(e) => setPolicyForm({ ...policyForm, jurisdiction: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
+                          placeholder="Kanpur Jurisdiction, Uttar Pradesh"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        Executive Commercial Summary *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={policyForm.summary || ''}
+                        onChange={(e) => setPolicyForm({ ...policyForm, summary: e.target.value })}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Section-by-Section Editor */}
+                  <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileCheck className="w-4 h-4 text-amber-500" />
+                        2. Policy Clauses & Operational Sections ({policyForm.sections?.length || 0})
+                      </h4>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextNum = (policyForm.sections?.length || 0) + 1;
+                          const newSec = {
+                            id: `sec-${Date.now()}`,
+                            number: String(nextNum),
+                            heading: `New Policy Clause §${nextNum}`,
+                            content: 'Describe the commercial terms or operational standard for this policy clause.',
+                            keyPoints: ['Clause operational point 1', 'Clause operational point 2']
+                          };
+                          setPolicyForm({
+                            ...policyForm,
+                            sections: [...(policyForm.sections || []), newSec]
+                          });
+                        }}
+                        className="px-3.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Add New Clause</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {policyForm.sections?.map((sec, secIdx) => (
+                        <div
+                          key={sec.id || secIdx}
+                          className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4"
+                        >
+                          <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="font-mono font-black text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded bg-amber-500/10">
+                                §{sec.number || secIdx + 1}
+                              </span>
+                              <input
+                                type="text"
+                                value={sec.heading || ''}
+                                onChange={(e) => {
+                                  const updatedSecs = [...policyForm.sections];
+                                  updatedSecs[secIdx].heading = e.target.value;
+                                  setPolicyForm({ ...policyForm, sections: updatedSecs });
+                                }}
+                                className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-extrabold text-xs text-slate-900 dark:text-white"
+                                placeholder="Section Heading..."
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete clause "${sec.heading}"?`)) {
+                                  const updatedSecs = policyForm.sections.filter((_, i) => i !== secIdx);
+                                  setPolicyForm({ ...policyForm, sections: updatedSecs });
+                                }
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40"
+                              title="Delete this clause"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">Clause Content / Paragraph</label>
+                            <textarea
+                              rows={3}
+                              value={sec.content || ''}
+                              onChange={(e) => {
+                                const updatedSecs = [...policyForm.sections];
+                                updatedSecs[secIdx].content = e.target.value;
+                                setPolicyForm({ ...policyForm, sections: updatedSecs });
+                              }}
+                              className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs leading-relaxed"
+                              placeholder="Clause full text..."
+                            />
+                          </div>
+
+                          {/* Key Points Sub-List */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-500">Key Highlights / Bullet Items</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedSecs = [...policyForm.sections];
+                                  if (!updatedSecs[secIdx].keyPoints) updatedSecs[secIdx].keyPoints = [];
+                                  updatedSecs[secIdx].keyPoints.push('New key highlight point');
+                                  setPolicyForm({ ...policyForm, sections: updatedSecs });
+                                }}
+                                className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                              >
+                                + Add Bullet Point
+                              </button>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {sec.keyPoints?.map((kp, kpIdx) => (
+                                <div key={kpIdx} className="flex items-center gap-2">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={kp}
+                                    onChange={(e) => {
+                                      const updatedSecs = [...policyForm.sections];
+                                      updatedSecs[secIdx].keyPoints[kpIdx] = e.target.value;
+                                      setPolicyForm({ ...policyForm, sections: updatedSecs });
+                                    }}
+                                    className="flex-1 px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedSecs = [...policyForm.sections];
+                                      updatedSecs[secIdx].keyPoints.splice(kpIdx, 1);
+                                      setPolicyForm({ ...policyForm, sections: updatedSecs });
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 p-1"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Optional Alert Note Input */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                              Optional Alert / Warning Notice (Highlighted in Red Box)
+                            </label>
+                            <input
+                              type="text"
+                              value={sec.alertNote || ''}
+                              onChange={(e) => {
+                                const updatedSecs = [...policyForm.sections];
+                                updatedSecs[secIdx].alertNote = e.target.value;
+                                setPolicyForm({ ...policyForm, sections: updatedSecs });
+                              }}
+                              className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-red-600 dark:text-red-400"
+                              placeholder="e.g. Legal Venue Notice: All proceedings must be served in Kanpur Jurisdiction..."
+                            />
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="submit"
+                      className="px-8 py-3.5 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow-xl shadow-brand-900/30 flex items-center gap-2 transition-all hover:scale-[1.01]"
+                    >
+                      <Scale className="w-4 h-4 text-amber-400" />
+                      <span>Save & Publish {policyForm.title || 'Policy'} Changes</span>
+                    </button>
+                  </div>
+
+                </form>
 
               </div>
             )}

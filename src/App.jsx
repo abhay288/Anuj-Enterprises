@@ -20,6 +20,7 @@ import { InvoiceModal } from './components/cart/InvoiceModal';
 import { OrderSuccessModal } from './components/cart/OrderSuccessModal';
 import { WhatsAppFloatingButton } from './components/common/WhatsAppFloatingButton';
 import { HeadlineBar } from './components/common/HeadlineBar';
+import { LegalView } from './components/legal/LegalView';
 
 const MainContent = () => {
   const { view, user, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
@@ -40,6 +41,10 @@ const MainContent = () => {
         {view === 'admin-dash' && <AdminDashboard />}
         {view === 'about' && <AboutView />}
         {(view === 'contact' || view === 'support') && <SupportView />}
+        {view === 'privacy-policy' && <LegalView initialTab="privacy" />}
+        {view === 'terms-of-supply' && <LegalView initialTab="terms" />}
+        {view === 'return-policy' && <LegalView initialTab="returns" />}
+        {view === 'legal' && <LegalView initialTab="privacy" />}
       </main>
 
       <Footer />

@@ -8,6 +8,7 @@ import {
   INITIAL_ORDERS,
   INITIAL_CUSTOMERS
 } from '../data/initialData';
+import { DEFAULT_LEGAL_POLICIES } from '../data/defaultPolicies';
 
 import { authService } from '../services/authService';
 import { productService } from '../services/productService';
@@ -107,6 +108,18 @@ export const AppProvider = ({ children }) => {
     if (target === 'admin' || target === 'admin-dash') {
       return { view: 'admin-dash' };
     }
+    if (target === 'privacy' || target === 'privacy-policy') {
+      return { view: 'privacy-policy' };
+    }
+    if (target === 'terms' || target === 'terms-of-supply' || target === 'terms-and-conditions') {
+      return { view: 'terms-of-supply' };
+    }
+    if (target === 'returns' || target === 'return-policy' || target === 'refund-policy') {
+      return { view: 'return-policy' };
+    }
+    if (target === 'legal' || target === 'compliance') {
+      return { view: 'legal' };
+    }
     if (target.startsWith('product/') || target.startsWith('products/')) {
       const slug = target.replace(/^products?\//, '');
       return { view: 'product-detail', slug };
@@ -156,6 +169,39 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
     setToast({ show: true, message: '📢 Headline announcement updated successfully!', type: 'success' });
+  }, []);
+
+  // Legal Policies Management (Admin-Editable)
+  const [legalPolicies, setLegalPolicies] = useState(() => {
+    const saved = localStorage.getItem('anuj_legal_policies_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return DEFAULT_LEGAL_POLICIES;
+  });
+
+  const updateLegalPolicy = useCallback((policyKey, policyData) => {
+    setLegalPolicies(prev => {
+      const updated = {
+        ...prev,
+        [policyKey]: {
+          ...(prev[policyKey] || DEFAULT_LEGAL_POLICIES[policyKey]),
+          ...policyData,
+          lastUpdated: policyData.lastUpdated || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        }
+      };
+      localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(updated));
+      return updated;
+    });
+    setToast({ show: true, message: `📜 Policy updated successfully!`, type: 'success' });
+  }, []);
+
+  const resetLegalPolicies = useCallback(() => {
+    setLegalPolicies(DEFAULT_LEGAL_POLICIES);
+    localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(DEFAULT_LEGAL_POLICIES));
+    setToast({ show: true, message: 'Default statutory B2B policies restored successfully!', type: 'info' });
   }, []);
 
   // Initial Fetch From API (Progressive Backend Integration)
@@ -1115,7 +1161,10 @@ export const AppProvider = ({ children }) => {
       updateProductThreshold,
       showToast,
       headlineConfig,
-      updateHeadlineConfig
+      updateHeadlineConfig,
+      legalPolicies,
+      updateLegalPolicy,
+      resetLegalPolicies
     }}>
       {children}
     </AppContext.Provider>
