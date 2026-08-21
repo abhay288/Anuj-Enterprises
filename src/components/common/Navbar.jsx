@@ -38,23 +38,23 @@ export const Navbar = () => {
           onClick={() => navigateTo('home')}
           className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-400 p-1.5 flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 ring-amber-500/20">
+          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white border-2 border-amber-400 p-1 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-4 ring-amber-500/20">
             <img 
               src="/logo.png" 
               alt="Anuj Enterprises Logo" 
-              className="w-full h-full object-contain" 
+              className="w-full h-full object-contain scale-110" 
             />
           </div>
           <div>
             <div className="flex items-center gap-1.5 leading-tight">
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 ANUJ
               </span>
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-brand-900 dark:text-amber-400">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-brand-900 dark:text-amber-400">
                 ENTERPRISES
               </span>
             </div>
-            <span className="text-[10px] sm:text-xs font-extrabold tracking-wider text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
+            <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
               Your Trusted Supply Partner
             </span>
           </div>
