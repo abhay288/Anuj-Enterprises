@@ -38,7 +38,7 @@ export const Navbar = () => {
           onClick={() => navigateTo('home')}
           className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white border-2 border-amber-400 p-1 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-4 ring-amber-500/20">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-400 p-0.5 sm:p-1 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 sm:ring-4 ring-amber-500/20">
             <img 
               src="/logo.png" 
               alt="Anuj Enterprises Logo" 
@@ -46,15 +46,15 @@ export const Navbar = () => {
             />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 leading-tight">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="flex items-center gap-1 leading-tight">
+              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 ANUJ
               </span>
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-brand-900 dark:text-amber-400">
+              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-brand-900 dark:text-amber-400">
                 ENTERPRISES
               </span>
             </div>
-            <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
+            <span className="text-[9px] sm:text-xs font-extrabold tracking-widest text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
               Your Trusted Supply Partner
             </span>
           </div>
