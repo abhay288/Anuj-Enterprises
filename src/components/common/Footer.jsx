@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Building2, Phone, Mail, MapPin, Clock, ShieldCheck, 
-  Send, ArrowUpRight, Facebook, Twitter, Linkedin, Instagram, Youtube 
+  Send, ArrowUpRight 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -41,7 +41,7 @@ export const Footer = () => {
             </div>
 
             <p className="text-xs leading-relaxed text-slate-400 max-w-sm">
-              Anuj Enterprises is India's premier B2B industrial distributor, powering OEMs, EPC contractors, steel mills, and manufacturing plants with certified FMCG, tools, and equipment.
+              India's industrial workforce runs on reliable supply. Anuj Enterprises delivers bulk FMCG — branded, certified, and straight to your site.
             </p>
 
             <div className="pt-2 space-y-2 text-xs">
@@ -55,19 +55,7 @@ export const Footer = () => {
               </div>
             </div>
 
-            {/* Social Icons */}
-            <div className="flex items-center gap-3 pt-3">
-              {[Linkedin, Facebook, Twitter, Instagram, Youtube].map((Icon, idx) => (
-                <a 
-                  key={idx} 
-                  href="#social" 
-                  onClick={(e) => { e.preventDefault(); showToast('Connecting to Social Channel...', 'info'); }}
-                  className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-brand-900 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-colors border border-slate-800"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
+
           </div>
 
           {/* Col 2: Quick Links */}
