@@ -238,14 +238,22 @@ export const Navbar = () => {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-4 space-y-3"
           >
-            <form onSubmit={handleSearchSubmit} className="relative">
+            <form 
+              onSubmit={(e) => {
+                handleSearchSubmit(e);
+                setIsMobileMenuOpen(false);
+              }} 
+              className="relative"
+            >
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
               <input
                 type="text"
+                inputMode="search"
+                enterKeyHint="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
-                className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm"
+                placeholder="Search FMCG SKUs, Amul, Nestlé..."
+                className="w-full pl-9 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </form>
 

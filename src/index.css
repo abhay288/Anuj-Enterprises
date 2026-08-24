@@ -33,15 +33,20 @@
   body, #root {
     overflow-x: clip;
     max-width: 100vw;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 .pb-safe {
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
 }
 
 .pt-safe {
-  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+}
+
+.mb-safe {
+  margin-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
 }
 
 /* Custom Scrollbar */

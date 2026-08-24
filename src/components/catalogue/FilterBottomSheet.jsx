@@ -266,7 +266,7 @@ export const FilterBottomSheet = ({
           </div>
 
           {/* Footer Controls */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center gap-3">
+          <div className="p-4 pb-safe border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center gap-3">
             <button
               type="button"
               onClick={onReset}

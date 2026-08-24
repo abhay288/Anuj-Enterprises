@@ -21,7 +21,7 @@ export const QuickViewModal = () => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[92vh] flex flex-col md:flex-row"
+          className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto max-h-[90vh] flex flex-col md:flex-row"
         >
           {/* Close button */}
           <button
@@ -89,39 +89,33 @@ export const QuickViewModal = () => {
                   <span className="text-[10px] text-slate-400 block font-semibold">Bundle</span>
                   <strong className="text-slate-900 dark:text-white">{quickViewProduct.bundleSize || '5 Units'}</strong>
                 </div>
-                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-900 text-amber-900 dark:text-amber-300">
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 block font-bold">Case</span>
-                  <strong className="font-black">{quickViewProduct.caseSize || '10 Units'}</strong>
+                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900">
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 block font-semibold">Case</span>
+                  <strong className="text-amber-800 dark:text-amber-300 font-extrabold">{quickViewProduct.caseSize || '10 Units'}</strong>
                 </div>
               </div>
 
-              {/* Live Stock Strip */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 mb-3">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Inventory Status</span>
-                <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-[11px] rounded-lg inline-flex items-center gap-1">
-                  <Check className="w-3 h-3" /> In Stock ({quickViewProduct.stock} units)
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 leading-relaxed">
                 {quickViewProduct.description}
               </p>
             </div>
 
-            {/* Quantity Selector & Quick Actions */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+            {/* Quick Add Action Controls */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Order Quantity:</span>
-                <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-sm">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Order Quantity:</span>
+                <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800">
                   <button
                     type="button"
                     onClick={() => setQty(Math.max(1, (parseInt(qty) || 1) - 1))}
-                    className="px-3 py-1.5 font-extrabold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs"
+                    className="px-3 py-1.5 font-extrabold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs"
                   >
                     -
                   </button>
                   <input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     min="1"
                     value={qty}
                     onChange={handleQtyInput}

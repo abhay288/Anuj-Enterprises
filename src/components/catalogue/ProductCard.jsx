@@ -74,8 +74,21 @@ export const ProductCard = memo(({ product }) => {
           onClick={() => navigateTo('product-detail', product.id)}
         />
 
-        {/* Quick View Overlay Button */}
-        <div className="absolute inset-x-4 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
+        {/* Quick View Top-Right Mobile Touch Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openQuickView(product);
+          }}
+          className="absolute top-3 right-3 z-10 p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl shadow backdrop-blur-sm transition-all sm:hidden active:scale-95"
+          title="Quick View"
+        >
+          <Eye className="w-4 h-4 text-amber-400" />
+        </button>
+
+        {/* Quick View Overlay Button for Hover Screens */}
+        <div className="absolute inset-x-4 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex gap-2">
           <button
             onClick={() => openQuickView(product)}
             className="w-full py-2 bg-slate-900/90 text-white dark:bg-slate-800/90 backdrop-blur-md rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg hover:bg-brand-900 transition-colors"
@@ -138,24 +151,26 @@ export const ProductCard = memo(({ product }) => {
                 type="button"
                 disabled={isOutOfStock}
                 onClick={() => setQuantity(Math.max(1, (parseInt(quantity) || 1) - 1))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
+                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
               >
                 -
               </button>
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="1"
                 disabled={isOutOfStock}
                 value={quantity}
                 onChange={handleQtyInputChange}
                 onBlur={handleQtyInputBlur}
-                className="w-14 h-7 text-center text-xs font-extrabold bg-white dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                className="w-14 h-8 sm:h-7 text-center text-xs font-extrabold bg-white dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
               />
               <button
                 type="button"
                 disabled={isOutOfStock}
                 onClick={() => setQuantity((parseInt(quantity) || 0) + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
+                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
               >
                 +
               </button>

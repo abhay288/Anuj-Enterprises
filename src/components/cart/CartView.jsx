@@ -316,6 +316,8 @@ export const CartView = () => {
                             </button>
                             <input
                               type="number"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               min="1"
                               value={item.qty}
                               onChange={(e) => updateCartQty(item.product.id, e.target.value, true)}
@@ -444,7 +446,9 @@ export const CartView = () => {
                           Mobile Number
                         </label>
                         <input
-                          type="text"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
                           value={customerMobile}
                           onChange={(e) => setCustomerMobile(e.target.value)}
                           placeholder="+91 98XXXXXXXX"
@@ -457,6 +461,8 @@ export const CartView = () => {
                         </label>
                         <input
                           type="email"
+                          inputMode="email"
+                          autoComplete="email"
                           value={customerEmail}
                           onChange={(e) => setCustomerEmail(e.target.value)}
                           placeholder="orders@customer.com"

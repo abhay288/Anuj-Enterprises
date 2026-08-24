@@ -239,18 +239,18 @@ export const ProductDetailView = () => {
                   B2B Packaging Specifications
                 </span>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Unit Pack</span>
-                    <strong className="text-xs font-bold text-slate-900 dark:text-white">{product.packSize || '1 Pack'}</strong>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center sm:text-left">
+                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
+                    <span className="text-[9px] sm:text-[10px] text-slate-400 block font-semibold">Unit Pack</span>
+                    <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">{product.packSize || '1 Pack'}</strong>
                   </div>
-                  <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Inner Bundle</span>
-                    <strong className="text-xs font-bold text-slate-900 dark:text-white">{product.bundleSize || '5 Packs'}</strong>
+                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
+                    <span className="text-[9px] sm:text-[10px] text-slate-400 block font-semibold">Inner Bundle</span>
+                    <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">{product.bundleSize || '5 Packs'}</strong>
                   </div>
-                  <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-400/80 dark:border-amber-900/80 shadow-sm bg-amber-500/5">
-                    <span className="text-[10px] text-amber-600 dark:text-amber-400 block font-bold">Master Case</span>
-                    <strong className="text-xs font-black text-brand-950 dark:text-amber-300">{product.caseSize || '10 Bundles'}</strong>
+                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-400/80 dark:border-amber-900/80 shadow-sm bg-amber-500/5">
+                    <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 block font-bold">Master Case</span>
+                    <strong className="text-xs font-black text-brand-950 dark:text-amber-300 block truncate">{product.caseSize || '10 Bundles'}</strong>
                   </div>
                 </div>
               </div>
@@ -291,6 +291,8 @@ export const ProductDetailView = () => {
                       </button>
                       <input
                         type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         min="1"
                         value={qty}
                         onChange={handleQtyInput}
