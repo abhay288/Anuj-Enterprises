@@ -7,10 +7,11 @@ import { authenticateJWT, requireAuth, requireRoles } from '../middleware/authMi
 
 const router = Router();
 
-router.get('/', authenticateJWT, getSalesmen);
-router.get('/:id', authenticateJWT, getSalesmanById);
+// Salesman Profile & Roster Routes (Secured)
+router.get('/', authenticateJWT, requireAuth, requireRoles('ADMIN', 'SALESMAN'), getSalesmen);
+router.get('/:id', authenticateJWT, requireAuth, requireRoles('ADMIN', 'SALESMAN'), getSalesmanById);
 
-// Admin Roster Controls
+// Admin Roster Management Controls
 router.post('/', authenticateJWT, requireAuth, requireRoles('ADMIN'), createSalesman);
 router.patch('/:id', authenticateJWT, requireAuth, requireRoles('ADMIN'), updateSalesman);
 router.patch('/:id/status', authenticateJWT, requireAuth, requireRoles('ADMIN'), toggleSalesmanStatus);

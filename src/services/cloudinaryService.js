@@ -1,14 +1,14 @@
 /**
  * Cloudinary Image Upload Service for Anuj Enterprises B2B Platform
  * Supports:
- * 1. Direct Unsigned Upload to Cloudinary CDN
- * 2. Backend Proxy Upload (/api/v1/upload/cloudinary)
+ * 1. Authenticated Backend Proxy Upload (/api/v1/upload/cloudinary)
+ * 2. Direct Upload via configured environment credentials
  * 3. Instant Local Optimized Data-URI Fallback
  */
 
 export const CLOUDINARY_CONFIG = {
-  cloudName: localStorage.getItem('CLOUDINARY_CLOUD_NAME') || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'uazkw46b',
-  uploadPreset: localStorage.getItem('CLOUDINARY_UPLOAD_PRESET') || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'anuj_fmcg_products',
+  cloudName: localStorage.getItem('CLOUDINARY_CLOUD_NAME') || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',
+  uploadPreset: localStorage.getItem('CLOUDINARY_UPLOAD_PRESET') || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '',
   folder: 'anuj_enterprises/products'
 };
 
@@ -36,7 +36,7 @@ export const fileToDataUrl = (file) => {
 };
 
 /**
- * Uploads an image file to Cloudinary
+ * Uploads an image file to Cloudinary with authentication & fallback
  * @param {File|Blob|string} imageSource - File object or Base64 string
  * @param {Function} onProgress - Optional progress callback (0-100)
  * @returns {Promise<{ url: string, publicId?: string, source: string }>}
@@ -53,14 +53,21 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
 
   onProgress(35);
 
-  // 1. Try Backend Upload Endpoint
+  const token = localStorage.getItem('anuj_jwt_token');
+
+  // 1. Try Authenticated Backend Upload Endpoint
   try {
     const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${backendUrl}/upload/cloudinary`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({
         image: dataUrl,
         folder: CLOUDINARY_CONFIG.folder
@@ -84,50 +91,41 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
 
   onProgress(50);
 
-  // 2. Try Direct Unsigned Upload to Cloudinary API
+  // 2. Try Direct Upload to Cloudinary API if configured
   const activeCloudName = CLOUDINARY_CONFIG.cloudName;
   const activePreset = CLOUDINARY_CONFIG.uploadPreset;
 
   if (activeCloudName && activePreset) {
     try {
       const formData = new FormData();
-      if (imageSource instanceof File || imageSource instanceof Blob) {
-        formData.append('file', imageSource);
-      } else {
-        formData.append('file', dataUrl);
-      }
+      formData.append('file', dataUrl);
       formData.append('upload_preset', activePreset);
       formData.append('folder', CLOUDINARY_CONFIG.folder);
 
-      const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${activeCloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      );
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${activeCloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
 
-      if (cloudinaryRes.ok) {
-        const result = await cloudinaryRes.json();
-        if (result.secure_url) {
-          onProgress(100);
-          return {
-            url: result.secure_url,
-            publicId: result.public_id,
-            source: 'cloudinary-direct'
-          };
-        }
+      if (res.ok) {
+        const data = await res.json();
+        onProgress(100);
+        return {
+          url: data.secure_url || data.url,
+          publicId: data.public_id,
+          source: 'cloudinary-direct'
+        };
       }
     } catch (directErr) {
-      console.warn('Direct Cloudinary upload failed, falling back to optimized data URL', directErr);
+      console.warn('Direct Cloudinary upload failed:', directErr);
     }
   }
 
+  // 3. Safe Local Data-URI Fallback
   onProgress(100);
-  // 3. Fail-safe fallback: Return the high-res data URL so image works immediately in UI
   return {
     url: dataUrl,
-    publicId: `local-${Date.now()}`,
-    source: 'data-url'
+    publicId: `local_${Date.now()}`,
+    source: 'data-uri-fallback'
   };
 };

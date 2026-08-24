@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ICustomer extends Document {
   customerId: string;
   name: string;
+  phone?: string;
   mobile?: string;
   email?: string;
   address?: string;
@@ -12,6 +13,10 @@ export interface ICustomer extends Document {
   classification: 'NORMAL' | 'DAMAGE' | 'EXPIRY';
   customerMode: 'QUICK' | 'FULL';
   createdBy?: string;
+  assignedSalesmanId?: string;
+  totalOrders?: number;
+  totalSpent?: number;
+  lastOrderDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +25,7 @@ const CustomerSchema: Schema = new Schema(
   {
     customerId: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true, trim: true },
+    phone: { type: String, default: '' },
     mobile: { type: String, default: '' },
     email: { type: String, default: '' },
     address: { type: String, default: '' },
@@ -28,7 +34,11 @@ const CustomerSchema: Schema = new Schema(
     gstin: { type: String, default: '' },
     classification: { type: String, enum: ['NORMAL', 'DAMAGE', 'EXPIRY'], default: 'NORMAL' },
     customerMode: { type: String, enum: ['QUICK', 'FULL'], default: 'QUICK' },
-    createdBy: { type: String, default: 'SALESMAN' }
+    createdBy: { type: String, default: 'SALESMAN' },
+    assignedSalesmanId: { type: String, default: '' },
+    totalOrders: { type: Number, default: 0 },
+    totalSpent: { type: Number, default: 0 },
+    lastOrderDate: { type: Date }
   },
   { timestamps: true }
 );

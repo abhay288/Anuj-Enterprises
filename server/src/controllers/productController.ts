@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Product } from '../models/Product.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
+import { escapeRegex, sanitizeCsvFormula } from '../utils/securityUtils.js';
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -20,11 +21,11 @@ export const getProducts = async (req: Request, res: Response) => {
     const queryFilter: any = {};
 
     if (company && company !== 'All') {
-      queryFilter.companyName = new RegExp(`^${company}$`, 'i');
+      queryFilter.companyName = new RegExp(`^${escapeRegex(String(company))}$`, 'i');
     }
 
     if (category && category !== 'All') {
-      queryFilter.categoryName = new RegExp(`^${category}$`, 'i');
+      queryFilter.categoryName = new RegExp(`^${escapeRegex(String(category))}$`, 'i');
     }
 
     if (featured === 'true') {
@@ -45,23 +46,27 @@ export const getProducts = async (req: Request, res: Response) => {
       const q = String(search).trim();
       const tokens = q.split(/\s+/).filter(Boolean);
       if (tokens.length > 1) {
-        // Multi-token matching: all tokens must match
-        queryFilter.$and = tokens.map(token => ({
-          $or: [
-            { name: new RegExp(token, 'i') },
-            { sku: new RegExp(token, 'i') },
-            { companyName: new RegExp(token, 'i') },
-            { categoryName: new RegExp(token, 'i') },
-            { description: new RegExp(token, 'i') }
-          ]
-        }));
+        // Multi-token matching: all tokens must match (escaped)
+        queryFilter.$and = tokens.map(token => {
+          const escapedToken = escapeRegex(token);
+          return {
+            $or: [
+              { name: new RegExp(escapedToken, 'i') },
+              { sku: new RegExp(escapedToken, 'i') },
+              { companyName: new RegExp(escapedToken, 'i') },
+              { categoryName: new RegExp(escapedToken, 'i') },
+              { description: new RegExp(escapedToken, 'i') }
+            ]
+          };
+        });
       } else {
+        const escapedQ = escapeRegex(q);
         queryFilter.$or = [
-          { name: new RegExp(q, 'i') },
-          { sku: new RegExp(q, 'i') },
-          { companyName: new RegExp(q, 'i') },
-          { categoryName: new RegExp(q, 'i') },
-          { description: new RegExp(q, 'i') }
+          { name: new RegExp(escapedQ, 'i') },
+          { sku: new RegExp(escapedQ, 'i') },
+          { companyName: new RegExp(escapedQ, 'i') },
+          { categoryName: new RegExp(escapedQ, 'i') },
+          { description: new RegExp(escapedQ, 'i') }
         ];
       }
     }
@@ -370,8 +375,10 @@ export const validateBulkCsv = async (req: Request, res: Response) => {
     } else {
       validRows.push({
         ...row,
-        name: String(row.name).trim(),
-        sku: String(row.sku).trim().toUpperCase(),
+        name: sanitizeCsvFormula(String(row.name).trim()),
+        sku: sanitizeCsvFormula(String(row.sku).trim().toUpperCase()),
+        company: sanitizeCsvFormula(String(row.brand || row.company || 'Amul').trim()),
+        category: sanitizeCsvFormula(String(row.category || 'Food & Beverages').trim()),
         price: priceNum,
         stock: stockNum,
         id: `prod-bulk-${Date.now()}-${i}`
@@ -405,10 +412,10 @@ export const importBulkCsv = async (req: AuthRequest, res: Response) => {
 
     const p = new Product({
       productId: item.id || `prod-ae-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      sku: String(item.sku).trim().toUpperCase(),
-      name: String(item.name).trim(),
-      companyName: item.brand || item.company || 'Amul',
-      categoryName: item.category || 'Food & Beverages',
+      sku: sanitizeCsvFormula(String(item.sku).trim().toUpperCase()),
+      name: sanitizeCsvFormula(String(item.name).trim()),
+      companyName: sanitizeCsvFormula(item.brand || item.company || 'Amul'),
+      categoryName: sanitizeCsvFormula(item.category || 'Food & Beverages'),
       price: priceNum,
       stock: stockNum,
       lowStockThreshold: Number(item.lowStockThreshold) || 20,

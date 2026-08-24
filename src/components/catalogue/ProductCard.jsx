@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Star, Sparkles, Box, AlertTriangle, XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export const ProductCard = ({ product }) => {
+export const ProductCard = memo(({ product }) => {
   const { addToCart, openQuickView, navigateTo } = useApp();
   const [quantity, setQuantity] = useState(1);
 
@@ -184,4 +184,6 @@ export const ProductCard = ({ product }) => {
       </div>
     </motion.div>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';

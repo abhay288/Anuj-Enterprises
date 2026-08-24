@@ -1,16 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 export const Enterprise3DModel = () => {
   const mountRef = useRef(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
+    // Respect user reduced-motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // Dimensions
-    const width = container.clientWidth || 500;
-    const height = container.clientHeight || 450;
+    const width = container.clientWidth || 450;
+    const height = container.clientHeight || 400;
 
     // Scene, Camera, Renderer
     const scene = new THREE.Scene();
@@ -19,25 +23,29 @@ export const Enterprise3DModel = () => {
     camera.position.set(0, 0, 8);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: window.devicePixelRatio < 2, 
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     container.appendChild(renderer.domElement);
+    setIsLoaded(true);
 
-    // Crisp Professional Lighting (No Yellow)
+    // Crisp Professional Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 3.2); // Electric Cyan Light
+    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 3.2); // Electric Cyan
     dirLight1.position.set(5, 8, 5);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x1d4ed8, 2.5); // Deep Sapphire Blue Light
+    const dirLight2 = new THREE.DirectionalLight(0x1d4ed8, 2.5); // Deep Sapphire
     dirLight2.position.set(-5, -5, 5);
     scene.add(dirLight2);
 
-    const pointLight = new THREE.PointLight(0x60a5fa, 3, 15);
+    const pointLight = new THREE.PointLight(0x60a5fa, 2.5, 15);
     pointLight.position.set(0, 0, 4);
     scene.add(pointLight);
 
@@ -45,11 +53,11 @@ export const Enterprise3DModel = () => {
     const enterpriseGroup = new THREE.Group();
     scene.add(enterpriseGroup);
 
-    // Central Core Sculpture - High-Tech Liquid Chrome Metallic Finish
-    const coreGeo = new THREE.TorusKnotGeometry(1.6, 0.42, 120, 16);
+    // Central Core Sculpture
+    const coreGeo = new THREE.TorusKnotGeometry(1.6, 0.42, 80, 12); // Optimized segment count for high FPS
     const coreMat = new THREE.MeshStandardMaterial({
-      color: 0xcbd5e1, // Chrome Silver
-      emissive: 0x1e3a8a, // Deep Sapphire Underglow
+      color: 0xcbd5e1,
+      emissive: 0x1e3a8a,
       emissiveIntensity: 0.2,
       roughness: 0.05,
       metalness: 0.95,
@@ -60,17 +68,17 @@ export const Enterprise3DModel = () => {
     // Geodesic Cage - Bright Cyan Wireframe
     const cageGeo = new THREE.IcosahedronGeometry(2.8, 1);
     const cageMat = new THREE.MeshBasicMaterial({
-      color: 0x06b6d4, // Vibrant Electric Cyan
+      color: 0x06b6d4,
       wireframe: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.45,
     });
     const cageMesh = new THREE.Mesh(cageGeo, cageMat);
     enterpriseGroup.add(cageMesh);
 
-    // Orbiting Spheres (Platinum Silver & Sapphire Blue)
+    // Orbiting Spheres
     const nodeGroup = new THREE.Group();
-    const sphereGeo = new THREE.SphereGeometry(0.24, 16, 16);
+    const sphereGeo = new THREE.SphereGeometry(0.24, 12, 12);
     
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
@@ -88,27 +96,6 @@ export const Enterprise3DModel = () => {
     }
     enterpriseGroup.add(nodeGroup);
 
-    // Floating Diamond & Cyan Sparkle Particle Cloud
-    const particleCount = 130;
-    const particleGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 10;
-      positions[i + 1] = (Math.random() - 0.5) * 10;
-      positions[i + 2] = (Math.random() - 0.5) * 10;
-    }
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const particleMat = new THREE.PointsMaterial({
-      color: 0x60a5fa,
-      size: 0.08,
-      transparent: true,
-      opacity: 0.8,
-    });
-    const particleSystem = new THREE.Points(particleGeo, particleMat);
-    scene.add(particleSystem);
-
     // Mouse Interaction
     let mouseX = 0;
     let mouseY = 0;
@@ -123,24 +110,40 @@ export const Enterprise3DModel = () => {
       mouseY = y * 0.001;
     };
 
-    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    // Animation Loop
+    // IntersectionObserver: Pause rendering when off-screen to save CPU / GPU
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(container);
+
+    // Animation Loop with Visibility & Reduced-Motion Gating
     let animationFrameId;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      enterpriseGroup.rotation.y += 0.009;
-      coreMesh.rotation.x += 0.012;
-      coreMesh.rotation.z += 0.006;
-      nodeGroup.rotation.y -= 0.016;
-      cageMesh.rotation.y -= 0.004;
+      if (!isVisible) return; // Zero CPU cost when scrolled out of view!
 
-      targetRotationX += (mouseY - targetRotationX) * 0.05;
-      targetRotationY += (mouseX - targetRotationY) * 0.05;
+      if (!prefersReducedMotion) {
+        enterpriseGroup.rotation.y += 0.007;
+        coreMesh.rotation.x += 0.009;
+        coreMesh.rotation.z += 0.005;
+        nodeGroup.rotation.y -= 0.012;
+        cageMesh.rotation.y -= 0.003;
 
-      enterpriseGroup.rotation.x = targetRotationX;
-      enterpriseGroup.rotation.z = -targetRotationY * 0.5;
+        targetRotationX += (mouseY - targetRotationX) * 0.05;
+        targetRotationY += (mouseX - targetRotationY) * 0.05;
+
+        enterpriseGroup.rotation.x = targetRotationX;
+        enterpriseGroup.rotation.z = -targetRotationY * 0.5;
+      }
 
       renderer.render(scene, camera);
     };
@@ -156,21 +159,34 @@ export const Enterprise3DModel = () => {
       renderer.setSize(w, h);
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
       container.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      
+      // Explicit Geometry & Material Disposal
+      coreGeo.dispose();
+      coreMat.dispose();
+      cageGeo.dispose();
+      cageMat.dispose();
+      sphereGeo.dispose();
       renderer.dispose();
     };
   }, []);
 
   return (
-    <div className="relative w-full h-[420px] overflow-hidden flex items-center justify-center">
+    <div className="relative w-full h-[380px] sm:h-[420px] overflow-hidden flex items-center justify-center">
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 rounded-3xl backdrop-blur-sm animate-pulse">
+          <span className="text-xs font-bold text-amber-400">Loading 3D Supply Chain Model...</span>
+        </div>
+      )}
       <div 
         ref={mountRef} 
         className="w-full h-full cursor-grab active:cursor-grabbing"
@@ -178,3 +194,4 @@ export const Enterprise3DModel = () => {
     </div>
   );
 };
+export default Enterprise3DModel;

@@ -11,7 +11,9 @@
     "seed": "npx tsx src/seeds/seed.ts",
     "seed:prod": "npx tsx src/seeds/bootstrapProdAdmin.ts",
     "admin:create": "npx tsx src/scripts/createAdmin.ts",
-    "test": "npx tsx src/__tests__/api.test.ts"
+    "test": "npx tsx src/__tests__/security.test.ts",
+    "test:api": "npx tsx src/__tests__/api.test.ts",
+    "test:security": "npx tsx src/__tests__/security.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

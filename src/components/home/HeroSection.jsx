@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, ArrowRight, Award, Truck, Building2, Search, ShoppingBag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Enterprise3DModel } from './Enterprise3DModel';
+
+const Enterprise3DModel = lazy(() => import('./Enterprise3DModel'));
 
 export const HeroSection = () => {
   const { navigateTo, setIsSalesmanModalOpen, searchQuery, setSearchQuery } = useApp();
@@ -58,69 +59,65 @@ export const HeroSection = () => {
               Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Net 30 B2B Credit, Instant B2B Invoicing & 24h Express Freight.
             </motion.p>
 
-            {/* Quick Hero Search Launcher */}
-            <motion.form
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              onSubmit={handleSearchSubmit}
-              className="relative max-w-xl"
-            >
-              <div className="relative flex items-center">
-                <Search className="absolute left-4 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search FMCG, Amul Milk, Dove, Lay's, Bisleri, Colgate..."
-                  className="w-full pl-12 pr-32 py-3.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-sm font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xl"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all"
-                >
-                  Find FMCG SKU
-                </button>
-              </div>
-            </motion.form>
-
-            {/* Hero CTAs */}
-            <motion.div
+            {/* Search Bar in Hero */}
+            <motion.form 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap items-center gap-4 pt-2"
+              onSubmit={handleSearchSubmit} 
+              className="relative max-w-xl"
+            >
+              <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search 1,200+ Wholesale FMCG SKUs (Amul, Nestlé, Dove, Colgate...)"
+                className="w-full pl-12 pr-32 py-3.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-sm font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-xl backdrop-blur-md"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-2 px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all"
+              >
+                Find Products
+              </button>
+            </motion.form>
+
+            {/* Action Buttons */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex flex-wrap gap-4 pt-2"
             >
               <button
                 onClick={() => navigateTo('catalogue')}
-                className="px-6 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm rounded-xl shadow-xl shadow-brand-900/50 flex items-center gap-2 transition-all hover:scale-105"
+                className="px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 flex items-center gap-2 group transition-all"
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Browse FMCG Catalog</span>
-                <ArrowRight className="w-4 h-4" />
+                <ShoppingBag className="w-4 h-4" /> Browse Catalog
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
               <button
                 onClick={() => setIsSalesmanModalOpen(true)}
-                className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-sm rounded-xl border border-slate-700 flex items-center gap-2 transition-all hover:scale-105"
+                className="px-6 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-bold text-sm border border-slate-700 backdrop-blur-md flex items-center gap-2 transition-all shadow-lg"
               >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>Become Sales Partner</span>
+                <ShieldCheck className="w-4 h-4 text-amber-400" /> Sales Representative Login
               </button>
             </motion.div>
 
-            {/* Micro Feature Tags */}
-            <motion.div
+            {/* Trust Badges */}
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="pt-4 flex flex-wrap items-center gap-6 text-xs text-slate-400"
+              transition={{ delay: 0.5 }}
+              className="pt-6 border-t border-slate-800/80 flex flex-wrap items-center gap-6 text-xs text-slate-400"
             >
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Genuine Brand Sourcing
+                <Truck className="w-4 h-4 text-amber-400" /> 24h Express Route Dispatch
               </span>
               <span className="flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-amber-400" /> 24h Express Dispatch
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Genuine Direct Mill Stock
               </span>
               <span className="flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-brand-400" /> Official B2B Sales Invoice
@@ -136,7 +133,18 @@ export const HeroSection = () => {
               transition={{ delay: 0.2 }}
               className="relative mx-auto max-w-md lg:max-w-none"
             >
-              <Enterprise3DModel />
+              <Suspense fallback={
+                <div className="w-full h-[380px] sm:h-[420px] rounded-3xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-center animate-pulse">
+                  <div className="text-center p-6 space-y-2">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-400/20 border border-amber-400/30 mx-auto flex items-center justify-center">
+                      <Truck className="w-8 h-8 text-amber-400 animate-bounce" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-300">Anuj Supply Chain 3D</p>
+                  </div>
+                </div>
+              }>
+                <Enterprise3DModel />
+              </Suspense>
             </motion.div>
           </div>
 

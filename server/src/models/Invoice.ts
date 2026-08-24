@@ -40,9 +40,12 @@ const InvoiceSchema: Schema = new Schema(
     grandTotal: { type: Number, default: 0 },
     paymentStatus: { type: String, enum: ['OFFLINE'], default: 'OFFLINE' },
     collectionStatus: { type: String, enum: ['PENDING', 'COLLECTED'], default: 'PENDING' },
-    issuedAt: { type: Date, default: Date.now }
+    issuedAt: { type: Date, default: Date.now, index: true }
   },
   { timestamps: true }
 );
+
+InvoiceSchema.index({ salesmanId: 1, issuedAt: -1 });
+InvoiceSchema.index({ customerId: 1, issuedAt: -1 });
 
 export const Invoice = mongoose.model<IInvoice>('Invoice', InvoiceSchema);

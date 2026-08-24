@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
+import { validateImagePayload } from '../utils/securityUtils.js';
+
+const ALLOWED_FOLDERS = [
+  'anuj_enterprises/products',
+  'anuj_enterprises/avatars',
+  'anuj_enterprises/categories'
+];
 
 const getCloudinaryConfig = () => {
   const cloudinaryUrl = process.env.CLOUDINARY_URL?.trim();
@@ -8,52 +15,77 @@ const getCloudinaryConfig = () => {
     const match = cloudinaryUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
     if (match) {
       const [, apiKey, apiSecret, cloudName] = match;
-      return { cloudName, apiKey, apiSecret };
+      return { cloudName, apiKey, apiSecret, configured: true };
     }
   }
 
-  return {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.IMAGE_STORAGE_KEY || '',
-    apiKey: process.env.CLOUDINARY_API_KEY || '',
-    apiSecret: process.env.CLOUDINARY_API_SECRET || process.env.IMAGE_STORAGE_SECRET || ''
-  };
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.IMAGE_STORAGE_KEY;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.IMAGE_STORAGE_SECRET;
+
+  const configured = Boolean(cloudName && apiKey && apiSecret);
+
+  return { cloudName, apiKey, apiSecret, configured };
 };
 
 export const uploadCloudinaryImage = async (req: Request, res: Response) => {
   try {
-    const { image, folder = 'anuj_enterprises/products' } = req.body;
+    const { image, folder } = req.body || {};
 
     if (!image) {
-      return res.status(400).json({ success: false, message: 'No image data provided for upload' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No image data provided for upload',
+        code: 'MISSING_IMAGE_PAYLOAD'
+      });
     }
 
-    const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+    // Validate Image Payload format, MIME type, and size limit (Requirement 5)
+    const validation = validateImagePayload(image, 5 * 1024 * 1024); // 5MB limit
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.error || 'Invalid image payload',
+        code: 'INVALID_IMAGE'
+      });
+    }
 
-    // Check if valid credentials exist
-    const hasValidCredentials = (cloudName && apiKey && apiSecret) || process.env.CLOUDINARY_URL;
+    // Whitelist Destination Folder
+    const targetFolder = ALLOWED_FOLDERS.includes(folder) 
+      ? folder 
+      : 'anuj_enterprises/products';
 
-    if (!hasValidCredentials) {
+    const { cloudName, apiKey, apiSecret, configured } = getCloudinaryConfig();
+
+    if (!configured) {
+      // In development, return data URL if unconfigured, or fail safely
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(503).json({
+          success: false,
+          message: 'Cloudinary CDN storage is not configured on the production server.',
+          code: 'CLOUDINARY_NOT_CONFIGURED'
+        });
+      }
+
       return res.json({
         success: true,
         url: image,
-        public_id: `temp_${Date.now()}`,
-        message: 'No Cloudinary credentials found in .env, image saved via DataURL'
+        public_id: `dev_${Date.now()}`,
+        message: 'Development fallback: DataURL retained (Cloudinary unconfigured)'
       });
     }
 
-    // Configure Cloudinary instance dynamically
-    if (cloudName && apiKey && apiSecret) {
-      cloudinary.config({
-        cloud_name: cloudName,
-        api_key: apiKey,
-        api_secret: apiSecret,
-        secure: true
-      });
-    }
+    // Configure Cloudinary
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+      secure: true
+    });
 
     // Upload to Cloudinary CDN
     const uploadResponse = await cloudinary.uploader.upload(image, {
-      folder,
+      folder: targetFolder,
       resource_type: 'image',
       transformation: [
         { quality: 'auto:good' },
@@ -74,7 +106,8 @@ export const uploadCloudinaryImage = async (req: Request, res: Response) => {
     console.error('Cloudinary Server Upload Error:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to upload image to Cloudinary CDN'
+      message: error.message || 'Failed to upload image to Cloudinary CDN',
+      code: 'UPLOAD_ERROR'
     });
   }
 };

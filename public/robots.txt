@@ -1,0 +1,17 @@
+# Robots.txt for Anuj Enterprises B2B Platform
+User-agent: *
+Allow: /
+Allow: /#/
+Allow: /#/catalogue
+Allow: /#/about
+Allow: /#/contact
+Allow: /#/privacy-policy
+Allow: /#/terms-of-supply
+Allow: /#/return-policy
+
+# Disallow internal and authenticated dashboards from search engine scrapers
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+Sitemap: https://anujenterprises.com/sitemap.xml

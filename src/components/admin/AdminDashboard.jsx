@@ -9,7 +9,7 @@ import {
   Store, Clock, AlertCircle, ArrowUpRight, ArrowDownRight, PackageCheck,
   PackageX, ShieldAlert, ArrowRight, PackagePlus, History, SlidersHorizontal,
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
-  BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle
+  BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -391,6 +391,96 @@ export const AdminDashboard = () => {
     // Stock Risk Products
     const stockRiskProducts = products.filter(p => p.stock <= (p.lowStockThreshold || 20)).sort((a, b) => a.stock - b.stock);
 
+    // Salesman Performance Analytics (Who sold the most)
+    const salesmanMap = {};
+    salesmen.forEach(s => {
+      salesmanMap[s.id] = {
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        phone: s.phone,
+        region: s.region || 'UP Central (Kanpur HQ)',
+        status: s.status || 'Active',
+        ordersCount: 0,
+        totalQuantity: 0,
+        totalRevenue: 0,
+        completedOrders: 0
+      };
+    });
+
+    for (const o of filteredOrders) {
+      const sId = o.salesmanId || o.createdBy;
+      const sName = o.salesmanName || (sId && salesmen.find(s => s.id === sId)?.name) || 'Direct / Store Order';
+      const key = sId || sName;
+
+      if (!salesmanMap[key]) {
+        salesmanMap[key] = {
+          id: sId || `SM-${key.replace(/\s+/g, '-').toLowerCase()}`,
+          name: sName,
+          email: o.salesmanEmail || '',
+          phone: o.salesmanPhone || '',
+          region: o.salesmanRegion || 'Territory Sales',
+          status: 'Active',
+          ordersCount: 0,
+          totalQuantity: 0,
+          totalRevenue: 0,
+          completedOrders: 0
+        };
+      }
+
+      const units = Number(o.totalQuantity || o.items?.reduce((acc, i) => acc + Number(i.qty || i.quantity || 0), 0) || 0);
+      const rev = Number(o.grandTotal || o.totalAmount || o.subtotal || 0);
+
+      salesmanMap[key].ordersCount += 1;
+      salesmanMap[key].totalQuantity += units;
+      salesmanMap[key].totalRevenue += rev;
+      if (o.status && (o.status.toUpperCase().includes('INVOICE') || o.status.toUpperCase().includes('CONFIRM') || o.status.toUpperCase().includes('DELIVER'))) {
+        salesmanMap[key].completedOrders += 1;
+      }
+    }
+
+    const salesmanAnalytics = Object.values(salesmanMap).sort((a, b) => (b.totalQuantity - a.totalQuantity) || (b.totalRevenue - a.totalRevenue));
+    const topSalesman = salesmanAnalytics.find(s => s.totalQuantity > 0 || s.ordersCount > 0) || salesmanAnalytics[0] || null;
+
+    // Product Performance Analytics (Which product sold the most)
+    const productMap = {};
+    for (const o of filteredOrders) {
+      for (const item of (o.items || [])) {
+        const pId = item.id || item.productId || item.sku || item.name;
+        const name = item.name || 'FMCG Product';
+        const sku = item.sku || 'SKU-GEN';
+        const brand = item.brand || item.company || item.companyName || 'General FMCG';
+        const category = item.category || item.categoryName || 'FMCG';
+        const qty = Number(item.qty || item.quantity || 0);
+        const price = Number(item.price || 0);
+        const rev = Number(item.subtotal || item.total || (qty * price) || 0);
+
+        if (!productMap[pId]) {
+          const catalogItem = products.find(p => p.id === item.id || p.sku === item.sku || (item.name && p.name.toLowerCase() === item.name.toLowerCase()));
+          productMap[pId] = {
+            id: pId,
+            name: catalogItem?.name || name,
+            sku: catalogItem?.sku || sku,
+            brand: catalogItem?.brand || brand,
+            category: catalogItem?.category || category,
+            image: catalogItem?.image || item.image || '',
+            price: catalogItem?.price || price,
+            stock: catalogItem?.stock ?? null,
+            unitsSold: 0,
+            totalRevenue: 0,
+            ordersCount: 0
+          };
+        }
+
+        productMap[pId].unitsSold += qty;
+        productMap[pId].totalRevenue += (rev || (qty * (productMap[pId].price || 0)));
+        productMap[pId].ordersCount += 1;
+      }
+    }
+
+    const productAnalytics = Object.values(productMap).sort((a, b) => (b.unitsSold - a.unitsSold) || (b.totalRevenue - a.totalRevenue));
+    const topProduct = productAnalytics.find(p => p.unitsSold > 0) || productAnalytics[0] || null;
+
     return {
       kpis: {
         totalOrders,
@@ -406,6 +496,10 @@ export const AdminDashboard = () => {
       orderTrend: serverAnalytics?.orderTrend?.length ? serverAnalytics.orderTrend : orderTrend,
       categoryAnalytics: serverAnalytics?.categoryAnalytics?.length ? serverAnalytics.categoryAnalytics : categoryAnalytics,
       companyAnalytics: serverAnalytics?.companyAnalytics?.length ? serverAnalytics.companyAnalytics : companyAnalytics,
+      salesmanAnalytics,
+      topSalesman,
+      productAnalytics,
+      topProduct,
       stockRiskProducts
     };
   }, [orders, products, salesmen, timeframe, customStartDate, customEndDate, serverAnalytics]);
@@ -706,6 +800,158 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
+                {/* Spotlight Row: Top Performing Salesman & Top Selling Product */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Top Salesman Card */}
+                  <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-slate-900/5 dark:from-amber-950/40 dark:via-slate-900/80 dark:to-slate-900/40 border border-amber-500/30 shadow-md">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                          <Trophy className="w-3.5 h-3.5" />
+                          Top Salesman
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 capitalize">
+                          ({timeframe})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('salesmen')}
+                        className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                      >
+                        Roster <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {biData.topSalesman && (biData.topSalesman.totalQuantity > 0 || biData.topSalesman.ordersCount > 0) ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-md shrink-0">
+                            {biData.topSalesman.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-base font-black text-slate-900 dark:text-white truncate">
+                                {biData.topSalesman.name}
+                              </h4>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                {biData.topSalesman.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              ID: {biData.topSalesman.id} • {biData.topSalesman.region}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-amber-500/20">
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Dispatched Units</span>
+                            <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                              {biData.topSalesman.totalQuantity.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Total Revenue</span>
+                            <span className="text-lg font-black text-slate-900 dark:text-white">
+                              ₹{biData.topSalesman.totalRevenue.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Orders Sourced</span>
+                            <span className="text-lg font-black text-slate-900 dark:text-white">
+                              {biData.topSalesman.ordersCount}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-dashed border-slate-300 dark:border-slate-800 text-center">
+                        <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No salesman dispatch bookings in this period.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Selling Product Card */}
+                  <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-slate-900/80 dark:to-slate-900/40 border border-emerald-500/30 shadow-md">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 flex items-center gap-1.5 shadow-sm">
+                          <Flame className="w-3.5 h-3.5" />
+                          Most Sold Product
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 capitalize">
+                          ({timeframe})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('inventory')}
+                        className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                      >
+                        Inventory <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {biData.topProduct && biData.topProduct.unitsSold > 0 ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3.5">
+                          {biData.topProduct.image ? (
+                            <img
+                              src={biData.topProduct.image}
+                              alt={biData.topProduct.name}
+                              className="w-12 h-12 rounded-2xl object-cover border border-emerald-500/20 shadow-md shrink-0 bg-white"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-md shrink-0">
+                              <Package className="w-6 h-6" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-base font-black text-slate-900 dark:text-white truncate">
+                                {biData.topProduct.name}
+                              </h4>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              SKU: {biData.topProduct.sku} • {biData.topProduct.brand} • {biData.topProduct.category}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-emerald-500/20">
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Units Sold</span>
+                            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                              {biData.topProduct.unitsSold.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Gross Sales</span>
+                            <span className="text-lg font-black text-slate-900 dark:text-white">
+                              ₹{biData.topProduct.totalRevenue.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Current Stock</span>
+                            <span className="text-lg font-black text-slate-900 dark:text-white">
+                              {biData.topProduct.stock !== null ? biData.topProduct.stock : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-dashed border-slate-300 dark:border-slate-800 text-center">
+                        <Package className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No product item dispatches in this period.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Order Volume Trend Chart */}
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                   <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -732,6 +978,179 @@ export const AdminDashboard = () => {
                       </ResponsiveContainer>
                     </div>
                   )}
+                </div>
+
+                {/* Performance Rankings: Sales Force Leaderboard & Top Selling Products */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Sales Force Leaderboard */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Users className="w-4 h-4 text-amber-500" />
+                          Sales Force Leaderboard
+                        </h3>
+                        <p className="text-[11px] text-slate-400">Ranked by total quantity units dispatched</p>
+                      </div>
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
+                        {biData.salesmanAnalytics?.length || 0} Reps
+                      </span>
+                    </div>
+
+                    {biData.salesmanAnalytics && biData.salesmanAnalytics.length > 0 ? (
+                      <div className="space-y-3">
+                        {biData.salesmanAnalytics.slice(0, 6).map((s, idx) => {
+                          const maxUnits = Math.max(...biData.salesmanAnalytics.map(sm => sm.totalQuantity), 1);
+                          const pct = Math.round((s.totalQuantity / maxUnits) * 100);
+                          const isTop = idx === 0 && s.totalQuantity > 0;
+
+                          return (
+                            <div
+                              key={s.id}
+                              className={`p-3.5 rounded-2xl border transition-all ${
+                                isTop
+                                  ? 'bg-amber-500/5 border-amber-500/30'
+                                  : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800/80'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                                      idx === 0
+                                        ? 'bg-amber-500 text-slate-950'
+                                        : idx === 1
+                                        ? 'bg-slate-300 text-slate-900'
+                                        : idx === 2
+                                        ? 'bg-amber-700/80 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    }`}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <h4 className="text-xs font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                                      {s.name}
+                                      {isTop && <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                                    </h4>
+                                    <span className="text-[10px] text-slate-400 truncate block">
+                                      {s.region}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                                    {s.totalQuantity.toLocaleString()} Units
+                                  </span>
+                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                                    ₹{s.totalRevenue.toLocaleString()} ({s.ordersCount} orders)
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    isTop ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-brand-600 dark:bg-brand-500'
+                                  }`}
+                                  style={{ width: `${Math.max(pct, s.totalQuantity > 0 ? 5 : 0)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 text-center py-6">No salesman data available.</p>
+                    )}
+                  </div>
+
+                  {/* Top Selling Products Leaderboard */}
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Package className="w-4 h-4 text-emerald-500" />
+                          Top Selling Products
+                        </h3>
+                        <p className="text-[11px] text-slate-400">Ranked by total units sold across wholesale orders</p>
+                      </div>
+                      <span className="text-[10px] font-extrabold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
+                        {biData.productAnalytics?.length || 0} SKUs
+                      </span>
+                    </div>
+
+                    {biData.productAnalytics && biData.productAnalytics.length > 0 ? (
+                      <div className="space-y-3">
+                        {biData.productAnalytics.slice(0, 6).map((p, idx) => {
+                          const maxUnits = Math.max(...biData.productAnalytics.map(pr => pr.unitsSold), 1);
+                          const pct = Math.round((p.unitsSold / maxUnits) * 100);
+                          const isTop = idx === 0 && p.unitsSold > 0;
+
+                          return (
+                            <div
+                              key={p.id || idx}
+                              className={`p-3.5 rounded-2xl border transition-all ${
+                                isTop
+                                  ? 'bg-emerald-500/5 border-emerald-500/30'
+                                  : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800/80'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                                      idx === 0
+                                        ? 'bg-emerald-500 text-slate-950'
+                                        : idx === 1
+                                        ? 'bg-slate-300 text-slate-900'
+                                        : idx === 2
+                                        ? 'bg-amber-700/80 text-white'
+                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    }`}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <h4 className="text-xs font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                                      {p.name}
+                                      {isTop && <Flame className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                                    </h4>
+                                    <span className="text-[10px] text-slate-400 truncate block">
+                                      {p.brand} • SKU: {p.sku}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                                    {p.unitsSold.toLocaleString()} Units
+                                  </span>
+                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                                    ₹{p.totalRevenue.toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    isTop ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-emerald-600 dark:bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${Math.max(pct, p.unitsSold > 0 ? 5 : 0)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 text-center py-6">No product sale data recorded yet.</p>
+                    )}
+                  </div>
                 </div>
 
               </div>

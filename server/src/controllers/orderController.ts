@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { Invoice } from '../models/Invoice.js';
@@ -6,6 +6,7 @@ import { Customer } from '../models/Customer.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { InventoryLog } from '../models/InventoryLog.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
+import { parsePagination, escapeRegex } from '../utils/securityUtils.js';
 
 export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
@@ -98,85 +99,84 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
           productId: updatedProduct.productId,
           sku: updatedProduct.sku,
           productName: updatedProduct.name,
-          changeType: 'ORDER_DEDUCTION',
-          quantityChange: -qty,
+          changeType: 'DISPATCH',
+          quantity: -qty,
           previousStock: updatedProduct.stock + qty,
           newStock: updatedProduct.stock,
-          reason: `Order deduction for customer "${customerName}"`,
-          performedBy: req.user?.salesmanId || salesmanId || 'SALESMAN',
-          adminName: salesmanName || req.user?.name || 'Representative'
-        }).catch(() => {});
-      } else {
-        // Check if product exists but stock is insufficient
-        const existingProd = await Product.findOne({ $or: [{ productId: pId }, { sku: item.sku }] });
-        if (existingProd) {
-          return res.status(400).json({
-            success: false,
-            message: `Stock conflict: Only ${existingProd.stock} units are currently available for "${existingProd.name}".`,
-            code: 'INSUFFICIENT_STOCK'
-          });
-        }
-
-        // Fallback snapshot for mock/demo item
-        const unitPrice = item.unitPrice || item.price || 1200;
-        const itemTotal = unitPrice * qty;
-        processedItems.push({
-          productId: pId || `prod-${Date.now()}`,
-          sku: item.sku || 'AE-SKU-100',
-          productName: item.name || 'Industrial Item',
-          companyName: item.brand || item.company || 'Amul',
-          categoryName: item.category || 'Food & Beverages',
-          quantity: qty,
-          price: unitPrice,
-          packSize: item.packSize || '1 Unit',
-          bundleSize: item.bundleSize || '5 Units',
-          caseSize: item.caseSize || '10 Units',
-          isPriority: Boolean(item.isPriority),
-          total: itemTotal
+          reason: `Dispatched via Order Booking`,
+          referenceId: `ORD-${Date.now()}`
         });
-        grandTotal += itemTotal;
-        totalQuantity += qty;
+      } else {
+        // Stock exhaustion check
+        const existingProduct = await Product.findOne({
+          $or: [{ productId: pId }, { sku: item.sku }, { _id: isObjectId ? pId : null }]
+        });
+        const currentStock = existingProduct ? existingProduct.stock : 0;
+        
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for product "${item.name || item.sku}". Requested: ${qty}, Available in Warehouse: ${currentStock}`,
+          code: 'STOCK_UNAVAILABLE'
+        });
       }
     }
 
-    const countInvoices = await Invoice.countDocuments();
-    const invoiceNumber = `AE-2026-${String(countInvoices + 1).padStart(6, '0')}`;
-    const orderId = `ORD-2026-${String(countInvoices + 1).padStart(6, '0')}`;
+    const orderCount = await Order.countDocuments();
+    const orderId = `ORD-2026-${String(orderCount + 101).padStart(4, '0')}`;
+    const invoiceNumber = `AE-INV-2026-${String(orderCount + 101).padStart(4, '0')}`;
 
-    const normalizedClassification = (customerType || 'Normal Customer').toUpperCase().includes('DAMAGE')
-      ? 'DAMAGE'
-      : (customerType || 'Normal Customer').toUpperCase().includes('EXPIRY')
-      ? 'EXPIRY'
-      : 'NORMAL';
+    // Normalize customer classification
+    let normalizedClassification: 'NORMAL' | 'DAMAGE' | 'EXPIRY' = 'NORMAL';
+    if (customerType === 'Damage Customer' || customerType === 'DAMAGE') normalizedClassification = 'DAMAGE';
+    if (customerType === 'Expiry Customer' || customerType === 'EXPIRY') normalizedClassification = 'EXPIRY';
 
-    const customerObj = new Customer({
-      customerId: `CUST-${Date.now()}`,
-      name: String(customerName).trim(),
-      mobile: customerMobile || '',
-      email: customerEmail || '',
-      address: customerAddress || '',
-      city: customerCity || '',
-      state: customerState || '',
-      classification: normalizedClassification,
-      customerMode: customerMode === 'full' ? 'FULL' : 'QUICK',
-      createdBy: req.user?.salesmanId || salesmanId || 'AE-SM-001'
+    // Auto-create or Update Customer in Roster
+    let customerObj = await Customer.findOne({ 
+      $or: [
+        { phone: customerMobile }, 
+        { name: new RegExp(`^${escapeRegex(customerName)}$`, 'i') }
+      ] 
     });
-    await customerObj.save();
+
+    if (!customerObj) {
+      const custCount = await Customer.countDocuments();
+      customerObj = new Customer({
+        customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
+        name: customerName,
+        phone: customerMobile || '+91 98200 11223',
+        email: customerEmail || 'orders@customer.demo',
+        address: customerAddress || '',
+        city: customerCity || 'Kanpur',
+        state: customerState || 'Uttar Pradesh',
+        classification: normalizedClassification,
+        totalOrders: 1,
+        totalSpent: grandTotal,
+        lastOrderDate: new Date()
+      });
+      await customerObj.save();
+    } else {
+      customerObj.totalOrders = (customerObj.totalOrders || 0) + 1;
+      customerObj.totalSpent = (customerObj.totalSpent || 0) + grandTotal;
+      customerObj.lastOrderDate = new Date();
+      customerObj.classification = normalizedClassification;
+      if (customerAddress) customerObj.address = customerAddress;
+      if (customerCity) customerObj.city = customerCity;
+      if (customerState) customerObj.state = customerState;
+      await customerObj.save();
+    }
 
     const order = new Order({
       orderId,
       invoiceNumber,
-      salesmanId: salesmanId || req.user?.salesmanId || 'AE-SM-001',
-      salesmanName: salesmanName || req.user?.name || 'Rajesh Kumar',
-      customerId: customerObj.customerId,
-      customerName: String(customerName).trim(),
+      customerName: customerObj.name,
       customerClassification: normalizedClassification,
-      customerDetails: {
-        mobile: customerMobile,
-        email: customerEmail,
-        address: customerAddress,
-        city: customerCity,
-        state: customerState
+      salesmanId: salesmanId || req.user?.salesmanId || 'AE-SM-001',
+      salesmanName: salesmanName || req.user?.name || 'Field Sales Executive',
+      shippingAddress: {
+        street: customerAddress || '',
+        city: customerCity || '',
+        state: customerState || '',
+        pincode: ''
       },
       items: processedItems,
       totalQuantity,
@@ -279,11 +279,29 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
 
 export const getOrders = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
+    }
+
     const { salesmanId, search, status } = req.query;
     const filter: any = {};
 
-    if (salesmanId) {
-      filter.salesmanId = String(salesmanId).toUpperCase();
+    // Horizontal Privilege Access Control:
+    if (req.user.role === 'SALESMAN') {
+      // Salesman can only query their own orders
+      const userSalesmanId = req.user.salesmanId || req.user.id;
+      filter.salesmanId = String(userSalesmanId).toUpperCase();
+    } else if (req.user.role === 'USER') {
+      // Normal user can only see their own customer orders
+      filter.$or = [
+        { customerName: req.user.name },
+        { 'shippingAddress.street': req.user.email }
+      ];
+    } else if (req.user.role === 'ADMIN') {
+      // Admin can view all or filter by specific salesman
+      if (salesmanId) {
+        filter.salesmanId = String(salesmanId).toUpperCase();
+      }
     }
 
     if (status) {
@@ -291,15 +309,24 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
     }
 
     if (search) {
-      const q = String(search).trim();
-      filter.$or = [
-        { orderId: new RegExp(q, 'i') },
-        { invoiceNumber: new RegExp(q, 'i') },
-        { customerName: new RegExp(q, 'i') }
-      ];
+      const qEscaped = escapeRegex(String(search).trim());
+      const searchRegex = new RegExp(qEscaped, 'i');
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { orderId: searchRegex },
+          { invoiceNumber: searchRegex },
+          { customerName: searchRegex }
+        ]
+      });
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
+    const { limit, skip, page } = parsePagination(req.query, 50, 100);
+
+    const [orders, totalCount] = await Promise.all([
+      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Order.countDocuments(filter)
+    ]);
 
     const formatted = orders.map((o: any) => ({
       id: o.invoiceNumber || o.orderId,
@@ -329,7 +356,15 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
 
     return res.json({
       success: true,
-      data: { orders: formatted },
+      data: { 
+        orders: formatted,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          pages: Math.ceil(totalCount / limit)
+        }
+      },
       message: 'Orders retrieved successfully'
     });
   } catch (error: any) {
@@ -346,7 +381,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
     const order = await Order.findOne({ $or: [{ orderId: idStr }, { invoiceNumber: idStr }, { _id: isObjectId ? idStr : null }] });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    // Stock Restoration Rule (#24): Restock inventory if order status is updated to CANCELLED
+    // Stock Restoration Rule: Restock inventory if order status is updated to CANCELLED
     if (status === 'CANCELLED' && order.status !== 'CANCELLED') {
       for (const item of order.items) {
         await Product.updateOne(
