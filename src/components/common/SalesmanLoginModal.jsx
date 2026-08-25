@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, Sparkles, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { checkUnwantedContent } from '../../utils/securityUtils';
 
 export const SalesmanLoginModal = () => {
   const { 
@@ -57,6 +58,11 @@ export const SalesmanLoginModal = () => {
 
   const handleSalesmanSubmit = (e) => {
     e.preventDefault();
+    const check = checkUnwantedContent(salesmanId);
+    if (check.hasUnwanted) {
+      showToast('🚫 Prohibited characters or words detected in Salesman ID.', 'error');
+      return;
+    }
     setIsVerifying(true);
     setTimeout(() => {
       setIsVerifying(false);
@@ -66,6 +72,11 @@ export const SalesmanLoginModal = () => {
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
+    const check = checkUnwantedContent(adminEmail);
+    if (check.hasUnwanted) {
+      showToast('🚫 Prohibited characters or words detected in Admin Email.', 'error');
+      return;
+    }
     setIsVerifying(true);
     setTimeout(() => {
       setIsVerifying(false);
@@ -77,6 +88,11 @@ export const SalesmanLoginModal = () => {
     e.preventDefault();
     if (!userEmail.trim()) {
       showToast('Please enter your Email Address or Mobile Number.', 'warning');
+      return;
+    }
+    const check = checkUnwantedContent(`${userName} ${userEmail}`);
+    if (check.hasUnwanted) {
+      showToast('🚫 Entry Blocked: Inappropriate or prohibited words detected. Please check your details.', 'error');
       return;
     }
     setIsVerifying(true);
@@ -95,6 +111,11 @@ export const SalesmanLoginModal = () => {
     }
     if (!regForm.password.trim()) {
       showToast('Please create a password for your account.', 'warning');
+      return;
+    }
+    const check = checkUnwantedContent(`${regForm.name} ${regForm.email} ${regForm.address} ${regForm.city}`);
+    if (check.hasUnwanted) {
+      showToast(`🚫 Registration Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter clean business details.`, 'error');
       return;
     }
     setIsVerifying(true);

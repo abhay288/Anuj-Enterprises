@@ -9,6 +9,8 @@ import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
 import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
 
+import { checkUnwantedContent } from '../../utils/securityUtils';
+
 export const CartView = () => {
   const { 
     cart, 
@@ -140,6 +142,13 @@ export const CartView = () => {
   const priorityCount = cart.filter(i => i.isPriority).length;
 
   const handleCheckoutClick = () => {
+    const fullTextToTest = `${customerName} ${customerAddress} ${customerCity} ${customerEmail} ${salesmanNameInput}`;
+    const check = checkUnwantedContent(fullTextToTest);
+    if (check.hasUnwanted) {
+      showToast(`🚫 Checkout Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter valid business details.`, 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);

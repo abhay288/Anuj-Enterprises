@@ -18,6 +18,7 @@ import { companyService, categoryService } from '../services/companyService';
 import { customerService } from '../services/customerService';
 import { inventoryService } from '../services/inventoryService';
 import { generateProductSlug, findProductBySlugOrId } from '../utils/slugUtils';
+import { checkUnwantedContent } from '../utils/securityUtils';
 import { updatePageSEO } from '../utils/seoUtils';
 
 const AppContext = createContext();
