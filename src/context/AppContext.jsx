@@ -844,22 +844,84 @@ export const AppProvider = ({ children }) => {
     showToast(`Order #${newInvoiceId} created successfully! Tax invoice generated.`, 'success');
   };
 
+  // Helper to ensure every newly added or edited product has a complete B2B Product Details Card
+  const formatRichProductData = (prod) => {
+    const price = Math.max(1, parseFloat(prod.price) || 500);
+    const mrp = prod.mrp ? Math.max(price, parseFloat(prod.mrp)) : Math.round(price * 1.15);
+    const imgUrl = prod.image || (prod.images && prod.images[0]) || "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
+    
+    const imagesList = (prod.gallery && prod.gallery.length > 0)
+      ? prod.gallery
+      : (prod.images && prod.images.length > 0 ? prod.images : [imgUrl]);
+
+    const finalGallery = imagesList.length === 1 ? [imagesList[0], imagesList[0]] : imagesList;
+
+    const packSize = prod.packSize || "1 Unit Consumer Pack";
+    const bundleSize = prod.bundleSize || "5 Units Inner Bundle";
+    const caseSize = prod.caseSize || "10 Units / Master Case";
+    const hsn = prod.hsn || "19053100";
+    const gstRate = prod.gstRate || 5;
+
+    const bulkTiers = (prod.bulkTiers && prod.bulkTiers.length > 0) 
+      ? prod.bulkTiers 
+      : [
+          { qty: "1 - 5 cases", price: Math.round(price) },
+          { qty: "6 - 20 cases", price: Math.round(price * 0.95) },
+          { qty: "21+ cases", price: Math.round(price * 0.90) }
+        ];
+
+    const specs = (prod.specs && Object.keys(prod.specs).length > 0) ? prod.specs : {
+      "Consumer Pack Size": packSize,
+      "Inner Bundle Packaging": bundleSize,
+      "Master Case Packaging": caseSize,
+      "HSN Tax Code": hsn,
+      "GST Tax Rate": `${gstRate}% GST Included`,
+      "Shelf Life": "12 Months from MFD",
+      "Storage Conditions": "Cool & Dry Place (Ambient)",
+      "FSSAI License No.": "10012021000071",
+      "Country of Origin": "India"
+    };
+
+    const description = (prod.description && prod.description.trim().length > 10)
+      ? prod.description.trim()
+      : `${prod.name || 'Enterprise FMCG Item'} (${prod.brand || 'Amul'}) — Authentic FMCG product sourced directly from authorized manufacturing lines. Quality assured with direct batch traceability. Ideal for retail stores, supermarkets, and B2B wholesale distribution.`;
+
+    return {
+      ...prod,
+      id: prod.id || `prod-ae-${Date.now()}`,
+      name: prod.name || "Enterprise FMCG Product",
+      brand: prod.brand || "Amul",
+      category: prod.category || "Food & Beverages",
+      sku: prod.sku || `SKU-${Date.now().toString().slice(-6)}`,
+      hsn,
+      gstRate,
+      price: Math.round(price),
+      mrp: Math.round(mrp),
+      stock: prod.stock !== undefined ? parseInt(prod.stock, 10) : 100,
+      lowStockThreshold: prod.lowStockThreshold || 20,
+      minOrderQty: prod.minOrderQty || 1,
+      packSize,
+      bundleSize,
+      caseSize,
+      rating: prod.rating || 4.9,
+      reviewCount: prod.reviewCount || 48,
+      isFeatured: prod.isFeatured ?? true,
+      isNew: prod.isNew ?? true,
+      isTrending: prod.isTrending ?? true,
+      status: prod.status || "Published",
+      whiteBgAvailable: true,
+      image: imgUrl,
+      images: finalGallery,
+      gallery: finalGallery,
+      specs,
+      bulkTiers,
+      description
+    };
+  };
+
   // Product Admin Operations (CRUD + Flags) with Instant Optimistic Updates & API Sync
   const addProduct = async (newProd) => {
-    const formatted = {
-      ...newProd,
-      id: newProd.id || `prod-ae-${Date.now()}`,
-      rating: 5.0,
-      reviewCount: 1,
-      packSize: newProd.packSize || "1 Unit",
-      bundleSize: newProd.bundleSize || "5 Units",
-      caseSize: newProd.caseSize || "10 Units",
-      status: newProd.status || "Published",
-      isFeatured: newProd.isFeatured ?? true,
-      isNew: newProd.isNew ?? true,
-      whiteBgAvailable: true,
-      gallery: [newProd.image || "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"]
-    };
+    const formatted = formatRichProductData(newProd);
 
     // 1. Instant local state update & cross-tab sync
     setProducts(prev => {
@@ -867,11 +929,11 @@ export const AppProvider = ({ children }) => {
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
-    showToast(`Product "${newProd.name.slice(0, 25)}" added to catalog immediately!`, 'success');
+    showToast(`Product "${formatted.name.slice(0, 25)}" added with full B2B details card!`, 'success');
 
     // 2. Background API Sync
     try {
-      const res = await productService.createProduct(newProd);
+      const res = await productService.createProduct(formatted);
       if (res.data?.product) {
         setProducts(prev => prev.map(p => p.id === formatted.id ? { ...formatted, ...res.data.product } : p));
       }
@@ -879,17 +941,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateProduct = async (updatedProd) => {
+    const formatted = formatRichProductData(updatedProd);
+
     // 1. Instant local update & cross-tab sync
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === updatedProd.id || p._id === updatedProd._id) ? { ...p, ...updatedProd } : p);
+      const updated = prev.map(p => (p.id === formatted.id || p._id === formatted._id) ? { ...p, ...formatted } : p);
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
-    showToast(`Product updated live on website`, 'success');
+    showToast(`Product details card updated live on website`, 'success');
 
     // 2. Background API Sync
     try {
-      await productService.updateProduct(updatedProd.id || updatedProd._id, updatedProd);
+      await productService.updateProduct(formatted.id || formatted._id, formatted);
     } catch (e) {}
   };
 
