@@ -125,6 +125,11 @@ export const CartView = () => {
   }, [selectedCustomerForOrder]);
 
   const [salesmanIdInput, setSalesmanIdInput] = useState(user.salesmanId || 'AE-SM-001');
+  const [salesmanNameInput, setSalesmanNameInput] = useState(user.name || 'Rajesh Kumar');
+  const [salesmanAreaInput, setSalesmanAreaInput] = useState('South Kanpur Central');
+  const [salesmanRouteInput, setSalesmanRouteInput] = useState('Route #4 — Civil Lines Wholesale Mandi');
+  const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'Credit' | 'Online' | 'Special'
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const priorityCount = cart.filter(i => i.isPriority).length;
@@ -143,8 +148,11 @@ export const CartView = () => {
         customerEmail,
         customerType,
         salesmanId: salesmanIdInput || user.salesmanId || 'AE-SM-001',
-        salesmanName: user.name || 'Rajesh Kumar',
+        salesmanName: salesmanNameInput || user.name || 'Rajesh Kumar',
         salesmanPhone: user.phone || '+91 98765 43210',
+        salesmanArea: salesmanAreaInput || 'South Kanpur Central',
+        salesmanRoute: salesmanRouteInput || 'Route #4 — Civil Lines Wholesale Mandi',
+        paymentMethod: paymentMethod || 'Cash',
         expiredItems,
         returnItems
       });
@@ -304,32 +312,52 @@ export const CartView = () => {
                           </div>
                         </td>
 
-                        {/* Direct Numeric Input Quantity Column */}
+                        {/* Direct Numeric Input & Custom B2B Quantity Presets */}
                         <td className="py-4 px-4 text-center">
-                          <div className="inline-flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950">
-                            <button
-                              type="button"
-                              onClick={() => updateCartQty(item.product.id, -1)}
-                              className="px-2.5 py-1 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              min="1"
-                              value={item.qty}
-                              onChange={(e) => updateCartQty(item.product.id, e.target.value, true)}
-                              className="w-14 py-1 text-center font-extrabold text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-x border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => updateCartQty(item.product.id, 1)}
-                              className="px-2.5 py-1 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800"
-                            >
-                              +
-                            </button>
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="inline-flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => updateCartQty(item.product.id, -1)}
+                                className="px-2.5 py-1 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                min="1"
+                                value={item.qty}
+                                onChange={(e) => updateCartQty(item.product.id, e.target.value, true)}
+                                className="w-14 py-1 text-center font-extrabold text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-x border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateCartQty(item.product.id, 1)}
+                                className="px-2.5 py-1 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-800"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px]">
+                              <button
+                                type="button"
+                                onClick={() => updateCartQty(item.product.id, 5)}
+                                className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold"
+                                title="Add 5 units (1 Bundle)"
+                              >
+                                +5 Bundle
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateCartQty(item.product.id, 10)}
+                                className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-black"
+                                title="Add 10 units (1 Master Case)"
+                              >
+                                +10 Case
+                              </button>
+                            </div>
                           </div>
                         </td>
 
@@ -532,6 +560,83 @@ export const CartView = () => {
                     </div>
                   </motion.div>
                 )}
+
+                {/* Salesman Representative & Territory Route Entry Section */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                    Sales Representative & Territory Route Details (Appears on Tax Invoice)
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        Salesman Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={salesmanNameInput}
+                        onChange={(e) => setSalesmanNameInput(e.target.value)}
+                        placeholder="Rajesh Kumar"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        Salesman Area *
+                      </label>
+                      <input
+                        type="text"
+                        value={salesmanAreaInput}
+                        onChange={(e) => setSalesmanAreaInput(e.target.value)}
+                        placeholder="e.g. South Kanpur Central"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        Salesman Route *
+                      </label>
+                      <input
+                        type="text"
+                        value={salesmanRouteInput}
+                        onChange={(e) => setSalesmanRouteInput(e.target.value)}
+                        placeholder="e.g. Route #4 — Wholesale Mandi"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Method Selector (Cash, Credit, Online, Special) */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                    Payment Method Selection *
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'Cash', label: '💵 Cash', color: 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300' },
+                      { id: 'Credit', label: '💳 Credit (Net-30)', color: 'border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300' },
+                      { id: 'Online', label: '🌐 Online (UPI/NEFT)', color: 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300' },
+                      { id: 'Special', label: '⭐ Special Scheme', color: 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300' }
+                    ].map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(p.id)}
+                        className={`p-3 rounded-2xl border-2 text-xs font-extrabold transition-all text-center ${
+                          paymentMethod === p.id
+                            ? `${p.color} shadow-sm ring-2 ring-amber-400`
+                            : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             </div>
 

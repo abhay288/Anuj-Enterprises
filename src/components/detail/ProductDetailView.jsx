@@ -276,7 +276,7 @@ export const ProductDetailView = () => {
 
               {/* Quantity Selector & Action Buttons */}
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Order Quantity:
@@ -312,6 +312,32 @@ export const ProductDetailView = () => {
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 block font-semibold">Packaging Unit</span>
                     <span className="text-xs font-black text-brand-900 dark:text-amber-400">{product.packSize || 'Standard Packaging'}</span>
+                  </div>
+                </div>
+
+                {/* B2B Custom Wholesale Quantity Presets */}
+                <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                    Quick B2B Wholesale Quantity Presets:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { label: '1 Pack (1x)', val: 1, style: 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700' },
+                      { label: '1 Bundle (5x)', val: 5, style: 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 font-bold' },
+                      { label: '1 Case (10x)', val: 10, style: 'bg-amber-400 text-slate-950 border-amber-400 font-black' },
+                      { label: '+25 Units', val: 25, style: 'bg-brand-900 text-white font-bold' },
+                      { label: '+50 Units', val: 50, style: 'bg-brand-900 text-white font-bold' },
+                      { label: '+100 Units', val: 100, style: 'bg-emerald-600 text-white font-black' }
+                    ].map(p => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setQty(p.val)}
+                        className={`px-3 py-1.5 rounded-xl text-xs border shadow-sm transition-all hover:scale-105 ${p.style}`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

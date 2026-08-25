@@ -132,6 +132,31 @@ export const QuickViewModal = () => {
                 </div>
               </div>
 
+              {/* Custom B2B Quantity Presets */}
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setQty(1)}
+                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold"
+                >
+                  1 Pack (1x)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQty(5)}
+                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-bold"
+                >
+                  1 Bundle (5x)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQty(10)}
+                  className="px-2 py-1 bg-amber-400 text-slate-950 font-black rounded-lg"
+                >
+                  1 Case (10x)
+                </button>
+              </div>
+
               <div className="flex items-center gap-3">
                 <button
                   type="button"

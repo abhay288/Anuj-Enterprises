@@ -203,14 +203,30 @@ export const InvoiceModal = () => {
               </div>
 
               <div className="md:text-right border-t md:border-t-0 md:border-l border-slate-200 pt-3 md:pt-0 md:pl-6 space-y-1">
-                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Salesman & Collection Details</h4>
+                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Salesman & Territory Route Details</h4>
                 <p className="font-extrabold text-slate-900 text-sm">
                   {inv.salesmanName || "Rajesh Kumar"} (ID: <span className="font-mono">{inv.salesmanId || "AE-SM-001"}</span>)
                 </p>
                 <p className="text-slate-600">Phone: {inv.salesmanPhone || "+91 98765 43210"}</p>
+                <p className="text-slate-800 font-semibold">
+                  Area: <strong>{inv.salesmanArea || "South Kanpur Central"}</strong>
+                </p>
+                <p className="text-slate-800 font-semibold">
+                  Route: <strong>{inv.salesmanRoute || "Route #4 — Wholesale Mandi"}</strong>
+                </p>
                 <div className="pt-1 flex items-center md:justify-end gap-2 text-xs">
-                  <span className="font-bold text-slate-600">Order Type:</span>
-                  <span className="px-2 py-0.5 bg-slate-900 text-white font-bold text-[10px] rounded uppercase">Offline Collection</span>
+                  <span className="font-bold text-slate-600">Payment Method:</span>
+                  <span className={`px-2.5 py-0.5 font-black text-[10px] rounded uppercase shadow-sm ${
+                    (inv.paymentMethod || inv.paymentMode || 'Cash').toUpperCase().includes('CREDIT')
+                      ? 'bg-purple-600 text-white'
+                      : (inv.paymentMethod || inv.paymentMode || 'Cash').toUpperCase().includes('ONLINE')
+                      ? 'bg-blue-600 text-white'
+                      : (inv.paymentMethod || inv.paymentMode || 'Cash').toUpperCase().includes('SPECIAL')
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-emerald-600 text-white'
+                  }`}>
+                    {inv.paymentMethod || inv.paymentMode || 'Cash'}
+                  </span>
                 </div>
                 <div className="flex items-center md:justify-end gap-2 text-xs">
                   <span className="font-bold text-slate-600">Collection Status:</span>
