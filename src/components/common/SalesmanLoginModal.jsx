@@ -28,6 +28,8 @@ export const SalesmanLoginModal = () => {
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCity, setCustomCity] = useState('');
   const [regForm, setRegForm] = useState({
     name: '',
     mobile: '',
@@ -338,15 +340,67 @@ export const SalesmanLoginModal = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                          City
+                          Select City *
                         </label>
-                        <input
-                          type="text"
-                          value={regForm.city}
-                          onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
-                          placeholder="Kanpur"
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                        />
+                        <select
+                          value={isCustomCity ? 'OTHER' : regForm.city}
+                          onChange={(e) => {
+                            if (e.target.value === 'OTHER') {
+                              setIsCustomCity(true);
+                              setRegForm({ ...regForm, city: customCity || 'Kanpur' });
+                            } else {
+                              setIsCustomCity(false);
+                              setRegForm({ ...regForm, city: e.target.value });
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                        >
+                          <option value="Kanpur">Kanpur</option>
+                          <option value="Lucknow">Lucknow</option>
+                          <option value="Unnao">Unnao</option>
+                          <option value="Fatehpur">Fatehpur</option>
+                          <option value="Prayagraj">Prayagraj (Allahabad)</option>
+                          <option value="Varanasi">Varanasi</option>
+                          <option value="Agra">Agra</option>
+                          <option value="Aligarh">Aligarh</option>
+                          <option value="Bareilly">Bareilly</option>
+                          <option value="Gorakhpur">Gorakhpur</option>
+                          <option value="Jhansi">Jhansi</option>
+                          <option value="Meerut">Meerut</option>
+                          <option value="Moradabad">Moradabad</option>
+                          <option value="Noida / Greater Noida">Noida / Greater Noida</option>
+                          <option value="Ghaziabad">Ghaziabad</option>
+                          <option value="Mathura">Mathura</option>
+                          <option value="Ayodhya">Ayodhya</option>
+                          <option value="Etawah">Etawah</option>
+                          <option value="Farrukhabad">Farrukhabad</option>
+                          <option value="Kannauj">Kannauj</option>
+                          <option value="Raebareli">Raebareli</option>
+                          <option value="Sultanpur">Sultanpur</option>
+                          <option value="Sitapur">Sitapur</option>
+                          <option value="Hardoi">Hardoi</option>
+                          <option value="Banda">Banda</option>
+                          <option value="Delhi NCR">Delhi NCR</option>
+                          <option value="Mumbai / Thane">Mumbai / Thane</option>
+                          <option value="Patna">Patna</option>
+                          <option value="Indore">Indore</option>
+                          <option value="Jaipur">Jaipur</option>
+                          <option value="OTHER">Enter Other City...</option>
+                        </select>
+
+                        {isCustomCity && (
+                          <input
+                            type="text"
+                            required
+                            value={customCity}
+                            onChange={(e) => {
+                              setCustomCity(e.target.value);
+                              setRegForm({ ...regForm, city: e.target.value });
+                            }}
+                            placeholder="Type your city name"
+                            className="w-full px-3 py-1.5 mt-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                          />
+                        )}
                       </div>
 
                       <div>

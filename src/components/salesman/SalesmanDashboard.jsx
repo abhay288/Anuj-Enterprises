@@ -846,13 +846,40 @@ export const SalesmanDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">City</label>
-                    <input
-                      type="text"
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select City *</label>
+                    <select
                       value={newCustomerForm.city}
                       onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                    />
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
+                    >
+                      <option value="Kanpur">Kanpur</option>
+                      <option value="Lucknow">Lucknow</option>
+                      <option value="Unnao">Unnao</option>
+                      <option value="Fatehpur">Fatehpur</option>
+                      <option value="Prayagraj">Prayagraj (Allahabad)</option>
+                      <option value="Varanasi">Varanasi</option>
+                      <option value="Agra">Agra</option>
+                      <option value="Aligarh">Aligarh</option>
+                      <option value="Bareilly">Bareilly</option>
+                      <option value="Gorakhpur">Gorakhpur</option>
+                      <option value="Jhansi">Jhansi</option>
+                      <option value="Meerut">Meerut</option>
+                      <option value="Moradabad">Moradabad</option>
+                      <option value="Noida / Greater Noida">Noida / Greater Noida</option>
+                      <option value="Ghaziabad">Ghaziabad</option>
+                      <option value="Mathura">Mathura</option>
+                      <option value="Ayodhya">Ayodhya</option>
+                      <option value="Etawah">Etawah</option>
+                      <option value="Farrukhabad">Farrukhabad</option>
+                      <option value="Kannauj">Kannauj</option>
+                      <option value="Raebareli">Raebareli</option>
+                      <option value="Sultanpur">Sultanpur</option>
+                      <option value="Sitapur">Sitapur</option>
+                      <option value="Hardoi">Hardoi</option>
+                      <option value="Banda">Banda</option>
+                      <option value="Delhi NCR">Delhi NCR</option>
+                      <option value="Mumbai / Thane">Mumbai / Thane</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">State</label>
