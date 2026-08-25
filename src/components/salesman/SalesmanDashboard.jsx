@@ -673,24 +673,13 @@ export const SalesmanDashboard = () => {
                       onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerName: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
                     />
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Mobile Number"
-                        value={fieldCustomer.customerMobile}
-                        onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerMobile: e.target.value })}
-                        className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                      />
-                      <select
-                        value={fieldCustomer.customerType}
-                        onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerType: e.target.value })}
-                        className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                      >
-                        <option value="Normal Customer">Normal Customer</option>
-                        <option value="Damage Customer">Damage Customer</option>
-                        <option value="Expiry Customer">Expiry Customer</option>
-                      </select>
-                    </div>
+                    <input
+                      type="text"
+                      placeholder="Mobile Number"
+                      value={fieldCustomer.customerMobile}
+                      onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerMobile: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
+                    />
                     <input
                       type="text"
                       placeholder="Shop Delivery Address & City"

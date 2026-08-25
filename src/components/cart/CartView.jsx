@@ -37,12 +37,14 @@ export const CartView = () => {
   const [customerState, setCustomerState] = useState(() => selectedCustomerForOrder?.state || 'Maharashtra');
   const [customerEmail, setCustomerEmail] = useState(() => selectedCustomerForOrder?.email || 'purchase@relianceretail.demo');
 
-  // Customer Classification Options: 'Normal Customer' | 'Damage Customer' | 'Expiry Customer'
-  const [customerType, setCustomerType] = useState(() => {
+  // Customer Classification Options: 'Normal Customer' | 'Damage Customer' | 'Expiry Customer' (Auto-derived from Expired/Damage Dockets)
+  const customerType = React.useMemo(() => {
+    if (expiredItems.length > 0) return 'Expiry Customer';
+    if (returnItems.length > 0) return 'Damage Customer';
     if (selectedCustomerForOrder?.classification === 'DAMAGE') return 'Damage Customer';
     if (selectedCustomerForOrder?.classification === 'EXPIRY') return 'Expiry Customer';
     return 'Normal Customer';
-  }); 
+  }, [expiredItems.length, returnItems.length, selectedCustomerForOrder]); 
 
   // Expired Products Claim State
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
@@ -414,33 +416,6 @@ export const CartView = () => {
                   >
                     OPTION 2 — Full Customer
                   </button>
-                </div>
-              </div>
-
-              {/* Customer Classification Selector */}
-              <div className="space-y-2">
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Customer / Order Classification
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'Normal Customer', label: 'Normal Customer', color: 'border-brand-500 bg-brand-50/50 text-brand-900' },
-                    { id: 'Damage Customer', label: 'Damage Customer', color: 'border-orange-500 bg-orange-50/50 text-orange-900' },
-                    { id: 'Expiry Customer', label: 'Expiry Customer', color: 'border-red-500 bg-red-50/50 text-red-900' },
-                  ].map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCustomerType(c.id)}
-                      className={`p-3 rounded-2xl border-2 text-xs font-extrabold transition-all text-center ${
-                        customerType === c.id
-                          ? `${c.color} shadow-sm ring-2 ring-amber-400`
-                          : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -932,27 +907,19 @@ export const CartView = () => {
                 Order & Collection Summary
               </h3>
 
-              {/* Permanent Offline Collection Mode Status Displays */}
+              {/* Order Summary Status Displays */}
               <div className="p-4 rounded-2xl bg-amber-50 dark:bg-slate-950 border border-amber-200 dark:border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="font-extrabold text-slate-600 dark:text-slate-400">ORDER TYPE</span>
                   <span className="px-2.5 py-0.5 bg-brand-900 text-white font-extrabold text-[10px] rounded uppercase">Offline Collection</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-slate-600 dark:text-slate-400">PAYMENT MODE</span>
-                  <span className="font-black text-amber-700 dark:text-amber-400">Offline</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-slate-600 dark:text-slate-400">COLLECTION STATUS</span>
-                  <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded">Pending</span>
+                  <span className="font-extrabold text-slate-600 dark:text-slate-400">PAYMENT METHOD</span>
+                  <span className="font-black text-amber-700 dark:text-amber-400 uppercase">{paymentMethod}</span>
                 </div>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>Selected Classification</span>
-                  <span className="font-extrabold text-amber-600 dark:text-amber-400">{customerType}</span>
-                </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Total Items Quantity</span>
                   <span className="font-extrabold text-slate-900 dark:text-white">{cartTotalQty} Units</span>

@@ -6,6 +6,7 @@ import {
   Zap, AlertOctagon, RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
@@ -20,51 +21,19 @@ export const InvoiceModal = () => {
   };
 
   const handleDownload = () => {
-    // Generate clean printable HTML wrapper for saving as document
-    const invoiceContent = document.getElementById('printable-invoice');
-    if (!invoiceContent) return;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Sales_Invoice_${invoiceNumber}</title>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-            <style>
-              @media print {
-                body { padding: 20px; font-family: sans-serif; }
-                .no-print { display: none !important; }
-              }
-            </style>
-          </head>
-          <body onload="window.print()">
-            <div class="p-8 max-w-4xl mx-auto">
-              ${invoiceContent.innerHTML}
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      showToast(`Generating printable document for Invoice #${invoiceNumber}...`, 'success');
+    try {
+      const { doc, filename } = generateInvoicePDF(inv);
+      doc.save(filename);
+      showToast(`Downloaded PDF "${filename}" successfully!`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Downloading document view...', 'info');
+      window.print();
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const text = encodeURIComponent(
-      `*ANUJ ENTERPRISES - OFFICIAL TAX INVOICE*\n\n` +
-      `*Invoice #:* ${invoiceNumber}\n` +
-      `*Date:* ${inv.date || new Date().toISOString().split('T')[0]}\n` +
-      `*Customer:* ${inv.customerName}\n` +
-      `*Classification:* ${inv.customerType || 'Normal Customer'}\n` +
-      `*Sales Representative:* ${inv.salesmanName || 'Rajesh Kumar'} (${inv.salesmanId || 'AE-SM-001'})\n` +
-      `*Total Items:* ${inv.totalQuantity || inv.items?.reduce((a, b) => a + (b.qty || 0), 0)} Units\n` +
-      `*Collection Status:* Offline Collection (Pending)\n\n` +
-      `For queries, reach Anuj Enterprises Helpdesk at +91 (022) 6890-4400.`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    showToast('Opening WhatsApp to share tax invoice...', 'info');
+  const handleShareWhatsApp = async () => {
+    await shareInvoicePDFToWhatsApp(inv, showToast);
   };
 
   const handleCopyLink = () => {
@@ -91,71 +60,58 @@ export const InvoiceModal = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8"
+          className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto sm:my-6"
         >
-          {/* Top Control Bar (Hidden on print) */}
-          <div className="no-print bg-slate-900 text-white p-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> B2B Sales Invoice Generated — Collection Pending
+          {/* Top Control Bar (Sticky & Always Visible on top) */}
+          <div className="sticky top-0 z-30 no-print bg-slate-900 text-white p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shrink-0 shadow-md">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-400">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 
+              <span>B2B Product Invoice #{invoiceNumber}</span>
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
                 title="Print full invoice document"
               >
-                <Printer className="w-3.5 h-3.5" /> Print
+                <Printer className="w-4 h-4" /> <span>Print Invoice</span>
               </button>
 
               <button
                 onClick={handleDownload}
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-                title="Download HTML / PDF format"
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
+                title="Download PDF invoice"
               >
-                <Download className="w-3.5 h-3.5" /> Download
+                <Download className="w-4 h-4" /> <span>Download PDF</span>
               </button>
 
               <button
                 onClick={handleShareWhatsApp}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow hover:scale-105"
                 title="Share via WhatsApp"
               >
-                <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
+                <MessageSquare className="w-4 h-4" /> <span>WhatsApp</span>
               </button>
 
-              <button
-                onClick={handleEmailInvoice}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-                title="Dispatch email copy"
-              >
-                <Mail className="w-3.5 h-3.5" /> Email
-              </button>
-
-              <button
-                onClick={handleCopyLink}
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition-colors"
-                title="Copy details to clipboard"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-
+              {/* High-Visibility Close Button */}
               <button
                 onClick={closeInvoiceModal}
-                className="p-1.5 text-slate-400 hover:text-white rounded-full transition-colors ml-1"
+                className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow ml-1"
+                title="Close invoice"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" /> <span>Close</span>
               </button>
             </div>
           </div>
 
-          {/* Printable Sales Invoice Document */}
-          <div id="printable-invoice" className="p-8 md:p-12 text-slate-900 bg-white space-y-8">
+          {/* Printable Sales Invoice Document (Independently Scrollable) */}
+          <div id="printable-invoice" className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-10 text-slate-900 bg-white space-y-6 sm:space-y-8">
             
             {/* Header: Company Logo, Brand Name & Address */}
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
@@ -181,14 +137,10 @@ export const InvoiceModal = () => {
 
               <div className="text-right space-y-1.5">
                 <span className="px-3 py-1 bg-brand-950 text-white font-extrabold text-xs uppercase tracking-widest inline-block rounded">
-                  OFFICIAL TAX INVOICE
+                  OFFICIAL PRODUCT INVOICE
                 </span>
                 <h3 className="text-xl font-mono font-black text-slate-900 pt-1">{invoiceNumber}</h3>
                 <p className="text-xs text-slate-600">Date: <strong>{inv.date || new Date().toISOString().split('T')[0]}</strong></p>
-                <div className="flex items-center justify-end gap-1.5 text-xs font-bold text-slate-700 pt-1">
-                  <span>Classification:</span>
-                  {getCustomerTypeBadge(inv.customerType)}
-                </div>
               </div>
             </div>
 
@@ -227,10 +179,6 @@ export const InvoiceModal = () => {
                   }`}>
                     {inv.paymentMethod || inv.paymentMode || 'Cash'}
                   </span>
-                </div>
-                <div className="flex items-center md:justify-end gap-2 text-xs">
-                  <span className="font-bold text-slate-600">Collection Status:</span>
-                  <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded uppercase">Pending</span>
                 </div>
               </div>
             </div>
@@ -295,17 +243,17 @@ export const InvoiceModal = () => {
                       <th className="py-1.5 px-2">Company / Brand</th>
                       <th className="py-1.5 px-2">Product Title</th>
                       <th className="py-1.5 px-2 text-center">Expired Qty</th>
-                      <th className="py-1.5 px-2">Batch No / Expiry Note</th>
+                      <th className="py-1.5 px-2">Batch / Note</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-red-200/60 font-medium text-[11px]">
-                    {inv.expiredItems.map((exp, idx) => (
-                      <tr key={idx}>
-                        <td className="py-1.5 px-2 text-red-600 font-bold">{idx + 1}</td>
-                        <td className="py-1.5 px-2 font-bold text-red-950">{exp.company}</td>
-                        <td className="py-1.5 px-2 text-slate-900">{exp.product}</td>
-                        <td className="py-1.5 px-2 text-center font-bold text-red-700">{exp.qty} Units</td>
-                        <td className="py-1.5 px-2 text-slate-600 font-mono text-[10px]">{exp.batchOrNote || 'Expired Batch'}</td>
+                  <tbody className="divide-y divide-red-200/60 font-semibold text-[11px]">
+                    {inv.expiredItems.map((ex, i) => (
+                      <tr key={ex.id || i} className="hover:bg-red-100/40">
+                        <td className="py-1.5 px-2 text-red-700">{i + 1}</td>
+                        <td className="py-1.5 px-2 font-bold text-slate-900">{ex.company}</td>
+                        <td className="py-1.5 px-2 text-slate-800">{ex.product}</td>
+                        <td className="py-1.5 px-2 text-center font-black text-red-700">{ex.qty} Units</td>
+                        <td className="py-1.5 px-2 text-slate-600 italic">{ex.batchOrNote || 'Expired Batch'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -313,12 +261,12 @@ export const InvoiceModal = () => {
               </div>
             )}
 
-            {/* Damaged & Return Goods Docket (If recorded) */}
+            {/* Damage Return Goods Docket (If recorded) */}
             {inv.returnItems && inv.returnItems.length > 0 && (
               <div className="space-y-2 p-3.5 rounded-xl border border-orange-200 bg-orange-50/40 text-xs">
                 <div className="flex items-center gap-2 font-black text-orange-800 uppercase tracking-wide text-[11px]">
                   <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
-                  <span>DAMAGED & RETURN GOODS INSPECTION DOCKET ({inv.returnItems.length} ITEMS)</span>
+                  <span>GOODS RETURN & DAMAGE REPLACEMENT DOCKET ({inv.returnItems.length} ITEMS)</span>
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-orange-100/80 text-orange-900 uppercase font-extrabold text-[9px]">
@@ -327,17 +275,17 @@ export const InvoiceModal = () => {
                       <th className="py-1.5 px-2">Company / Brand</th>
                       <th className="py-1.5 px-2">Product Title</th>
                       <th className="py-1.5 px-2 text-center">Return Qty</th>
-                      <th className="py-1.5 px-2">Return Reason</th>
+                      <th className="py-1.5 px-2">Damage Reason</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-orange-200/60 font-medium text-[11px]">
-                    {inv.returnItems.map((ret, idx) => (
-                      <tr key={idx}>
-                        <td className="py-1.5 px-2 text-orange-600 font-bold">{idx + 1}</td>
-                        <td className="py-1.5 px-2 font-bold text-orange-950">{ret.company}</td>
-                        <td className="py-1.5 px-2 text-slate-900">{ret.product}</td>
-                        <td className="py-1.5 px-2 text-center font-bold text-orange-700">{ret.qty} Units</td>
-                        <td className="py-1.5 px-2 text-slate-700 font-bold text-[10px]">{ret.reason}</td>
+                  <tbody className="divide-y divide-orange-200/60 font-semibold text-[11px]">
+                    {inv.returnItems.map((rt, i) => (
+                      <tr key={rt.id || i} className="hover:bg-orange-100/40">
+                        <td className="py-1.5 px-2 text-orange-700">{i + 1}</td>
+                        <td className="py-1.5 px-2 font-bold text-slate-900">{rt.company}</td>
+                        <td className="py-1.5 px-2 text-slate-800">{rt.product}</td>
+                        <td className="py-1.5 px-2 text-center font-black text-orange-700">{rt.qty} Units</td>
+                        <td className="py-1.5 px-2 text-slate-600 italic">{rt.reason || 'Damaged Packaging'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -345,21 +293,12 @@ export const InvoiceModal = () => {
               </div>
             )}
 
-            {/* Summary & Terms */}
-            <div className="flex flex-col sm:flex-row justify-between items-start pt-4 border-t border-slate-200 text-xs gap-6">
-              <div className="max-w-md space-y-2">
-                <span className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px] block">Terms & Conditions:</span>
-                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600">
-                  <li>Payment is offline and collection is marked as <strong>Pending</strong> upon booking.</li>
-                  <li>Customer Classification ({inv.customerType || "Normal"}) determines returns & warranty terms.</li>
-                  <li>Disputes subject to Kanpur Jurisdiction only.</li>
-                </ol>
-              </div>
-
-              <div className="w-full sm:w-64 space-y-2 text-xs text-right">
+            {/* Summary Totals */}
+            <div className="flex justify-end pt-4 border-t border-slate-200">
+              <div className="w-full sm:w-64 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>Total Items Quantity:</span>
-                  <span className="font-bold text-slate-900">{inv.totalQuantity || inv.items?.reduce((acc, i) => acc + (i.qty || 0), 0)} Units</span>
+                  <span>Total Ordered Quantity:</span>
+                  <span className="font-extrabold text-slate-900">{inv.totalQuantity || inv.items?.reduce((a, b) => a + (b.qty || 0), 0) || 0} Units</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal:</span>
@@ -394,6 +333,44 @@ export const InvoiceModal = () => {
             </div>
 
           </div>
+
+          {/* Bottom Action Footer Bar (Sticky & Always Visible at bottom) */}
+          <div className="sticky bottom-0 z-30 no-print bg-slate-900 text-white p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 shrink-0 shadow-lg">
+            <div className="text-xs font-bold text-slate-300">
+              Anuj Enterprises Tax Invoice Document
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
+              >
+                <Printer className="w-4 h-4" /> <span>Print Invoice</span>
+              </button>
+
+              <button
+                onClick={handleDownload}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
+              >
+                <Download className="w-4 h-4" /> <span>Download PDF</span>
+              </button>
+
+              <button
+                onClick={handleShareWhatsApp}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" /> <span>WhatsApp</span>
+              </button>
+
+              <button
+                onClick={closeInvoiceModal}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
+              >
+                <X className="w-4 h-4" /> <span>Close Invoice</span>
+              </button>
+            </div>
+          </div>
+
         </motion.div>
       </div>
     </AnimatePresence>
