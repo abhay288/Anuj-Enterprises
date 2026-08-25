@@ -392,7 +392,7 @@ export const SalesmanLoginModal = () => {
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Shop Delivery Address
+                        Address
                       </label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
@@ -400,7 +400,7 @@ export const SalesmanLoginModal = () => {
                           type="text"
                           value={regForm.address}
                           onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                          placeholder="Shop No, Wholesale Market, Landmark"
+                          placeholder="House/Shop No, Market, Landmark, Address"
                           className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                         />
                       </div>
