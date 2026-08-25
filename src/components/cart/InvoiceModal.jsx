@@ -17,7 +17,58 @@ export const InvoiceModal = () => {
   const invoiceNumber = inv.invoiceNumber || inv.id || 'AE-2026-000001';
 
   const handlePrint = () => {
-    window.print();
+    try {
+      const invoiceContent = document.getElementById('printable-invoice');
+      if (!invoiceContent) {
+        window.print();
+        return;
+      }
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Tax Invoice - ${invoiceNumber}</title>
+            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+            <style>
+              @page { size: A4 portrait; margin: 10mm; }
+              body { background: white !important; color: black !important; font-family: system-ui, -apple-system, sans-serif; padding: 15px; }
+              .no-print { display: none !important; }
+            </style>
+          </head>
+          <body>
+            ${invoiceContent.innerHTML}
+          </body>
+        </html>
+      `);
+      doc.close();
+
+      showToast(`Preparing print document for Invoice #${invoiceNumber}...`, 'info');
+
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 1000);
+      }, 400);
+    } catch (err) {
+      console.error('Print error:', err);
+      window.print();
+    }
   };
 
   const handleDownload = () => {
