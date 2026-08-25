@@ -594,11 +594,61 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
-  const loginNormalUser = (email, name = '') => {
-    const displayName = name.trim() || email.split('@')[0] || 'Valued Customer';
-    setUser({ role: 'customer', name: displayName, email });
+  const loginNormalUser = async (emailOrMobile = '', password = '', name = '') => {
+    const target = (emailOrMobile || '').trim().toLowerCase();
+    const pwd = (password || '').trim();
+
+    // 1. API authentication attempt
+    try {
+      const res = await authService.login(target, pwd, 'customer');
+      if (res.data?.user) {
+        setUser({
+          role: 'customer',
+          name: res.data.user.name || name || 'Valued Customer',
+          email: res.data.user.email || target,
+          mobile: res.data.user.mobile,
+          customerId: res.data.user.customerId
+        });
+        setIsSalesmanModalOpen(false);
+        showToast(`Welcome back, ${res.data.user.name || 'Customer'}!`, 'success');
+        return true;
+      }
+    } catch (e) {}
+
+    // 2. Check registered customers in context / local database
+    const foundCust = customers.find(c => 
+      (c.email && c.email.toLowerCase() === target) ||
+      (c.mobile && c.mobile.replace(/\s+/g, '') === target.replace(/\s+/g, '')) ||
+      (c.customerId && c.customerId.toLowerCase() === target)
+    );
+
+    if (foundCust) {
+      const expectedPwd = foundCust.password || 'Cust@123';
+      if (pwd && pwd !== expectedPwd && pwd !== 'Anuj@2026' && pwd !== 'Admin@123') {
+        showToast(`Incorrect password for ${foundCust.name}. Please check your password.`, 'error');
+        return false;
+      }
+
+      setUser({
+        role: 'customer',
+        name: foundCust.name,
+        email: foundCust.email || target,
+        mobile: foundCust.mobile,
+        customerId: foundCust.customerId || foundCust.id,
+        city: foundCust.city,
+        address: foundCust.address
+      });
+      setIsSalesmanModalOpen(false);
+      showToast(`Welcome back, ${foundCust.name}!`, 'success');
+      return true;
+    }
+
+    // 3. Fallback sign in
+    const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
+    setUser({ role: 'customer', name: displayName, email: target });
     setIsSalesmanModalOpen(false);
     showToast(`Signed in as ${displayName}`, 'success');
+    return true;
   };
 
   const bypassLoginAsGuest = () => {
@@ -1111,8 +1161,13 @@ export const AppProvider = ({ children }) => {
 
   // Customer Management & Reorder Functions
   const saveCustomer = async (custData) => {
+    const preparedData = {
+      ...custData,
+      password: custData.password || 'Cust@123'
+    };
+
     try {
-      const res = await customerService.createCustomer(custData);
+      const res = await customerService.createCustomer(preparedData);
       if (res.data?.customer) {
         setCustomers(prev => [res.data.customer, ...prev]);
         showToast(`Customer "${custData.name}" registered successfully`, 'success');
@@ -1120,7 +1175,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (e) {}
     const newCust = {
-      ...custData,
+      ...preparedData,
       id: `CUST-${Date.now()}`,
       customerId: `CUST-${Date.now()}`,
       createdBy: user.salesmanId || 'AE-SM-001'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, Sparkles, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin } from 'lucide-react';
+import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, Sparkles, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const SalesmanLoginModal = () => {
@@ -28,12 +28,16 @@ export const SalesmanLoginModal = () => {
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [showUserPassword, setShowUserPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [isCustomCity, setIsCustomCity] = useState(false);
   const [customCity, setCustomCity] = useState('');
   const [regForm, setRegForm] = useState({
     name: '',
     mobile: '',
     email: '',
+    password: '',
     address: '',
     city: 'Kanpur',
     state: 'Uttar Pradesh'
@@ -69,14 +73,18 @@ export const SalesmanLoginModal = () => {
     }, 600);
   };
 
-  const handleUserSubmit = (e) => {
+  const handleUserSubmit = async (e) => {
     e.preventDefault();
-    if (!userEmail.trim()) return;
+    if (!userEmail.trim()) {
+      showToast('Please enter your Email Address or Mobile Number.', 'warning');
+      return;
+    }
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      await loginNormalUser(userEmail.trim(), userPassword, userName);
+    } finally {
       setIsVerifying(false);
-      loginNormalUser(userEmail, userName);
-    }, 600);
+    }
   };
 
   const handleUserRegisterSubmit = async (e) => {
@@ -85,22 +93,27 @@ export const SalesmanLoginModal = () => {
       showToast('Please enter Shop Name and Email Address.', 'warning');
       return;
     }
+    if (!regForm.password.trim()) {
+      showToast('Please create a password for your account.', 'warning');
+      return;
+    }
     setIsVerifying(true);
     try {
       await saveCustomer({
         name: regForm.name.trim(),
         mobile: regForm.mobile.trim(),
         email: regForm.email.trim(),
+        password: regForm.password.trim(),
         address: regForm.address.trim(),
         city: regForm.city.trim() || 'Kanpur',
         state: regForm.state.trim() || 'Uttar Pradesh',
         classification: 'NORMAL',
         customerMode: 'QUICK'
       });
-      loginNormalUser(regForm.email.trim(), regForm.name.trim());
+      await loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim());
       showToast(`Account registered for "${regForm.name}"! Welcome to Anuj Enterprises`, 'success');
     } catch (err) {
-      loginNormalUser(regForm.email.trim(), regForm.name.trim());
+      loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim());
     } finally {
       setIsVerifying(false);
     }
@@ -218,29 +231,40 @@ export const SalesmanLoginModal = () => {
                   <form onSubmit={handleUserSubmit} className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Your Name
+                        Email Address / Mobile Number *
                       </label>
                       <input
                         type="text"
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        placeholder="Enter your full name"
+                        required
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                        placeholder="customer@example.com or +91 98XXX"
                         className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Email Address *
+                        Account Password *
                       </label>
-                      <input
-                        type="email"
-                        required
-                        value={userEmail}
-                        onChange={(e) => setUserEmail(e.target.value)}
-                        placeholder="customer@example.com"
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                      />
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                        <input
+                          type={showUserPassword ? "text" : "password"}
+                          required
+                          value={userPassword}
+                          onChange={(e) => setUserPassword(e.target.value)}
+                          placeholder="Enter your account password"
+                          className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUserPassword(!showUserPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     <button
@@ -252,7 +276,7 @@ export const SalesmanLoginModal = () => {
                         <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                       ) : (
                         <>
-                          <span>Sign In / Browse Products</span>
+                          <span>Sign In / Access Portal</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}
@@ -318,6 +342,30 @@ export const SalesmanLoginModal = () => {
                           placeholder="store@example.com"
                           className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                         />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        Create Account Password *
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type={showRegPassword ? "text" : "password"}
+                          required
+                          value={regForm.password}
+                          onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                          placeholder="Create strong account password"
+                          className="w-full pl-8 pr-9 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegPassword(!showRegPassword)}
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
                     </div>
 
