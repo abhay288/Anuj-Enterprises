@@ -388,7 +388,9 @@ export const ProductDetailView = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left border-collapse">
                   <tbody>
-                    {Object.entries(product.specs).map(([key, val], idx) => (
+                    {Object.entries(product.specs)
+                      .filter(([key]) => !key.includes('GST') && !key.includes('FSSAI') && !key.includes('HSN'))
+                      .map(([key, val], idx) => (
                       <tr 
                         key={idx}
                         className={idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-950/60' : 'bg-white dark:bg-slate-900'}

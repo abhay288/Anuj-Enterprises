@@ -844,7 +844,7 @@ export const AppProvider = ({ children }) => {
     showToast(`Order #${newInvoiceId} created successfully! Tax invoice generated.`, 'success');
   };
 
-  // Helper to ensure every newly added or edited product has a complete B2B Product Details Card
+  // Helper to ensure every newly added or edited product has a clean B2B Details Card (No GST, No FSSAI, No Tier pricing)
   const formatRichProductData = (prod) => {
     const price = Math.max(1, parseFloat(prod.price) || 500);
     const mrp = prod.mrp ? Math.max(price, parseFloat(prod.mrp)) : Math.round(price * 1.15);
@@ -859,28 +859,25 @@ export const AppProvider = ({ children }) => {
     const packSize = prod.packSize || "1 Unit Consumer Pack";
     const bundleSize = prod.bundleSize || "5 Units Inner Bundle";
     const caseSize = prod.caseSize || "10 Units / Master Case";
-    const hsn = prod.hsn || "19053100";
-    const gstRate = prod.gstRate || 5;
 
-    const bulkTiers = (prod.bulkTiers && prod.bulkTiers.length > 0) 
-      ? prod.bulkTiers 
-      : [
-          { qty: "1 - 5 cases", price: Math.round(price) },
-          { qty: "6 - 20 cases", price: Math.round(price * 0.95) },
-          { qty: "21+ cases", price: Math.round(price * 0.90) }
-        ];
-
-    const specs = (prod.specs && Object.keys(prod.specs).length > 0) ? prod.specs : {
-      "Consumer Pack Size": packSize,
-      "Inner Bundle Packaging": bundleSize,
-      "Master Case Packaging": caseSize,
-      "HSN Tax Code": hsn,
-      "GST Tax Rate": `${gstRate}% GST Included`,
-      "Shelf Life": "12 Months from MFD",
-      "Storage Conditions": "Cool & Dry Place (Ambient)",
-      "FSSAI License No.": "10012021000071",
-      "Country of Origin": "India"
-    };
+    // Clean statutory specs to remove GST, FSSAI, and HSN as requested
+    let cleanSpecs = {};
+    if (prod.specs && Object.keys(prod.specs).length > 0) {
+      Object.entries(prod.specs).forEach(([k, v]) => {
+        if (!k.includes('GST') && !k.includes('FSSAI') && !k.includes('HSN')) {
+          cleanSpecs[k] = v;
+        }
+      });
+    } else {
+      cleanSpecs = {
+        "Consumer Pack Size": packSize,
+        "Inner Bundle Packaging": bundleSize,
+        "Master Case Packaging": caseSize,
+        "Shelf Life": "12 Months from MFD",
+        "Storage Conditions": "Cool & Dry Place (Ambient)",
+        "Country of Origin": "India"
+      };
+    }
 
     const description = (prod.description && prod.description.trim().length > 10)
       ? prod.description.trim()
@@ -893,8 +890,6 @@ export const AppProvider = ({ children }) => {
       brand: prod.brand || "Amul",
       category: prod.category || "Food & Beverages",
       sku: prod.sku || `SKU-${Date.now().toString().slice(-6)}`,
-      hsn,
-      gstRate,
       price: Math.round(price),
       mrp: Math.round(mrp),
       stock: prod.stock !== undefined ? parseInt(prod.stock, 10) : 100,
@@ -913,8 +908,7 @@ export const AppProvider = ({ children }) => {
       image: imgUrl,
       images: finalGallery,
       gallery: finalGallery,
-      specs,
-      bulkTiers,
+      specs: cleanSpecs,
       description
     };
   };
