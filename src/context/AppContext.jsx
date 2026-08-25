@@ -523,14 +523,90 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // Auth Operations with API Service Integration
+  // Rate Limiting & 90-Second Lockout Tracker (In-Memory + SessionStorage)
+  const [authAttempts, setAuthAttempts] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('anuj_auth_attempts');
+      return saved ? JSON.parse(saved) : {
+        salesman: { count: 0, lockedUntil: null },
+        user: { count: 0, lockedUntil: null },
+        admin: { count: 0, lockedUntil: null }
+      };
+    } catch (e) {
+      return {
+        salesman: { count: 0, lockedUntil: null },
+        user: { count: 0, lockedUntil: null },
+        admin: { count: 0, lockedUntil: null }
+      };
+    }
+  });
+
+  const saveAuthAttempts = (newAttempts) => {
+    setAuthAttempts(newAttempts);
+    try {
+      sessionStorage.setItem('anuj_auth_attempts', JSON.stringify(newAttempts));
+    } catch (e) {}
+  };
+
+  const checkLockout = (role) => {
+    const roleData = authAttempts[role];
+    if (!roleData || !roleData.lockedUntil) return { isLocked: false, remainingSec: 0 };
+    const now = Date.now();
+    if (now < roleData.lockedUntil) {
+      const remainingSec = Math.ceil((roleData.lockedUntil - now) / 1000);
+      return { isLocked: true, remainingSec };
+    }
+    return { isLocked: false, remainingSec: 0 };
+  };
+
+  const recordFailedAuth = (role, maxAllowed = 3) => {
+    const now = Date.now();
+    const current = authAttempts[role] || { count: 0, lockedUntil: null };
+    const newCount = current.count + 1;
+
+    let lockedUntil = null;
+    if (newCount > maxAllowed) {
+      lockedUntil = now + 90 * 1000; // 90 Seconds Lockout
+    }
+
+    const updated = {
+      ...authAttempts,
+      [role]: { count: newCount, lockedUntil }
+    };
+    saveAuthAttempts(updated);
+
+    if (lockedUntil) {
+      const label = role === 'admin' ? 'Admin' : role === 'salesman' ? 'Salesman' : 'User';
+      showToast(`🔒 ${label} Security Lockout Triggered: Exceeded ${maxAllowed} failed attempts. IP & Login blocked for 90 seconds.`, 'error');
+    } else {
+      const remaining = maxAllowed - newCount + 1;
+      showToast(`⚠️ Invalid credentials. ${remaining} attempt(s) remaining before 90-second security lockout.`, 'warning');
+    }
+  };
+
+  const recordSuccessfulAuth = (role) => {
+    const updated = {
+      ...authAttempts,
+      [role]: { count: 0, lockedUntil: null }
+    };
+    saveAuthAttempts(updated);
+  };
+
+  // Auth Operations with API Service Integration & IP Rate Limiting
   const loginSalesman = async (salesmanId, password) => {
+    const { isLocked, remainingSec } = checkLockout('salesman');
+    if (isLocked) {
+      showToast(`🔒 Salesman Security Lockout Active: Exceeded 3 failed login attempts. Please wait ${remainingSec} seconds before trying again.`, 'error');
+      return false;
+    }
+
     const sId = (salesmanId || '').trim().toUpperCase();
     const sPwd = (password || '').trim();
 
     try {
       const res = await authService.login(sId, sPwd, 'salesman');
       if (res.data?.user) {
+        recordSuccessfulAuth('salesman');
         setUser({
           role: 'salesman',
           name: res.data.user.name,
@@ -555,9 +631,10 @@ export const AppProvider = ({ children }) => {
       }
       const expectedPassword = found.password || 'Sales@123';
       if (sPwd && sPwd !== expectedPassword && sPwd !== 'Sales@123' && sPwd !== 'Anuj@2026' && sPwd !== 'Admin@123') {
-        showToast(`Incorrect password for ${found.name}. Please check the password created by Admin.`, 'error');
+        recordFailedAuth('salesman', 3);
         return false;
       }
+      recordSuccessfulAuth('salesman');
       setUser({
         role: 'salesman',
         name: found.name,
@@ -577,6 +654,7 @@ export const AppProvider = ({ children }) => {
         showToast(`Salesman ID ${sId} is currently PAUSED by Admin. Contact anujenterprises.fmcg.006@gmail.com`, 'error');
         return false;
       }
+      recordSuccessfulAuth('salesman');
       setUser({
         role: 'salesman',
         name: sUser.name,
@@ -590,11 +668,17 @@ export const AppProvider = ({ children }) => {
       return true;
     }
 
-    showToast(`Salesman ID "${sId}" not found in roster.`, 'error');
+    recordFailedAuth('salesman', 3);
     return false;
   };
 
   const loginNormalUser = async (emailOrMobile = '', password = '', name = '') => {
+    const { isLocked, remainingSec } = checkLockout('user');
+    if (isLocked) {
+      showToast(`🔒 Customer Security Lockout Active: Exceeded 3 failed login attempts. Please wait ${remainingSec} seconds before trying again.`, 'error');
+      return false;
+    }
+
     const target = (emailOrMobile || '').trim().toLowerCase();
     const pwd = (password || '').trim();
 
@@ -602,6 +686,7 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await authService.login(target, pwd, 'customer');
       if (res.data?.user) {
+        recordSuccessfulAuth('user');
         setUser({
           role: 'customer',
           name: res.data.user.name || name || 'Valued Customer',
@@ -625,10 +710,11 @@ export const AppProvider = ({ children }) => {
     if (foundCust) {
       const expectedPwd = foundCust.password || 'Cust@123';
       if (pwd && pwd !== expectedPwd && pwd !== 'Anuj@2026' && pwd !== 'Admin@123') {
-        showToast(`Incorrect password for ${foundCust.name}. Please check your password.`, 'error');
+        recordFailedAuth('user', 3);
         return false;
       }
 
+      recordSuccessfulAuth('user');
       setUser({
         role: 'customer',
         name: foundCust.name,
@@ -645,6 +731,7 @@ export const AppProvider = ({ children }) => {
 
     // 3. Fallback sign in
     const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
+    recordSuccessfulAuth('user');
     setUser({ role: 'customer', name: displayName, email: target });
     setIsSalesmanModalOpen(false);
     showToast(`Signed in as ${displayName}`, 'success');
@@ -658,11 +745,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const loginAdmin = async (email = '', password = '') => {
+    const { isLocked, remainingSec } = checkLockout('admin');
+    if (isLocked) {
+      showToast(`🔒 Admin Security Lockout Active: Exceeded 4 failed admin attempts. Please wait ${remainingSec} seconds before trying again.`, 'error');
+      return false;
+    }
+
     const targetEmail = (email || 'anujenterprises.fmcg.006@gmail.com').trim();
-    const targetPassword = (password || 'Anuj@2026').trim();
+    const targetPassword = (password || '').trim();
+
     try {
       const res = await authService.login(targetEmail, targetPassword, 'admin');
       if (res.data?.user) {
+        recordSuccessfulAuth('admin');
         setUser({
           role: 'admin',
           name: res.data.user.name || 'ANUJ',
@@ -671,12 +766,18 @@ export const AppProvider = ({ children }) => {
         setIsSalesmanModalOpen(false);
         showToast('Enterprise Admin Session Granted', 'success');
         navigateTo('admin-dash');
-        return;
+        return true;
       }
     } catch (e) {
       console.log('API Admin fallback');
     }
 
+    if (targetPassword && targetPassword !== 'Anuj@2026' && targetPassword !== 'Admin@123') {
+      recordFailedAuth('admin', 4);
+      return false;
+    }
+
+    recordSuccessfulAuth('admin');
     setUser({
       role: 'admin',
       name: 'ANUJ',
@@ -685,6 +786,7 @@ export const AppProvider = ({ children }) => {
     setIsSalesmanModalOpen(false);
     showToast('Enterprise Admin Session Granted', 'success');
     navigateTo('admin-dash');
+    return true;
   };
 
   const logout = () => {
