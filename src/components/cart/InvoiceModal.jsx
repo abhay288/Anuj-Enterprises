@@ -385,43 +385,6 @@ export const InvoiceModal = () => {
 
           </div>
 
-          {/* Bottom Action Footer Bar (Sticky & Always Visible at bottom) */}
-          <div className="sticky bottom-0 z-30 no-print bg-slate-900 text-white p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 shrink-0 shadow-lg">
-            <div className="text-xs font-bold text-slate-300">
-              Anuj Enterprises Tax Invoice Document
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
-              >
-                <Printer className="w-4 h-4" /> <span>Print Invoice</span>
-              </button>
-
-              <button
-                onClick={handleDownload}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
-              >
-                <Download className="w-4 h-4" /> <span>Download PDF</span>
-              </button>
-
-              <button
-                onClick={handleShareWhatsApp}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow hover:scale-105"
-              >
-                <MessageSquare className="w-4 h-4" /> <span>WhatsApp</span>
-              </button>
-
-              <button
-                onClick={closeInvoiceModal}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow hover:scale-105"
-              >
-                <X className="w-4 h-4" /> <span>Close Invoice</span>
-              </button>
-            </div>
-          </div>
-
         </motion.div>
       </div>
     </AnimatePresence>
