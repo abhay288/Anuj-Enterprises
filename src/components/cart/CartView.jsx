@@ -25,7 +25,8 @@ export const CartView = () => {
     navigateTo, 
     setIsSalesmanModalOpen,
     checkoutOrder,
-    selectedCustomerForOrder
+    selectedCustomerForOrder,
+    showToast
   } = useApp();
 
   // Customer Entry Flow Modes: 'quick' | 'full'
@@ -38,15 +39,6 @@ export const CartView = () => {
   const [customerCity, setCustomerCity] = useState(() => selectedCustomerForOrder?.city || 'Thane');
   const [customerState, setCustomerState] = useState(() => selectedCustomerForOrder?.state || 'Maharashtra');
   const [customerEmail, setCustomerEmail] = useState(() => selectedCustomerForOrder?.email || 'purchase@relianceretail.demo');
-
-  // Customer Classification Options: 'Normal Customer' | 'Damage Customer' | 'Expiry Customer' (Auto-derived from Expired/Damage Dockets)
-  const customerType = React.useMemo(() => {
-    if (expiredItems.length > 0) return 'Expiry Customer';
-    if (returnItems.length > 0) return 'Damage Customer';
-    if (selectedCustomerForOrder?.classification === 'DAMAGE') return 'Damage Customer';
-    if (selectedCustomerForOrder?.classification === 'EXPIRY') return 'Expiry Customer';
-    return 'Normal Customer';
-  }, [expiredItems.length, returnItems.length, selectedCustomerForOrder]); 
 
   // Expired Products Claim State
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
@@ -67,6 +59,15 @@ export const CartView = () => {
     qty: 1,
     reason: 'Damaged Packaging / Crushed Box'
   });
+
+  // Customer Classification Options: 'Normal Customer' | 'Damage Customer' | 'Expiry Customer' (Auto-derived from Expired/Damage Dockets)
+  const customerType = React.useMemo(() => {
+    if (expiredItems.length > 0) return 'Expiry Customer';
+    if (returnItems.length > 0) return 'Damage Customer';
+    if (selectedCustomerForOrder?.classification === 'DAMAGE') return 'Damage Customer';
+    if (selectedCustomerForOrder?.classification === 'EXPIRY') return 'Expiry Customer';
+    return 'Normal Customer';
+  }, [expiredItems.length, returnItems.length, selectedCustomerForOrder]); 
 
   const handleAddExpiredItem = (e) => {
     e.preventDefault();
@@ -122,17 +123,14 @@ export const CartView = () => {
       setCustomerCity(selectedCustomerForOrder.city || 'Kanpur');
       setCustomerState(selectedCustomerForOrder.state || 'Uttar Pradesh');
       setCustomerEmail(selectedCustomerForOrder.email || user?.email || '');
-      if (selectedCustomerForOrder.classification === 'DAMAGE') setCustomerType('Damage Customer');
-      else if (selectedCustomerForOrder.classification === 'EXPIRY') setCustomerType('Expiry Customer');
-      else setCustomerType('Normal Customer');
     } else if (user) {
       if (user.name) setCustomerName(user.name);
       if (user.email && !customerEmail) setCustomerEmail(user.email);
     }
   }, [selectedCustomerForOrder, user]);
 
-  const [salesmanIdInput, setSalesmanIdInput] = useState(user.salesmanId || 'AE-SM-001');
-  const [salesmanNameInput, setSalesmanNameInput] = useState(user.name || 'Rajesh Kumar');
+  const [salesmanIdInput, setSalesmanIdInput] = useState(() => user?.salesmanId || 'AE-SM-001');
+  const [salesmanNameInput, setSalesmanNameInput] = useState(() => user?.name || 'Rajesh Kumar');
   const [salesmanAreaInput, setSalesmanAreaInput] = useState('South Kanpur Central');
   const [salesmanRouteInput, setSalesmanRouteInput] = useState('Route #4 — Civil Lines Wholesale Mandi');
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'Credit' | 'Online' | 'Special'
@@ -971,7 +969,7 @@ export const CartView = () => {
               </div>
 
               {/* Guest vs Salesman Session Notice */}
-              {user.role === 'guest' ? (
+              {user?.role === 'guest' ? (
                 <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-2">
                   <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -990,7 +988,7 @@ export const CartView = () => {
               ) : (
                 <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Salesman Session: <strong>{user.name}</strong> ({user.salesmanId || 'AE-SM-001'})</span>
+                  <span>Salesman Session: <strong>{user?.name}</strong> ({user?.salesmanId || 'AE-SM-001'})</span>
                 </div>
               )}
 

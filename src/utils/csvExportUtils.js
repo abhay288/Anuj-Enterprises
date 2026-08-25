@@ -110,6 +110,20 @@ export const exportInventoryReportCSV = (products) => {
   downloadExcel('Anuj_Enterprises_Warehouse_Stock_Report', products, headers, 'Inventory Stock');
 };
 
+export const exportCustomersCSV = (customers) => {
+  const headers = {
+    customerId: 'Customer ID',
+    name: 'Business / Customer Name',
+    mobile: 'Mobile Number',
+    email: 'Email Address',
+    address: 'Delivery Address',
+    city: 'City',
+    state: 'State',
+    classification: 'Classification'
+  };
+  downloadExcel('Anuj_Enterprises_Registered_Customers', customers, headers, 'Registered Customers');
+};
+
 // Aliases for explicit Excel naming
 export const exportOrdersExcel = exportOrdersCSV;
 export const exportProductsExcel = exportProductsCSV;
