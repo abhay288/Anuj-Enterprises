@@ -114,17 +114,20 @@ export const CartView = () => {
 
   React.useEffect(() => {
     if (selectedCustomerForOrder) {
-      setCustomerName(selectedCustomerForOrder.name || '');
-      setCustomerMobile(selectedCustomerForOrder.mobile || '');
+      setCustomerName(selectedCustomerForOrder.name || user?.name || 'General Retail Store');
+      setCustomerMobile(selectedCustomerForOrder.mobile || user?.mobile || '');
       setCustomerAddress(selectedCustomerForOrder.address || '');
-      setCustomerCity(selectedCustomerForOrder.city || 'Mumbai');
-      setCustomerState(selectedCustomerForOrder.state || 'Maharashtra');
-      setCustomerEmail(selectedCustomerForOrder.email || '');
+      setCustomerCity(selectedCustomerForOrder.city || 'Kanpur');
+      setCustomerState(selectedCustomerForOrder.state || 'Uttar Pradesh');
+      setCustomerEmail(selectedCustomerForOrder.email || user?.email || '');
       if (selectedCustomerForOrder.classification === 'DAMAGE') setCustomerType('Damage Customer');
       else if (selectedCustomerForOrder.classification === 'EXPIRY') setCustomerType('Expiry Customer');
       else setCustomerType('Normal Customer');
+    } else if (user) {
+      if (user.name) setCustomerName(user.name);
+      if (user.email && !customerEmail) setCustomerEmail(user.email);
     }
-  }, [selectedCustomerForOrder]);
+  }, [selectedCustomerForOrder, user]);
 
   const [salesmanIdInput, setSalesmanIdInput] = useState(user.salesmanId || 'AE-SM-001');
   const [salesmanNameInput, setSalesmanNameInput] = useState(user.name || 'Rajesh Kumar');
@@ -424,14 +427,13 @@ export const CartView = () => {
                 {/* Always Show Customer Name */}
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                    Customer Name *
+                    Customer / Retailer Name <span className="text-[10px] font-normal text-slate-400">(Optional — Auto-filled)</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter Customer / Retailer Name..."
+                    placeholder="Auto-filled with account or General Retailer..."
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white"
                   />
                 </div>

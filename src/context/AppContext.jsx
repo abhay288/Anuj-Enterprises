@@ -789,7 +789,7 @@ export const AppProvider = ({ children }) => {
       orderId: newOrderId,
       invoiceNumber: newInvoiceId,
       date: new Date().toISOString().split('T')[0],
-      customerName: customerDetails.customerName || "Reliance Retail Wholesale Chains",
+      customerName: (customerDetails.customerName && customerDetails.customerName.trim()) || user?.name || selectedCustomerForOrder?.name || "General Retail Store",
       customerMobile: customerDetails.customerMobile || "+91 98200 11223",
       customerAddress: customerDetails.customerAddress || "Bhiwandi Central B2B Hub, Thane",
       customerCity: customerDetails.customerCity || "Thane",
