@@ -32,7 +32,7 @@ export const SalesmanDashboard = () => {
     showToast 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'field-order' | 'customers' | 'analytics'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'customers' | 'analytics'
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Custom Date'
   const [customDate, setCustomDate] = useState('');
@@ -47,28 +47,11 @@ export const SalesmanDashboard = () => {
     mobile: '',
     email: '',
     address: '',
-    city: 'Mumbai',
-    state: 'Maharashtra',
+    city: 'Kanpur',
+    state: 'Uttar Pradesh',
     classification: 'NORMAL',
     customerMode: 'QUICK'
   });
-
-  // Field Order Form State
-  const [fieldCustomer, setFieldCustomer] = useState({
-    customerMode: 'quick',
-    customerName: '',
-    customerMobile: '',
-    customerAddress: '',
-    customerCity: 'Kanpur',
-    customerState: 'Uttar Pradesh',
-    customerEmail: '',
-    customerType: 'Normal Customer',
-    salesmanArea: 'South Kanpur Central',
-    salesmanRoute: 'Route #4 — Wholesale Mandi',
-    paymentMethod: 'Cash' // 'Cash' | 'Credit' | 'Online' | 'Special'
-  });
-  const [fieldProductSearch, setFieldProductSearch] = useState('');
-  const [selectedFieldCategory, setSelectedFieldCategory] = useState('All');
 
   const activeSalesmanId = (user.salesmanId || 'AE-SM-001').toUpperCase();
 
@@ -186,33 +169,6 @@ export const SalesmanDashboard = () => {
     });
   }, [myOrders, orderSearchQuery, timeFilter, customDate]);
 
-  // Filtered Products for Quick Field Order Flow
-  const fieldProducts = useMemo(() => {
-    return products.filter(p => {
-      if (selectedFieldCategory !== 'All' && p.category !== selectedFieldCategory) return false;
-      if (fieldProductSearch.trim()) {
-        const q = fieldProductSearch.toLowerCase().trim();
-        return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [products, selectedFieldCategory, fieldProductSearch]);
-
-  const handleSelectCustomerForFieldOrder = (cust) => {
-    setFieldCustomer({
-      customerMode: 'quick',
-      customerName: cust.name,
-      customerMobile: cust.mobile,
-      customerAddress: cust.address,
-      customerCity: cust.city,
-      customerState: cust.state,
-      customerEmail: cust.email || '',
-      customerType: cust.classification === 'DAMAGE' ? 'Damage Customer' : cust.classification === 'EXPIRY' ? 'Expiry Customer' : 'Normal Customer'
-    });
-    setActiveTab('field-order');
-    showToast(`Selected "${cust.name}" for Field Order`, 'info');
-  };
-
   const handleCreateCustomerSubmit = async (e) => {
     e.preventDefault();
     if (!newCustomerForm.name.trim()) return;
@@ -223,23 +179,11 @@ export const SalesmanDashboard = () => {
       mobile: '',
       email: '',
       address: '',
-      city: 'Mumbai',
-      state: 'Maharashtra',
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
       classification: 'NORMAL',
       customerMode: 'QUICK'
     });
-  };
-
-  const handleFieldCheckout = async () => {
-    if (cart.length === 0) {
-      showToast('Order cart is empty. Add at least 1 product SKU.', 'warning');
-      return;
-    }
-    if (!fieldCustomer.customerName.trim()) {
-      showToast('Please enter customer/retail shop name.', 'warning');
-      return;
-    }
-    await checkoutOrder(fieldCustomer);
   };
 
   return (
@@ -271,12 +215,6 @@ export const SalesmanDashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-            <button
-              onClick={() => setActiveTab('field-order')}
-              className="flex-1 md:flex-none px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5"
-            >
-              <ShoppingBag className="w-4 h-4" /> Quick Field Order
-            </button>
             <button
               onClick={() => setIsPasswordModalOpen(true)}
               className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-extrabold text-xs rounded-xl border border-amber-500/30 hover:border-amber-500/60 shadow-sm transition-colors flex items-center gap-1.5"
@@ -359,7 +297,6 @@ export const SalesmanDashboard = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-slate-200 dark:border-slate-800">
           {[
             { id: 'orders', label: `My Order History (${myOrders.length})`, icon: FileText },
-            { id: 'field-order', label: 'Field Order Booking', icon: ShoppingCart },
             { id: 'customers', label: `Customer Directory (${myCustomers.length})`, icon: Users },
             { id: 'analytics', label: 'Performance Metrics', icon: TrendingUp }
           ].map(tab => {
@@ -523,287 +460,7 @@ export const SalesmanDashboard = () => {
           </div>
         )}
 
-        {/* ================= TAB 2: STREAMLINED FIELD ORDER FLOW ================= */}
-        {activeTab === 'field-order' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* Left: Product Sourcing & Quick Add */}
-            <div className="lg:col-span-7 space-y-4">
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Package className="w-4 h-4 text-amber-500" />
-                    Quick Product Sourcing List
-                  </h3>
-                  <span className="text-xs text-slate-400">{fieldProducts.length} Available SKUs</span>
-                </div>
-
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={fieldProductSearch}
-                    onChange={(e) => setFieldProductSearch(e.target.value)}
-                    placeholder="Fast search SKU, Brand, or Product..."
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                {/* Products List for Instant Field Add */}
-                <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1">
-                  {fieldProducts.map(p => {
-                    const inCartItem = cart.find(item => item.product.id === p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 hover:border-slate-300 transition-colors"
-                      >
-                        <img src={p.image} alt={p.name} className="w-12 h-12 object-contain bg-white rounded-lg p-1 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-brand-950 text-white">{p.brand}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">SKU: {p.sku}</span>
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">{p.name}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                            <span>₹{p.price}/unit</span>
-                            <span>•</span>
-                            <span className="text-emerald-600 font-semibold">{p.stock} in stock</span>
-                          </div>
-                        </div>
-
-                        {/* Direct Add & Custom B2B Qty Controls */}
-                        <div className="flex flex-col items-end gap-1">
-                          {inCartItem ? (
-                            <div className="flex flex-col items-end gap-1">
-                              <div className="flex items-center border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                                <button
-                                  type="button"
-                                  onClick={() => updateCartQty(p.id, -1)}
-                                  className="w-7 h-7 flex items-center justify-center font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800"
-                                >
-                                  -
-                                </button>
-                                <span className="w-8 text-center text-xs font-black">{inCartItem.qty}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateCartQty(p.id, 1)}
-                                  className="w-7 h-7 flex items-center justify-center font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800"
-                                >
-                                  +
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-1 text-[9px]">
-                                <button
-                                  type="button"
-                                  onClick={() => updateCartQty(p.id, 5)}
-                                  className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold"
-                                >
-                                  +5 Bundle
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateCartQty(p.id, 10)}
-                                  className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-black"
-                                >
-                                  +10 Case
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => addToCart(p, 1)}
-                                className="px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" /> Add
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => addToCart(p, 5)}
-                                className="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px] rounded-xl border"
-                                title="Add 5 units (1 Bundle)"
-                              >
-                                +5
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => addToCart(p, 10)}
-                                className="px-2 py-1.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-xl shadow-sm"
-                                title="Add 10 units (1 Master Case)"
-                              >
-                                +10
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Customer Selection, Cart Review & Offline Booking */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
-                
-                {/* Customer Details Form */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <Store className="w-4 h-4 text-amber-500" />
-                      Customer Details
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('customers')}
-                      className="text-[11px] font-bold text-brand-900 dark:text-amber-400 hover:underline"
-                    >
-                      Pick from Directory
-                    </button>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <input
-                      type="text"
-                      placeholder="Customer / Shop Name *"
-                      value={fieldCustomer.customerName}
-                      onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Mobile Number"
-                      value={fieldCustomer.customerMobile}
-                      onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerMobile: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Shop Delivery Address & City"
-                      value={fieldCustomer.customerAddress}
-                      onChange={(e) => setFieldCustomer({ ...fieldCustomer, customerAddress: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                    />
-
-                    {/* Salesman Area & Route Inputs */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Salesman Area *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. South Kanpur"
-                          value={fieldCustomer.salesmanArea}
-                          onChange={(e) => setFieldCustomer({ ...fieldCustomer, salesmanArea: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Salesman Route *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Route #4"
-                          value={fieldCustomer.salesmanRoute}
-                          onChange={(e) => setFieldCustomer({ ...fieldCustomer, salesmanRoute: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Payment Method Selector (Cash, Credit, Online, Special) */}
-                    <div className="pt-1">
-                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Payment Method *</label>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {[
-                          { id: 'Cash', label: '💵 Cash' },
-                          { id: 'Credit', label: '💳 Credit (Net-30)' },
-                          { id: 'Online', label: '🌐 Online (UPI/NEFT)' },
-                          { id: 'Special', label: '⭐ Special Scheme' }
-                        ].map(p => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setFieldCustomer({ ...fieldCustomer, paymentMethod: p.id })}
-                            className={`p-2 rounded-xl text-[11px] font-bold border transition-all text-center ${
-                              fieldCustomer.paymentMethod === p.id
-                                ? 'bg-amber-500 text-slate-950 border-amber-500 font-extrabold shadow-sm'
-                                : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-                            }`}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cart Items Review */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-extrabold uppercase text-slate-700 dark:text-slate-300">
-                      Order Cart ({cart.length} SKUs)
-                    </span>
-                    {cart.length > 0 && (
-                      <button onClick={clearCart} className="text-[10px] text-red-500 hover:underline">
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-
-                  {cart.length === 0 ? (
-                    <div className="p-6 text-center text-slate-400 text-xs border border-dashed rounded-2xl">
-                      Select items from the catalog to book on field.
-                    </div>
-                  ) : (
-                    <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 text-xs">
-                      {cart.map(item => (
-                        <div key={item.product.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-950 rounded-xl">
-                          <div className="truncate pr-2">
-                            <strong className="block truncate text-slate-900 dark:text-white">{item.product.name}</strong>
-                            <span className="text-[10px] text-slate-400">Qty: {item.qty} × ₹{item.unitPrice}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-xs">₹{(item.unitPrice * item.qty).toLocaleString()}</span>
-                            <button
-                              onClick={() => removeFromCart(item.product.id)}
-                              className="text-red-500 hover:text-red-700 p-1"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Terms & Checkout Button */}
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-900/50 text-[11px] text-amber-900 dark:text-amber-300 space-y-0.5">
-                  <div>• Order Mode: <strong>Offline Collection</strong></div>
-                  <div>• Payment Term: <strong>Offline / Direct Cash / B2B Terms</strong></div>
-                  <div>• Collection Status: <strong>Pending Inspection & Billing</strong></div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleFieldCheckout}
-                  disabled={cart.length === 0 || !fieldCustomer.customerName.trim()}
-                  className="w-full py-3.5 bg-brand-900 hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
-                  <span>Submit Field Order & Generate GST Invoice</span>
-                </button>
-
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ================= TAB 3: CUSTOMER DIRECTORY & SEARCH ================= */}
+        {/* ================= TAB 2: CUSTOMER DIRECTORY & SEARCH ================= */}
         {activeTab === 'customers' && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
             
@@ -867,7 +524,11 @@ export const SalesmanDashboard = () => {
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleSelectCustomerForFieldOrder(cust)}
+                        onClick={() => {
+                          loadCustomerForOrder(cust);
+                          navigateTo('catalogue');
+                          showToast(`Selected "${cust.name}" for Catalogue Order`, 'info');
+                        }}
                         className="flex-1 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1"
                       >
                         <ShoppingCart className="w-3.5 h-3.5 text-amber-400" /> Book Order
