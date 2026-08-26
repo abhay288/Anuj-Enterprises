@@ -1,6 +1,6 @@
 import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
+import { ShoppingCart, Eye, Sparkles, ShieldAlert } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const ProductCard = memo(({ product }) => {
@@ -47,6 +47,37 @@ export const ProductCard = memo(({ product }) => {
           ) : null}
         </div>
 
+        {/* Top Right Badges & Actions */}
+        <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1.5">
+          {product.isNrp && (
+            <div className="group/nrp relative">
+              <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-md flex items-center gap-1 cursor-help border border-rose-400/30 hover:scale-105 transition-transform">
+                <ShieldAlert className="w-2.5 h-2.5" /> NRP
+              </span>
+              {/* Tooltip on Hover */}
+              <div className="absolute right-0 top-full mt-1.5 w-52 p-2.5 bg-slate-950 text-white text-[10px] rounded-xl shadow-2xl border border-rose-500/40 opacity-0 group-hover/nrp:opacity-100 transition-all duration-200 pointer-events-none z-30 leading-tight">
+                <div className="flex items-center gap-1 text-rose-400 mb-1 font-extrabold text-[10px]">
+                  <ShieldAlert className="w-3 h-3" /> No Return Policy
+                </div>
+                This product follows No Return Policy. Please inspect the product carefully at the time of delivery.
+              </div>
+            </div>
+          )}
+
+          {/* Quick View Top-Right Mobile Touch Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openQuickView(product);
+            }}
+            className="p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl shadow backdrop-blur-sm transition-all sm:hidden active:scale-95"
+            title={t('quick_view', 'Quick View')}
+          >
+            <Eye className="w-4 h-4 text-amber-400" />
+          </button>
+        </div>
+
         {/* Product Image */}
         <img
           src={product.image}
@@ -56,19 +87,6 @@ export const ProductCard = memo(({ product }) => {
           className="max-h-44 max-w-full object-contain group-hover:scale-105 transition-transform duration-500 cursor-pointer"
           onClick={() => navigateTo('product-detail', product.id)}
         />
-
-        {/* Quick View Top-Right Mobile Touch Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openQuickView(product);
-          }}
-          className="absolute top-3 right-3 z-10 p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl shadow backdrop-blur-sm transition-all sm:hidden active:scale-95"
-          title={t('quick_view', 'Quick View')}
-        >
-          <Eye className="w-4 h-4 text-amber-400" />
-        </button>
 
         {/* Quick View Overlay Button for Hover Screens */}
         <div className="absolute inset-x-4 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex gap-2">

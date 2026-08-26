@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingCart, Star, ArrowRight, Check, Box, Sparkles, Building2, Package } from 'lucide-react';
+import { X, ShoppingCart, Star, ArrowRight, Check, Box, Sparkles, Building2, Package, ShieldAlert } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const QuickViewModal = () => {
@@ -43,6 +43,21 @@ export const QuickViewModal = () => {
                 </span>
               )}
             </div>
+
+            {quickViewProduct.isNrp && (
+              <div className="absolute top-4 right-12 z-20 group/nrp">
+                <span className="px-2.5 py-1 text-xs font-black uppercase tracking-wider rounded-lg bg-rose-600 text-white shadow flex items-center gap-1 cursor-help border border-rose-400/30">
+                  <ShieldAlert className="w-3.5 h-3.5" /> NRP
+                </span>
+                {/* Tooltip on Hover */}
+                <div className="absolute right-0 top-full mt-1.5 w-56 p-2.5 bg-slate-950 text-white text-[11px] font-medium rounded-xl shadow-2xl border border-rose-500/40 opacity-0 group-hover/nrp:opacity-100 transition-all pointer-events-none z-30 leading-snug">
+                  <div className="flex items-center gap-1.5 text-rose-400 mb-0.5 font-extrabold text-xs">
+                    <ShieldAlert className="w-3.5 h-3.5" /> No Return Policy
+                  </div>
+                  This product follows No Return Policy. Please inspect the product carefully at the time of delivery.
+                </div>
+              </div>
+            )}
 
             <div className="w-full h-60 md:h-72 flex items-center justify-center p-4 my-auto">
               <img

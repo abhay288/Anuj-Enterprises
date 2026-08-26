@@ -149,6 +149,7 @@ export const AdminDashboard = () => {
     caseSize: '10 Units',
     isFeatured: true,
     isNew: true,
+    isNrp: false,
     status: 'Published',
     image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
     images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
@@ -599,6 +600,7 @@ export const AdminDashboard = () => {
       caseSize: product.caseSize || '10 Units',
       isFeatured: product.isFeatured ?? true,
       isNew: product.isNew ?? false,
+      isNrp: product.isNrp ?? false,
       status: product.status || 'Published',
       image: productImages[0] || product.image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
       images: productImages.length > 0 ? productImages : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
@@ -1235,6 +1237,13 @@ export const AdminDashboard = () => {
                               className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNew ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-600'}`}
                             >
                               New
+                            </button>
+                            <button
+                              onClick={() => updateProduct({ ...prod, isNrp: !prod.isNrp })}
+                              className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}
+                              title="Toggle No Return Policy (NRP)"
+                            >
+                              NRP
                             </button>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -2725,6 +2734,16 @@ export const AdminDashboard = () => {
                       className="w-4 h-4 rounded text-blue-500 focus:ring-blue-500"
                     />
                     <span>✨ Mark as New Arrival</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={prodForm.isNrp || false}
+                      onChange={(e) => setProdForm({ ...prodForm, isNrp: e.target.checked })}
+                      className="w-4 h-4 rounded text-rose-500 focus:ring-rose-500"
+                    />
+                    <span className="text-rose-600 dark:text-rose-400 font-extrabold">🚫 NRP (No Return Policy)</span>
                   </label>
                 </div>
 

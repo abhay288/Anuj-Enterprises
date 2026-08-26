@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   ShoppingCart, Trash2, ArrowLeft, ShieldCheck, FileText, 
   Building2, ArrowRight, AlertTriangle, CheckCircle2, User, Phone, MapPin, Mail, Sparkles, Tag,
-  Zap, RotateCcw, Plus, AlertOctagon, PackageX, ChevronDown, ChevronUp
+  Zap, RotateCcw, Plus, AlertOctagon, PackageX, ChevronDown, ChevronUp, ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
@@ -301,6 +301,11 @@ export const CartView = () => {
                                 {item.isPriority && (
                                   <span className="px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[9px] uppercase rounded-full shadow-sm flex items-center gap-0.5">
                                     <Zap className="w-2.5 h-2.5 fill-slate-950" /> URGENT
+                                  </span>
+                                )}
+                                {item.product.isNrp && (
+                                  <span className="px-2 py-0.5 bg-rose-600 text-white font-black text-[9px] uppercase rounded-full shadow-sm flex items-center gap-0.5" title="This product follows No Return Policy. Please inspect the product carefully at the time of delivery.">
+                                    <ShieldAlert className="w-2.5 h-2.5" /> NRP
                                   </span>
                                 )}
                               </div>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingCart, ArrowLeft, ChevronRight, Maximize2, 
   Phone, Box, Check, X, Layers, Building2, 
-  ZoomIn, Info, Share2, Copy, MessageCircle, Send, Mail, Globe
+  ZoomIn, Info, Share2, Copy, MessageCircle, Send, Mail, Globe, ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
@@ -164,8 +164,23 @@ export const ProductDetailView = () => {
                   </span>
                 </div>
 
-                {/* Fullscreen Button */}
-                <div className="absolute top-4 right-4 z-10">
+                {/* Top Right Controls & NRP Badge */}
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                  {product.isNrp && (
+                    <div className="group/nrp relative">
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 text-white text-xs font-black rounded-xl uppercase tracking-wider shadow-lg flex items-center gap-1.5 cursor-help border border-rose-400/40 hover:scale-105 transition-transform">
+                        <ShieldAlert className="w-4 h-4" /> NRP
+                      </span>
+                      {/* Tooltip on Hover */}
+                      <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-slate-950 text-white text-xs rounded-xl shadow-2xl border border-rose-500/40 opacity-0 group-hover/nrp:opacity-100 transition-all duration-200 pointer-events-none z-30 leading-relaxed font-medium">
+                        <div className="flex items-center gap-1.5 text-rose-400 mb-1 font-extrabold text-xs">
+                          <ShieldAlert className="w-4 h-4" /> No Return Policy
+                        </div>
+                        This product follows No Return Policy. Please inspect the product carefully at the time of delivery.
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setIsFullscreenModalOpen(true)}
