@@ -45,6 +45,8 @@ export const InvoiceModal = () => {
               @page { size: A4 portrait; margin: 10mm; }
               body { background: white !important; color: black !important; font-family: system-ui, -apple-system, sans-serif; padding: 15px; }
               .no-print { display: none !important; }
+              .invoice-logo-container { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; min-width: 44px !important; min-height: 44px !important; flex-shrink: 0 !important; }
+              .invoice-logo-img { max-width: 100% !important; max-height: 100% !important; width: auto !important; height: auto !important; object-fit: contain !important; }
             </style>
           </head>
           <body>
@@ -168,8 +170,8 @@ export const InvoiceModal = () => {
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-1.5 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0 border-2 border-amber-400">
-                    <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" />
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 invoice-logo-container rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0 border-2 border-amber-400">
+                    <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain invoice-logo-img" />
                   </div>
                   <div>
                     <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">ANUJ ENTERPRISES</span>

@@ -18,9 +18,6 @@ import {
 import { useApp } from '../../context/AppContext';
 import { analyticsService } from '../../services/analyticsService';
 import { inventoryService } from '../../services/inventoryService';
-import { uploadToCloudinary, CLOUDINARY_CONFIG, setCloudinaryConfig } from '../../services/cloudinaryService';
-import { BulkCsvModal } from './BulkCsvModal';
-import { BulkInventoryModal } from './BulkInventoryModal';
 import { AdminPasswordModal } from './AdminPasswordModal';
 import { 
   exportOrdersCSV, 
@@ -111,8 +108,6 @@ export const AdminDashboard = () => {
   const [serverAnalytics, setServerAnalytics] = useState(null);
 
   // Modals & Forms
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
-  const [isBulkInventoryOpen, setIsBulkInventoryOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [isAddSalesmanOpen, setIsAddSalesmanOpen] = useState(false);
@@ -648,12 +643,6 @@ export const AdminDashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setIsCsvModalOpen(true)}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
-            >
-              <UploadCloud className="w-4 h-4" /> CSV Product Import
-            </button>
             <button
               onClick={() => setIsPasswordModalOpen(true)}
               className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 font-extrabold text-xs rounded-xl border border-amber-500/30 hover:border-amber-500/60 shadow-sm transition-colors flex items-center gap-1.5"
@@ -3199,12 +3188,6 @@ export const AdminDashboard = () => {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Bulk CSV Import Modal */}
-      <BulkCsvModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} />
-
-      {/* Bulk Inventory Modal */}
-      <BulkInventoryModal isOpen={isBulkInventoryOpen} onClose={() => setIsBulkInventoryOpen(false)} />
 
       {/* Change Password Modal */}
       <AdminPasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />

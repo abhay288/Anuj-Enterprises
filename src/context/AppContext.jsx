@@ -24,6 +24,25 @@ import { translations } from '../utils/translations';
 
 const AppContext = createContext();
 
+export const getCartStorageKey = (userObj) => {
+  if (!userObj || !userObj.role || userObj.role === 'guest') {
+    return 'anuj_cart_guest';
+  }
+  if (userObj.role === 'salesman') {
+    const sId = userObj.salesmanId || userObj.id || userObj.email || userObj.name || 'default';
+    return `anuj_cart_salesman_${String(sId).toUpperCase().trim()}`;
+  }
+  if (userObj.role === 'customer') {
+    const cId = userObj.customerId || userObj.id || userObj.email || userObj.mobile || userObj.name || 'default';
+    return `anuj_cart_customer_${String(cId).toLowerCase().trim()}`;
+  }
+  if (userObj.role === 'admin') {
+    const aId = userObj.email || userObj.name || 'default';
+    return `anuj_cart_admin_${String(aId).toLowerCase().trim()}`;
+  }
+  return 'anuj_cart_guest';
+};
+
 export const AppProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem('anuj_language') || 'en';
@@ -94,16 +113,6 @@ export const AppProvider = ({ children }) => {
   const [isOrderSuccessModalOpen, setIsOrderSuccessModalOpen] = useState(false);
   const [lastCompletedOrder, setLastCompletedOrder] = useState(null);
 
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('anuj_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [wishlist, setWishlist] = useState(() => {
-    const saved = localStorage.getItem('anuj_wishlist');
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('anuj_user');
     if (saved) {
@@ -116,6 +125,37 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
     }
     return { role: 'guest', name: 'Guest Visitor' };
+  });
+
+  const [cart, setCart] = useState(() => {
+    const initialUser = (() => {
+      const saved = localStorage.getItem('anuj_user');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.role === 'admin') parsed.name = 'ANUJ';
+          return parsed;
+        } catch (e) {}
+      }
+      return { role: 'guest', name: 'Guest Visitor' };
+    })();
+    const storageKey = getCartStorageKey(initialUser);
+    const savedCart = localStorage.getItem(storageKey);
+    if (savedCart) {
+      try { return JSON.parse(savedCart); } catch (e) {}
+    }
+    if (initialUser.role === 'guest') {
+      const legacyCart = localStorage.getItem('anuj_cart');
+      if (legacyCart) {
+        try { return JSON.parse(legacyCart); } catch (e) {}
+      }
+    }
+    return [];
+  });
+
+  const [wishlist, setWishlist] = useState(() => {
+    const saved = localStorage.getItem('anuj_wishlist');
+    return saved ? JSON.parse(saved) : [];
   });
 
   const resolveInitialRoute = () => {
@@ -344,7 +384,38 @@ export const AppProvider = ({ children }) => {
     };
   }, [user.role, products]);
 
-  // State Persistence
+  // State Persistence & Dynamic Role-Aware Cart Storage
+  const activeCartKeyRef = React.useRef(getCartStorageKey(user));
+
+  // Switch cart state whenever active user role or login identity changes
+  useEffect(() => {
+    const targetKey = getCartStorageKey(user);
+    activeCartKeyRef.current = targetKey;
+    const saved = localStorage.getItem(targetKey);
+    if (saved) {
+      try {
+        setCart(JSON.parse(saved));
+      } catch (e) {
+        setCart([]);
+      }
+    } else if (user.role === 'guest') {
+      const legacyCart = localStorage.getItem('anuj_cart');
+      if (legacyCart) {
+        try {
+          const parsed = JSON.parse(legacyCart);
+          setCart(parsed);
+          localStorage.setItem(targetKey, JSON.stringify(parsed));
+        } catch (e) {
+          setCart([]);
+        }
+      } else {
+        setCart([]);
+      }
+    } else {
+      setCart([]);
+    }
+  }, [user]);
+
   useEffect(() => { localStorage.setItem('anuj_products_v3', JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem('anuj_categories_v3', JSON.stringify(categories)); }, [categories]);
   useEffect(() => { localStorage.setItem('anuj_brands_v3', JSON.stringify(brands)); }, [brands]);
@@ -354,7 +425,16 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('anuj_notifications_v1', JSON.stringify(notifications)); }, [notifications]);
   useEffect(() => { localStorage.setItem('anuj_headline_config_v2', JSON.stringify(headlineConfig)); }, [headlineConfig]);
   useEffect(() => { localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(legalPolicies)); }, [legalPolicies]);
-  useEffect(() => { localStorage.setItem('anuj_cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => {
+    const currentKey = getCartStorageKey(user);
+    if (activeCartKeyRef.current === currentKey) {
+      localStorage.setItem(currentKey, JSON.stringify(cart));
+      if (user.role === 'guest') {
+        localStorage.setItem('anuj_cart', JSON.stringify(cart));
+      }
+      broadcastSync('SYNC_CART', { key: currentKey, cart });
+    }
+  }, [cart, user, broadcastSync]);
   useEffect(() => { localStorage.setItem('anuj_user', JSON.stringify(user)); }, [user]);
 
   // Real-Time Cross-Tab / Cross-Window Live Synchronization
@@ -373,6 +453,7 @@ export const AppProvider = ({ children }) => {
           if (type === 'SYNC_SALESMEN' && payload) setSalesmen(payload);
           if (type === 'SYNC_ORDERS' && payload) setOrders(payload);
           if (type === 'SYNC_NOTIFICATIONS' && payload) setNotifications(payload);
+          if (type === 'SYNC_CART' && payload && payload.key === activeCartKeyRef.current) setCart(payload.cart);
         };
       }
     } catch (e) {}
@@ -388,6 +469,7 @@ export const AppProvider = ({ children }) => {
         if (e.key === 'anuj_salesmen_v3') setSalesmen(JSON.parse(e.newValue));
         if (e.key === 'anuj_orders_v3') setOrders(JSON.parse(e.newValue));
         if (e.key === 'anuj_notifications_v1') setNotifications(JSON.parse(e.newValue));
+        if (e.key === activeCartKeyRef.current) setCart(JSON.parse(e.newValue));
       } catch (err) {}
     };
 
@@ -1121,17 +1203,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  const bulkAddProducts = async (newProductsList) => {
-    setProducts(prev => {
-      const updated = [...newProductsList, ...prev];
-      broadcastSync('SYNC_PRODUCTS', updated);
-      return updated;
-    });
-    showToast(`Bulk imported ${newProductsList.length} products to catalog!`, 'success');
-    try {
-      await productService.importBulkCsv(newProductsList);
-    } catch (e) {}
-  };
+
 
   // Salesman Management Instant Operations
   const addSalesman = async (newS) => {
@@ -1530,7 +1602,6 @@ export const AppProvider = ({ children }) => {
       toggleProductFeatured,
       toggleProductNew,
       toggleProductStatus,
-      bulkAddProducts,
       addSalesman,
       updateSalesman,
       deleteSalesman,

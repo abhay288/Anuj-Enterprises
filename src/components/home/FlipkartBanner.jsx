@@ -38,7 +38,7 @@ export const FlipkartBanner = () => {
       bgColor: "from-brand-900 via-slate-900 to-amber-950",
       accentColor: "text-amber-300",
       badge: "Salesman Portal Ready",
-      btnText: "Authenticate as Salesman",
+      btnText: "Login/SignUp",
       action: "salesman"
     }
   ];

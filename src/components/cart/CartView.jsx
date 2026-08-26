@@ -210,9 +210,21 @@ export const CartView = () => {
                 <ArrowLeft className="w-3.5 h-3.5" /> {t('back_to_products', 'Continue Shopping')}
               </button>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {t('cart_title', 'Salesman Order Cart & Offline Checkout')}
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap mt-1">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {t('cart_title', 'Salesman Order Cart & Offline Checkout')}
+              </h1>
+              <span className="px-3 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/30 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                <User className="w-3.5 h-3.5 text-amber-500" />
+                {user.role === 'guest' 
+                  ? 'Guest Visitor Cart' 
+                  : user.role === 'salesman' 
+                  ? `Salesman Cart (${user.salesmanId || 'AE-SM-001'} — ${user.name})` 
+                  : user.role === 'admin' 
+                  ? 'Admin Executive Cart' 
+                  : `Customer Cart (${user.name})`}
+              </span>
+            </div>
           </div>
           <button
             onClick={clearCart}

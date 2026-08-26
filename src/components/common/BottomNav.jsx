@@ -46,7 +46,7 @@ export const BottomNav = () => {
       { id: 'categories', label: t('nav_categories', 'Categories'), icon: Grid, action: () => { navigateTo('catalogue'); setIsMobileFilterOpen(true); }, active: view === 'catalogue' },
       { id: 'search', label: t('search', 'Search'), icon: Search, action: () => navigateTo('catalogue'), active: false },
       { id: 'cart', label: t('nav_cart', 'Cart'), icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
-      { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+      { id: 'profile', label: t('nav_salesman', 'Login/SignUp'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
     ];
   };
 

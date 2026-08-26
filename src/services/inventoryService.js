@@ -30,12 +30,5 @@ export const inventoryService = {
       method: 'PATCH',
       body: JSON.stringify({ lowStockThreshold })
     });
-  },
-
-  bulkUpdateStock: async (items, reason) => {
-    return apiClient('/inventory/bulk-update', {
-      method: 'POST',
-      body: JSON.stringify({ items, reason })
-    });
   }
 };

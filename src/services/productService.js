@@ -48,19 +48,5 @@ export const productService = {
 
   toggleNew: async (id) => {
     return apiClient(`/products/${id}/new`, { method: 'PATCH' });
-  },
-
-  validateBulkCsv: async (rows) => {
-    return apiClient('/products/bulk/validate', {
-      method: 'POST',
-      body: JSON.stringify({ rows })
-    });
-  },
-
-  importBulkCsv: async (products) => {
-    return apiClient('/products/bulk/import', {
-      method: 'POST',
-      body: JSON.stringify({ products })
-    });
   }
 };

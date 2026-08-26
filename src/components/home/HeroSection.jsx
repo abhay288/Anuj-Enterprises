@@ -102,7 +102,7 @@ export const HeroSection = () => {
                 onClick={() => setIsSalesmanModalOpen(true)}
                 className="px-6 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-bold text-sm border border-slate-700 backdrop-blur-md flex items-center gap-2 transition-all shadow-lg"
               >
-                <ShieldCheck className="w-4 h-4 text-amber-400" /> Sales Representative Login
+                <ShieldCheck className="w-4 h-4 text-amber-400" /> Login/SignUp
               </button>
             </motion.div>
 
