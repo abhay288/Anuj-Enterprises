@@ -1678,216 +1678,170 @@ export const AdminDashboard = () => {
 
             {/* ================= TAB 8: FLOATING HEADLINE & ANNOUNCEMENT BAR ================= */}
             {activeTab === 'announcement' && (
-              <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
                 
-                {/* Header Card */}
-                <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                    <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <Megaphone className="w-5 h-5 text-amber-500" />
-                        Floating Headline & Live Announcement Marquee Bar
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Control real-time announcement ticker headlines displayed right beneath the top navbar across the Home page and all visitor screens.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Headline Status:</span>
-                      <button
-                        type="button"
-                        onClick={() => setHeadlineForm(prev => ({ ...prev, isVisible: !prev.isVisible }))}
-                        className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-sm ${
-                          headlineForm.isVisible
-                            ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                        }`}
-                      >
-                        <Radio className="w-3.5 h-3.5" />
-                        <span>{headlineForm.isVisible ? '● Live on Website' : '○ Disabled (Hidden)'}</span>
-                      </button>
-                    </div>
+                {/* Header & Status Toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Megaphone className="w-4 h-4 text-amber-500" />
+                      Floating Banner Settings
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Configure the live announcement text bar shown under the main navbar.
+                    </p>
                   </div>
 
-                  {/* Live Simulation Preview */}
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                      Live Customer Preview (How it appears under Navbar on Home Page):
+                  <button
+                    type="button"
+                    onClick={() => setHeadlineForm(prev => ({ ...prev, isVisible: !prev.isVisible }))}
+                    className={`px-4 py-2 rounded-xl font-extrabold text-xs flex items-center gap-2 transition-all shadow-sm ${
+                      headlineForm.isVisible
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>{headlineForm.isVisible ? '● Live on Website' : '○ Disabled'}</span>
+                  </button>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block mb-2">Live Website Banner Preview:</span>
+                  <div className={`p-3 rounded-2xl border ${
+                    headlineForm.variant === 'blue'
+                      ? 'bg-blue-50/80 dark:bg-slate-950 border-blue-200 dark:border-blue-900/60'
+                      : headlineForm.variant === 'emerald'
+                      ? 'bg-emerald-50/80 dark:bg-slate-950 border-emerald-200 dark:border-emerald-900/60'
+                      : 'bg-amber-50/80 dark:bg-slate-950 border-amber-200 dark:border-amber-900/60'
+                  } flex items-center justify-between gap-3`}>
+                    <div className="flex items-center gap-2.5 overflow-hidden flex-1">
+                      <span className={`px-2.5 py-0.5 rounded-full font-extrabold text-[10px] uppercase tracking-wider shrink-0 ${
+                        headlineForm.variant === 'blue'
+                          ? 'bg-blue-600 text-white'
+                          : headlineForm.variant === 'emerald'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-amber-500 text-slate-950'
+                      }`}>
+                        {headlineForm.tag || 'ANNOUNCEMENT'}
+                      </span>
+                      
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {headlineForm.text || 'No announcement message entered...'}
+                      </span>
+                    </div>
+
+                    <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                      {headlineForm.isVisible ? 'Active' : 'Hidden'}
                     </span>
+                  </div>
+                </div>
 
-                    <div className={`p-3 rounded-2xl border ${
-                      headlineForm.variant === 'blue'
-                        ? 'bg-blue-50/80 dark:bg-slate-950 border-blue-200 dark:border-blue-900/60'
-                        : headlineForm.variant === 'emerald'
-                        ? 'bg-emerald-50/80 dark:bg-slate-950 border-emerald-200 dark:border-emerald-900/60'
-                        : 'bg-amber-50/80 dark:bg-slate-950 border-amber-200 dark:border-amber-900/60'
-                    } flex items-center justify-between gap-3`}>
-                      <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-                        <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] uppercase tracking-wider shrink-0 ${
-                          headlineForm.variant === 'blue'
-                            ? 'bg-blue-600 text-white'
-                            : headlineForm.variant === 'emerald'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-amber-500 text-slate-950'
-                        }`}>
-                          <Megaphone className="w-3 h-3 inline mr-1" />
-                          {headlineForm.tag || 'ANNOUNCEMENT'}
-                        </span>
-                        
-                        <div className="overflow-hidden flex-1 relative select-none">
-                          <div className="animate-marquee whitespace-nowrap">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 pr-12 inline-block">
-                              {headlineForm.text || 'No text entered yet...'}
-                            </span>
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 pr-12 inline-block">
-                              {headlineForm.text || 'No text entered yet...'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                        {headlineForm.isVisible ? '✅ Live' : '❌ Hidden'}
-                      </span>
-                    </div>
+                {/* Edit Form */}
+                <form onSubmit={handleSaveHeadline} className="space-y-4 pt-1">
+                  
+                  {/* Preset Chips */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Quick Templates:</span>
+                    {[
+                      { title: "Dairy Restock", tag: "WHOLESALE UPDATE", variant: "amber", text: "⚡ Special FMCG Sourcing Alert: Fresh Amul & Nestlé milk batches arrived at Kanpur Central Hub with same-day dispatch!" },
+                      { title: "Dispatch Hours", tag: "DISPATCH NOTICE", variant: "blue", text: "📢 Notice: Kanpur Central Dispatch Hub active Monday–Saturday 8:00 AM to 8:00 PM for all Retail Store Replenishment orders." },
+                      { title: "Stock Alert", tag: "STOCK ALERT", variant: "amber", text: "🍫 Special Stock Arrival: Cadbury Dairy Milk & Britannia Good Day wholesale case lots ready for immediate invoicing." },
+                      { title: "Express Shipping", tag: "FAST DISPATCH", variant: "emerald", text: "🚛 Wholesale Express: Same-day order dispatch available for registered retail merchants across Uttar Pradesh." }
+                    ].map((tpl, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setHeadlineForm({
+                          isVisible: true,
+                          tag: tpl.tag,
+                          variant: tpl.variant,
+                          text: tpl.text
+                        })}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
+                      >
+                        {tpl.title}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* Edit Form */}
-                  <form onSubmit={handleSaveHeadline} className="space-y-5 pt-2">
-                    
-                    {/* Fast Presets */}
-                    <div className="space-y-2">
-                      <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 block">
-                        ⚡ Quick Fill Templates:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Badge Label */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Badge Tag
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={headlineForm.tag}
+                        onChange={(e) => setHeadlineForm({ ...headlineForm, tag: e.target.value })}
+                        placeholder="ANNOUNCEMENT"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    {/* Color Theme */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Color Theme
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
                         {[
-                          {
-                            title: "Dairy & Beverage Restock",
-                            tag: "WHOLESALE UPDATE",
-                            variant: "amber",
-                            text: "⚡ Special FMCG Sourcing Alert: Fresh Amul & Nestlé milk batches arrived at Kanpur Central Hub with same-day dispatch! Order Booking: +91 88876 83782 / +91 70719 79894"
-                          },
-                          {
-                            title: "Dispatch Hours Notice",
-                            tag: "DISPATCH NOTICE",
-                            variant: "blue",
-                            text: "📢 Notice: Kanpur Central Dispatch Hub active Monday–Saturday 8:00 AM to 8:00 PM for all Retail Store Replenishment orders."
-                          },
-                          {
-                            title: "Confectionery Arrival",
-                            tag: "STOCK ALERT",
-                            variant: "amber",
-                            text: "🍫 Special Stock Arrival: Cadbury Dairy Milk & Britannia Good Day wholesale case lots ready for immediate invoicing."
-                          },
-                          {
-                            title: "Express Logistics SLA",
-                            tag: "FAST DISPATCH",
-                            variant: "emerald",
-                            text: "🚛 Wholesale Express: Same-day order dispatch available for registered retail merchants across Uttar Pradesh."
-                          }
-                        ].map((tpl, i) => (
+                          { id: 'amber', label: 'Amber Gold', active: 'bg-amber-500 text-slate-950 border-amber-500' },
+                          { id: 'blue', label: 'Brand Blue', active: 'bg-blue-600 text-white border-blue-600' },
+                          { id: 'emerald', label: 'Emerald Green', active: 'bg-emerald-600 text-white border-emerald-600' },
+                        ].map(v => (
                           <button
-                            key={i}
+                            key={v.id}
                             type="button"
-                            onClick={() => setHeadlineForm({
-                              isVisible: true,
-                              tag: tpl.tag,
-                              variant: tpl.variant,
-                              text: tpl.text
-                            })}
-                            className="p-3 text-left rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-400 transition-all group"
+                            onClick={() => setHeadlineForm({ ...headlineForm, variant: v.id })}
+                            className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                              headlineForm.variant === v.id
+                                ? `${v.active} shadow-sm font-black`
+                                : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                            }`}
                           >
-                            <span className="font-extrabold text-xs text-slate-900 dark:text-white block group-hover:text-amber-500">
-                              {tpl.title}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">
-                              {tpl.text}
-                            </span>
+                            {v.label}
                           </button>
                         ))}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Tag Input */}
-                      <div>
-                        <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                          Badge / Tag Label
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={headlineForm.tag}
-                          onChange={(e) => setHeadlineForm({ ...headlineForm, tag: e.target.value })}
-                          placeholder="e.g. WHOLESALE UPDATE, DISPATCH NOTICE"
-                          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-extrabold text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      {/* Color Theme Selector */}
-                      <div>
-                        <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                          Color Theme
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { id: 'amber', label: 'Amber Gold', color: 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300' },
-                            { id: 'blue', label: 'Brand Blue', color: 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300' },
-                            { id: 'emerald', label: 'Emerald Green', color: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300' },
-                          ].map(v => (
-                            <button
-                              key={v.id}
-                              type="button"
-                              onClick={() => setHeadlineForm({ ...headlineForm, variant: v.id })}
-                              className={`py-2 px-2 rounded-xl text-xs font-extrabold border-2 transition-all text-center ${
-                                headlineForm.variant === v.id
-                                  ? `${v.color} shadow-sm ring-1 ring-amber-400`
-                                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                              }`}
-                            >
-                              {v.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                  {/* Textarea */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">
+                        Announcement Message
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {headlineForm.text.length} characters
+                      </span>
                     </div>
+                    <textarea
+                      rows={2}
+                      required
+                      value={headlineForm.text}
+                      onChange={(e) => setHeadlineForm({ ...headlineForm, text: e.target.value })}
+                      placeholder="Type banner text message here..."
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-medium text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
 
-                    {/* Headline Textarea */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400">
-                          Headline Announcement Message *
-                        </label>
-                        <span className="text-[10px] text-slate-400">
-                          {headlineForm.text.length} characters
-                        </span>
-                      </div>
-                      <textarea
-                        rows={3}
-                        required
-                        value={headlineForm.text}
-                        onChange={(e) => setHeadlineForm({ ...headlineForm, text: e.target.value })}
-                        placeholder="Type your official announcement or wholesale alert message here..."
-                        className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      />
-                    </div>
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-1">
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2 transition-colors"
+                    >
+                      <Megaphone className="w-4 h-4 text-amber-400" />
+                      <span>Save & Publish Banner</span>
+                    </button>
+                  </div>
 
-                    {/* Submit Button */}
-                    <div className="flex justify-end gap-3 pt-2">
-                      <button
-                        type="submit"
-                        className="px-6 py-3 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-brand-900/30 flex items-center gap-2 transition-all hover:scale-[1.01]"
-                      >
-                        <Megaphone className="w-4 h-4 text-amber-400" />
-                        <span>Save & Broadcast Headline Live</span>
-                      </button>
-                    </div>
-
-                  </form>
-                </div>
-
+                </form>
               </div>
             )}
 
