@@ -22,15 +22,15 @@ export const SupportView = () => {
   const faqs = [
     {
       q: "How does the Offline Collection and Settlement workflow operate?",
-      a: "Upon placing a B2B order through your designated sales representative or the portal, an official Tax Invoice is generated with a collection status of PENDING. When the goods are delivered from our central warehouse to your retail/wholesale store, our delivery agent or field representative completes payment collection (cash, Cheque, or RTGS) and updates the ledger."
+      a: "Upon placing a B2B order through your designated sales representative or the portal, an official Invoice is generated with a collection status of PENDING. When the goods are delivered from our central warehouse to your retail/wholesale store, our delivery agent or field representative completes payment collection (cash, Cheque, or RTGS) and updates the ledger."
     },
     {
       q: "What do Customer Classifications (Normal, Damage, Expiry) mean?",
       a: "Anuj Enterprises classifies accounts into: 1) Normal Customer: Standard trade terms with 100% prime packaging; 2) Damage Customer: Accounts processing packaging returns with pre-authorized inspection discounts; 3) Expiry Customer: Fast-cycle clearances and manufacturer replacement protocols."
     },
     {
-      q: "How can I print, download, or share my GST Tax Invoices?",
-      a: "Every order generated on the platform creates an immutable B2B tax invoice. You can open any invoice from the Order History or Order Success screen to 1-Click Print, Download as a PDF/HTML document, or Share directly to WhatsApp with pre-formatted summaries."
+      q: "How can I print, download, or share my Invoices?",
+      a: "Every order generated on the platform creates an immutable B2B invoice. You can open any invoice from the Order History or Order Success screen to 1-Click Print, Download as a PDF/HTML document, or Share directly to WhatsApp with pre-formatted summaries."
     },
     {
       q: "What is the Minimum Order Quantity (MOQ) for FMCG wholesale orders?",
@@ -70,7 +70,7 @@ export const SupportView = () => {
               How Can We Assist Your Enterprise Today?
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              Get immediate assistance with warehouse dispatches, GST tax invoices, customer registrations, and offline collections.
+              Get immediate assistance with warehouse dispatches, invoices, customer registrations, and offline collections.
             </p>
           </div>
         </div>
@@ -226,7 +226,7 @@ export const SupportView = () => {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-semibold"
                 >
                   <option value="Order Dispatch & Tracking">Order Dispatch & Tracking</option>
-                  <option value="GST Tax Invoice Copy">GST Tax Invoice Copy</option>
+                  <option value="Invoice Copy">Invoice Copy</option>
                   <option value="Damage / Expiry Replacement">Damage / Expiry Replacement</option>
                   <option value="Bulk Procurement Quote">Bulk Procurement Quote</option>
                   <option value="Salesman Assignment">Salesman Assignment</option>

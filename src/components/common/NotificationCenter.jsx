@@ -128,7 +128,6 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                 ) : (
                   roleNotifications.map((notif) => {
                     const isNewOrder = notif.type === 'NEW_ORDER';
-                    const isStockAlert = notif.type === 'LOW_STOCK' || notif.type === 'OUT_OF_STOCK';
                     const isBulk = notif.type === 'BULK_UPDATE';
 
                     return (
@@ -142,16 +141,13 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                           isNewOrder 
                             ? 'bg-brand-100 text-brand-900' 
-                            : isStockAlert 
-                            ? 'bg-red-100 text-red-700' 
                             : isBulk 
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-emerald-100 text-emerald-800'
                         }`}>
                           {isNewOrder && <ShoppingBag className="w-4 h-4" />}
-                          {isStockAlert && <AlertTriangle className="w-4 h-4" />}
                           {isBulk && <PackagePlus className="w-4 h-4" />}
-                          {!isNewOrder && !isStockAlert && !isBulk && <CheckCircle2 className="w-4 h-4" />}
+                          {!isNewOrder && !isBulk && <CheckCircle2 className="w-4 h-4" />}
                         </div>
 
                         <div className="flex-1 min-w-0">

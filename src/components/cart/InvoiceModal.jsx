@@ -39,7 +39,7 @@ export const InvoiceModal = () => {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Tax Invoice - ${invoiceNumber}</title>
+            <title>Invoice - ${invoiceNumber}</title>
             <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
             <style>
               @page { size: A4 portrait; margin: 10mm; }
@@ -95,7 +95,7 @@ export const InvoiceModal = () => {
   };
 
   const handleEmailInvoice = () => {
-    showToast(`Tax invoice #${invoiceNumber} dispatched to ${inv.customerEmail || 'customer billing email'}.`, 'success');
+    showToast(`Invoice #${invoiceNumber} dispatched to ${inv.customerEmail || 'customer billing email'}.`, 'success');
   };
 
   // Badge styling for Customer Classification

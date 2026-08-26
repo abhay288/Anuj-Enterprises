@@ -1,14 +1,11 @@
 import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Eye, Star, Sparkles, Box, AlertTriangle, XCircle } from 'lucide-react';
+import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const ProductCard = memo(({ product }) => {
-  const { addToCart, openQuickView, navigateTo } = useApp();
+  const { addToCart, openQuickView, navigateTo, t } = useApp();
   const [quantity, setQuantity] = useState(1);
-
-  const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 20);
 
   const handleQtyInputChange = (e) => {
     const val = parseInt(e.target.value, 10);
@@ -27,37 +24,25 @@ export const ProductCard = memo(({ product }) => {
 
   return (
     <motion.div
-      whileHover={{ y: isOutOfStock ? 0 : -6 }}
-      className={`group relative rounded-2xl bg-white dark:bg-slate-900 border ${
-        isOutOfStock 
-          ? 'border-red-200 dark:border-red-950/60 opacity-90' 
-          : 'border-slate-200 dark:border-slate-800'
-      } shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden`}
+      whileHover={{ y: -6 }}
+      className="group relative rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
     >
       {/* Top Image Area */}
       <div className="relative p-4 bg-slate-50/80 dark:bg-slate-950/60 overflow-hidden flex items-center justify-center h-52 border-b border-slate-100 dark:border-slate-800/80">
         
-        {/* Brand & New/Featured/Stock Badges */}
+        {/* Brand & New/Featured Badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
           <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-brand-950 text-white dark:bg-brand-600 shadow">
             {product.brand}
           </span>
 
-          {isOutOfStock ? (
-            <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-red-600 text-white shadow flex items-center gap-1">
-              <XCircle className="w-2.5 h-2.5" /> OUT OF STOCK
-            </span>
-          ) : isLowStock ? (
-            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-amber-500 text-slate-950 shadow flex items-center gap-1">
-              <AlertTriangle className="w-2.5 h-2.5" /> LOW STOCK
-            </span>
-          ) : product.isNew ? (
+          {product.isNew ? (
             <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-amber-400 text-slate-950 shadow flex items-center gap-0.5">
-              <Sparkles className="w-2.5 h-2.5" /> NEW ARRIVAL
+              <Sparkles className="w-2.5 h-2.5" /> {t('new_arrival', 'NEW ARRIVAL')}
             </span>
           ) : product.isFeatured ? (
             <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-emerald-500 text-white shadow">
-              FEATURED
+              {t('featured', 'FEATURED')}
             </span>
           ) : null}
         </div>
@@ -68,9 +53,7 @@ export const ProductCard = memo(({ product }) => {
           alt={product.name}
           loading="lazy"
           decoding="async"
-          className={`max-h-44 max-w-full object-contain ${
-            isOutOfStock ? 'grayscale opacity-75' : 'group-hover:scale-105'
-          } transition-transform duration-500 cursor-pointer`}
+          className="max-h-44 max-w-full object-contain group-hover:scale-105 transition-transform duration-500 cursor-pointer"
           onClick={() => navigateTo('product-detail', product.id)}
         />
 
@@ -82,7 +65,7 @@ export const ProductCard = memo(({ product }) => {
             openQuickView(product);
           }}
           className="absolute top-3 right-3 z-10 p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl shadow backdrop-blur-sm transition-all sm:hidden active:scale-95"
-          title="Quick View"
+          title={t('quick_view', 'Quick View')}
         >
           <Eye className="w-4 h-4 text-amber-400" />
         </button>
@@ -93,7 +76,7 @@ export const ProductCard = memo(({ product }) => {
             onClick={() => openQuickView(product)}
             className="w-full py-2 bg-slate-900/90 text-white dark:bg-slate-800/90 backdrop-blur-md rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg hover:bg-brand-900 transition-colors"
           >
-            <Eye className="w-3.5 h-3.5" /> Quick View
+            <Eye className="w-3.5 h-3.5" /> {t('quick_view', 'Quick View')}
           </button>
         </div>
       </div>
@@ -103,15 +86,6 @@ export const ProductCard = memo(({ product }) => {
         <div>
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
             <span>SKU: <strong className="text-slate-700 dark:text-slate-300 font-mono">{product.sku}</strong></span>
-            <span>
-              Stock: {isOutOfStock ? (
-                <strong className="text-red-600 font-bold">0 units (Depleted)</strong>
-              ) : isLowStock ? (
-                <strong className="text-amber-600 font-bold">{product.stock} units left</strong>
-              ) : (
-                <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{product.stock} units</strong>
-              )}
-            </span>
           </div>
 
           <h3 
@@ -125,17 +99,17 @@ export const ProductCard = memo(({ product }) => {
           <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[10px] text-slate-600 dark:text-slate-300">
             {product.packSize && (
               <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 font-medium">
-                Pack: <strong className="text-slate-900 dark:text-white">{product.packSize}</strong>
+                {t('pack_size', 'Pack')}: <strong className="text-slate-900 dark:text-white">{product.packSize}</strong>
               </span>
             )}
             {product.bundleSize && (
               <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 font-medium">
-                Bundle: <strong className="text-slate-900 dark:text-white">{product.bundleSize}</strong>
+                {t('bundle_size', 'Bundle')}: <strong className="text-slate-900 dark:text-white">{product.bundleSize}</strong>
               </span>
             )}
             {product.caseSize && (
               <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/60 rounded-md border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-bold">
-                Case: {product.caseSize}
+                {t('case_size', 'Case')}: {product.caseSize}
               </span>
             )}
           </div>
@@ -145,13 +119,12 @@ export const ProductCard = memo(({ product }) => {
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
           {/* Interactive Quantity Selector with Direct Typing */}
           <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 pl-2">Quantity:</span>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 pl-2">{t('quantity', 'Quantity')}:</span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                disabled={isOutOfStock}
                 onClick={() => setQuantity(Math.max(1, (parseInt(quantity) || 1) - 1))}
-                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
+                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm"
               >
                 -
               </button>
@@ -160,17 +133,15 @@ export const ProductCard = memo(({ product }) => {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 min="1"
-                disabled={isOutOfStock}
                 value={quantity}
                 onChange={handleQtyInputChange}
                 onBlur={handleQtyInputBlur}
-                className="w-14 h-8 sm:h-7 text-center text-xs font-extrabold bg-white dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                className="w-14 h-8 sm:h-7 text-center text-xs font-extrabold bg-white dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <button
                 type="button"
-                disabled={isOutOfStock}
                 onClick={() => setQuantity((parseInt(quantity) || 0) + 1)}
-                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm disabled:opacity-50"
+                className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm"
               >
                 +
               </button>
@@ -178,22 +149,11 @@ export const ProductCard = memo(({ product }) => {
           </div>
 
           <button
-            onClick={() => !isOutOfStock && addToCart(product, parseInt(quantity) || 1)}
-            disabled={isOutOfStock}
-            className={`w-full py-2.5 px-4 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow transition-all ${
-              isOutOfStock
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700'
-                : 'bg-brand-900 hover:bg-brand-800 text-white dark:bg-brand-600 dark:hover:bg-brand-500'
-            }`}
+            onClick={() => addToCart(product, parseInt(quantity) || 1)}
+            className="w-full py-2.5 px-4 font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow transition-all bg-brand-900 hover:bg-brand-800 text-white dark:bg-brand-600 dark:hover:bg-brand-500"
           >
-            {isOutOfStock ? (
-              <span>Out of Stock — Restocking Soon</span>
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                <span>Add to Cart</span>
-              </>
-            )}
+            <ShoppingCart className="w-4 h-4" />
+            <span>{t('add_to_cart', 'Add to Cart')}</span>
           </button>
         </div>
       </div>

@@ -17,7 +17,8 @@ export const ProductDetailView = () => {
     addToCart, 
     navigateTo,
     setIsSalesmanModalOpen,
-    showToast
+    showToast,
+    t
   } = useApp();
 
   const product = products.find(p => p.id === selectedProductId || p.productId === selectedProductId) || products[0];
@@ -255,22 +256,11 @@ export const ProductDetailView = () => {
                 </div>
               </div>
 
-              {/* Stock Status Banner */}
+              {/* Supply & Dispatch Banner */}
               <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-slate-400 block font-semibold">Supply & Dispatch</span>
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Direct Manufacturer Warehouse Dispatch</span>
-                </div>
-                <div>
-                  {product.stock > 0 ? (
-                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30 flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5" /> In Stock ({product.stock} units available)
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg border border-rose-500/30">
-                      Out of Stock
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -348,7 +338,7 @@ export const ProductDetailView = () => {
                     onClick={() => addToCart(product, parseInt(qty) || 1)}
                     className="w-full sm:flex-1 py-3.5 px-6 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-brand-900/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                   >
-                    <ShoppingCart className="w-4 h-4" /> Add {parseInt(qty) || 1}x to B2B Order Cart
+                    <ShoppingCart className="w-4 h-4" /> {t('add_to_cart', 'Add to Cart')} ({parseInt(qty) || 1}x)
                   </button>
 
                   <button
@@ -389,7 +379,7 @@ export const ProductDetailView = () => {
                 <table className="w-full text-xs text-left border-collapse">
                   <tbody>
                     {Object.entries(product.specs)
-                      .filter(([key]) => !key.includes('GST') && !key.includes('FSSAI') && !key.includes('HSN'))
+                      .filter(([key]) => !key.includes('FSSAI') && !key.includes('HSN'))
                       .map(([key, val], idx) => (
                       <tr 
                         key={idx}

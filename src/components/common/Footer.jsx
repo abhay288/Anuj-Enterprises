@@ -6,7 +6,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const Footer = () => {
-  const { navigateTo, filterByCategory, categories, showToast } = useApp();
+  const { navigateTo, filterByCategory, categories, showToast, t } = useApp();
   const [newsletterEmail, setNewsletterEmail] = useState('');
 
   const handleSubscribe = (e) => {
@@ -35,13 +35,13 @@ export const Footer = () => {
               <div>
                 <span className="text-lg sm:text-xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>
                 <span className="text-[10px] text-amber-400 block font-bold tracking-widest uppercase mt-0.5">
-                  Your Trusted Supply Partner
+                  {t('footer_tagline', 'Your Trusted Supply Partner')}
                 </span>
               </div>
             </div>
 
             <p className="text-xs leading-relaxed text-slate-400 max-w-sm">
-              India's industrial workforce runs on reliable supply. Anuj Enterprises delivers bulk FMCG — branded, certified, and straight to your site.
+              {t('gst_registered', 'India\'s industrial workforce runs on reliable supply. Anuj Enterprises delivers bulk FMCG — branded, certified, and straight to your site.')}
             </p>
 
             <div className="pt-2 space-y-2 text-xs">

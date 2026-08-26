@@ -71,7 +71,7 @@ export const CategoriesSection = () => {
 
               <div className="p-4 flex items-center justify-between bg-white dark:bg-slate-900">
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {cat.count}+ Ready Stock Items
+                  {cat.count}+ FMCG Products
                 </span>
                 <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center group-hover:bg-brand-900 group-hover:text-white transition-colors">
                   <ArrowRight className="w-3.5 h-3.5" />

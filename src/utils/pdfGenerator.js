@@ -46,7 +46,7 @@ export const generateInvoicePDF = (order) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('TAX INVOICE', 196, 16, { align: 'right' });
+  doc.text('INVOICE', 196, 16, { align: 'right' });
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -168,7 +168,7 @@ export const generateInvoicePDF = (order) => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.text('1. Goods once sold & verified on delivery handover are covered under manufacturer warranty.', 14, footerY + 11);
-  doc.text('2. Computer generated tax invoice — No signature required. Authorized by Anuj Enterprises Central Hub.', 14, footerY + 16);
+  doc.text('2. Computer generated invoice — No signature required. Authorized by Anuj Enterprises Central Hub.', 14, footerY + 16);
 
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);

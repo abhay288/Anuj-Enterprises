@@ -35,7 +35,7 @@ export const updatePageSEO = ({
     element.setAttribute('href', href || window.location.href);
   };
 
-  const defaultDescription = 'Anuj Enterprises - Premium B2B Wholesale FMCG Sourcing and Enterprise Distribution Portal. Direct manufacturer pricing, GST invoicing, and bulk deliveries.';
+  const defaultDescription = 'Anuj Enterprises - Premium B2B Wholesale FMCG Sourcing and Enterprise Distribution Portal. Direct manufacturer pricing, official invoicing, and bulk deliveries.';
   const currentDesc = description || defaultDescription;
   const currentUrl = url || window.location.href;
   const currentImage = image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=1200&q=80';

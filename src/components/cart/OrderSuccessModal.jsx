@@ -72,7 +72,7 @@ export const OrderSuccessModal = ({ isOpen, onClose, order }) => {
           </div>
 
           <div className="p-6 sm:p-8 space-y-6 text-xs">
-            {/* Key Order Identifier Cards (Tax Invoice # & Collection Status Pending removed per user request) */}
+            {/* Key Order Identifier Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">

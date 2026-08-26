@@ -147,7 +147,6 @@ export const AdminDashboard = () => {
     sku: '',
     hsn: '19053100',
     price: 1200,
-    mrp: 1400,
     stock: 100,
     lowStockThreshold: 20,
     packSize: '1 Unit',
@@ -588,9 +587,7 @@ export const AdminDashboard = () => {
       sku: product.sku,
       hsn: product.hsn || '19053100',
       price: product.price || 0,
-      mrp: product.mrp || 0,
-      stock: product.stock,
-      lowStockThreshold: product.lowStockThreshold || 20,
+      stock: product.stock ?? 100,
       packSize: product.packSize || '1 Unit',
       bundleSize: product.bundleSize || '5 Units',
       caseSize: product.caseSize || '10 Units',
@@ -737,9 +734,8 @@ export const AdminDashboard = () => {
               { id: 'customers', label: 'Registered Customers / Users', icon: UserCheck },
               { id: 'announcement', label: 'Floating Headline Bar', icon: Megaphone },
               { id: 'policies', label: 'Legal Policies Editor', icon: Scale },
-              { id: 'inventory', label: 'Inventory & Restock Operations', icon: AlertTriangle },
               { id: 'products', label: 'Products Master (CRUD)', icon: Package },
-              { id: 'orders', label: 'Orders & GST Invoices', icon: ShoppingBag },
+              { id: 'orders', label: 'Orders & Invoices', icon: ShoppingBag },
               { id: 'salesmen', label: 'Sales Force Roster', icon: Users },
               { id: 'categories', label: 'Categories & Brands', icon: Layers },
               { id: 'reports', label: 'Reports & Export Center', icon: FileText }
@@ -808,90 +804,19 @@ export const AdminDashboard = () => {
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Completed / Invoiced</span>
                     <span className="text-2xl font-black text-emerald-600 block">{biData.kpis.completedOrders}</span>
-                    <span className="text-[10px] text-emerald-600 block mt-1">Tax invoices generated</span>
+                    <span className="text-[10px] text-emerald-600 block mt-1">Invoices generated</span>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Low Stock Alerts</span>
-                    <span className="text-2xl font-black text-red-500 block">{biData.kpis.lowStockCount}</span>
-                    <span className="text-[10px] text-red-500 block mt-1">At/under threshold</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Catalog SKUs</span>
+                    <span className="text-2xl font-black text-brand-600 dark:text-amber-400 block">{products.length}</span>
+                    <span className="text-[10px] text-slate-500 block mt-1">Active products</span>
                   </div>
                 </div>
 
                 {/* Spotlight Row: Top Performing Salesman & Top Selling Product */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Top Salesman Card */}
-                  <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-slate-900/5 dark:from-amber-950/40 dark:via-slate-900/80 dark:to-slate-900/40 border border-amber-500/30 shadow-md">
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 flex items-center gap-1.5 shadow-sm">
-                          <Trophy className="w-3.5 h-3.5" />
-                          Top Salesman
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 capitalize">
-                          ({timeframe})
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setActiveTab('salesmen')}
-                        className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
-                      >
-                        Roster <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    {biData.topSalesman && (biData.topSalesman.totalQuantity > 0 || biData.topSalesman.ordersCount > 0) ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-md shrink-0">
-                            {biData.topSalesman.name.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-base font-black text-slate-900 dark:text-white truncate">
-                                {biData.topSalesman.name}
-                              </h4>
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                {biData.topSalesman.status}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              ID: {biData.topSalesman.id} • {biData.topSalesman.region}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-amber-500/20">
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Dispatched Units</span>
-                            <span className="text-lg font-black text-amber-600 dark:text-amber-400">
-                              {biData.topSalesman.totalQuantity.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Total Revenue</span>
-                            <span className="text-lg font-black text-slate-900 dark:text-white">
-                              ₹{biData.topSalesman.totalRevenue.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-amber-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Orders Sourced</span>
-                            <span className="text-lg font-black text-slate-900 dark:text-white">
-                              {biData.topSalesman.ordersCount}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-dashed border-slate-300 dark:border-slate-800 text-center">
-                        <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No salesman dispatch bookings in this period.</p>
-                      </div>
-                    )}
-                  </div>
-
+                {/* Spotlight Row: Top Selling Product */}
+                <div>
                   {/* Top Selling Product Card */}
                   <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-slate-900/80 dark:to-slate-900/40 border border-emerald-500/30 shadow-md">
                     <div className="flex items-start justify-between gap-3 mb-4">
@@ -905,10 +830,10 @@ export const AdminDashboard = () => {
                         </span>
                       </div>
                       <button
-                        onClick={() => setActiveTab('inventory')}
+                        onClick={() => setActiveTab('products')}
                         className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                       >
-                        Inventory <ArrowRight className="w-3 h-3" />
+                        Products Master <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
 
@@ -938,7 +863,7 @@ export const AdminDashboard = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-emerald-500/20">
+                        <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-emerald-500/20">
                           <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
                             <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Units Sold</span>
                             <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
@@ -947,16 +872,9 @@ export const AdminDashboard = () => {
                           </div>
 
                           <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Gross Sales</span>
-                            <span className="text-lg font-black text-slate-900 dark:text-white">
-                              ₹{biData.topProduct.totalRevenue.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Current Stock</span>
-                            <span className="text-lg font-black text-slate-900 dark:text-white">
-                              {biData.topProduct.stock !== null ? biData.topProduct.stock : 'N/A'}
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Category</span>
+                            <span className="text-lg font-black text-slate-900 dark:text-white truncate block">
+                              {biData.topProduct.category || 'General'}
                             </span>
                           </div>
                         </div>
@@ -998,93 +916,8 @@ export const AdminDashboard = () => {
                   )}
                 </div>
 
-                {/* Performance Rankings: Sales Force Leaderboard & Top Selling Products */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Sales Force Leaderboard */}
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                          <Users className="w-4 h-4 text-amber-500" />
-                          Sales Force Leaderboard
-                        </h3>
-                        <p className="text-[11px] text-slate-400">Ranked by total quantity units dispatched</p>
-                      </div>
-                      <span className="text-[10px] font-extrabold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
-                        {biData.salesmanAnalytics?.length || 0} Reps
-                      </span>
-                    </div>
-
-                    {biData.salesmanAnalytics && biData.salesmanAnalytics.length > 0 ? (
-                      <div className="space-y-3">
-                        {biData.salesmanAnalytics.slice(0, 6).map((s, idx) => {
-                          const maxUnits = Math.max(...biData.salesmanAnalytics.map(sm => sm.totalQuantity), 1);
-                          const pct = Math.round((s.totalQuantity / maxUnits) * 100);
-                          const isTop = idx === 0 && s.totalQuantity > 0;
-
-                          return (
-                            <div
-                              key={s.id}
-                              className={`p-3.5 rounded-2xl border transition-all ${
-                                isTop
-                                  ? 'bg-amber-500/5 border-amber-500/30'
-                                  : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800/80'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-3 mb-2">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <span
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                                      idx === 0
-                                        ? 'bg-amber-500 text-slate-950'
-                                        : idx === 1
-                                        ? 'bg-slate-300 text-slate-900'
-                                        : idx === 2
-                                        ? 'bg-amber-700/80 text-white'
-                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                    }`}
-                                  >
-                                    {idx + 1}
-                                  </span>
-                                  <div className="min-w-0">
-                                    <h4 className="text-xs font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                                      {s.name}
-                                      {isTop && <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                                    </h4>
-                                    <span className="text-[10px] text-slate-400 truncate block">
-                                      {s.region}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className="text-right shrink-0">
-                                  <span className="text-xs font-black text-slate-900 dark:text-white block">
-                                    {s.totalQuantity.toLocaleString()} Units
-                                  </span>
-                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
-                                    ₹{s.totalRevenue.toLocaleString()} ({s.ordersCount} orders)
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Progress bar */}
-                              <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    isTop ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-brand-600 dark:bg-brand-500'
-                                  }`}
-                                  style={{ width: `${Math.max(pct, s.totalQuantity > 0 ? 5 : 0)}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 text-center py-6">No salesman data available.</p>
-                    )}
-                  </div>
-
+                {/* Performance Rankings: Top Selling Products */}
+                <div>
                   {/* Top Selling Products Leaderboard */}
                   <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
@@ -1147,7 +980,7 @@ export const AdminDashboard = () => {
                                     {p.unitsSold.toLocaleString()} Units
                                   </span>
                                   <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
-                                    ₹{p.totalRevenue.toLocaleString()}
+                                    {p.category}
                                   </span>
                                 </div>
                               </div>
@@ -1385,229 +1218,6 @@ export const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ================= TAB 2: INVENTORY & STOCK OPERATIONS ================= */}
-            {activeTab === 'inventory' && (
-              <div className="space-y-6">
-                
-                {/* 1. Stock Dashboard Summary Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Total Catalog SKUs</span>
-                    <span className="text-2xl font-black text-slate-900 dark:text-white">{biData.kpis.totalProducts}</span>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">In Stock (Safe)</span>
-                    <span className="text-2xl font-black text-emerald-600">{biData.kpis.inStockCount}</span>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Low Stock (Threshold)</span>
-                    <span className="text-2xl font-black text-amber-500">{biData.kpis.lowStockCount}</span>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Out of Stock (Depleted)</span>
-                    <span className="text-2xl font-black text-red-500">{biData.kpis.outOfStockCount}</span>
-                  </div>
-                </div>
-
-                {/* Warehouse Product Master Inventory Table */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                      <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                      <input
-                        type="text"
-                        value={inventorySearch}
-                        onChange={(e) => setInventorySearch(e.target.value)}
-                        placeholder="Search product inventory, SKU, Brand..."
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => exportInventoryReportCSV(products)}
-                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
-                      >
-                        <Download className="w-3.5 h-3.5 text-emerald-500" /> Export Stock Excel (.XLSX)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 uppercase font-extrabold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th className="py-3 px-4">SKU & Product</th>
-                          <th className="py-3 px-4">Brand</th>
-                          <th className="py-3 px-4 text-center">Current Stock</th>
-                          <th className="py-3 px-4 text-center">Alert Threshold</th>
-                          <th className="py-3 px-4 text-center">Inventory Status</th>
-                          <th className="py-3 px-4 text-center">Quick Stock Operations</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {filteredInventoryProducts.map(prod => {
-                          const threshold = prod.lowStockThreshold || 20;
-                          const isZero = prod.stock === 0;
-                          const isLow = prod.stock > 0 && prod.stock <= threshold;
-
-                          return (
-                            <tr key={prod.id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40">
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-2.5">
-                                  <img src={prod.image} alt={prod.name} className="w-9 h-9 object-contain bg-slate-50 rounded-lg p-1 border" />
-                                  <div>
-                                    <strong className="block text-slate-900 dark:text-white line-clamp-1">{prod.name}</strong>
-                                    <span className="text-[10px] text-slate-400 font-mono">SKU: {prod.sku}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 font-bold">{prod.brand}</td>
-                              <td className="py-3 px-4 text-center">
-                                <span className={`text-sm font-black ${
-                                  isZero ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-emerald-600'
-                                }`}>
-                                  {prod.stock} units
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setThresholdTarget(prod);
-                                    setThresholdVal(threshold);
-                                  }}
-                                  className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold text-[11px] hover:bg-slate-200"
-                                  title="Click to edit low stock alert threshold"
-                                >
-                                  ≤ {threshold} units
-                                </button>
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                  isZero 
-                                    ? 'bg-red-100 text-red-800' 
-                                    : isLow 
-                                    ? 'bg-amber-100 text-amber-800' 
-                                    : 'bg-emerald-100 text-emerald-800'
-                                }`}>
-                                  {isZero ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'IN STOCK'}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center space-x-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRestockTarget(prod);
-                                    setRestockQty(50);
-                                  }}
-                                  className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg font-extrabold text-[11px] shadow-sm inline-flex items-center gap-1"
-                                >
-                                  <Plus className="w-3 h-3" /> Restock
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setAdjustTarget(prod);
-                                    setAdjustCount(prod.stock);
-                                  }}
-                                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-[11px] inline-flex items-center gap-1"
-                                >
-                                  <SlidersHorizontal className="w-3 h-3" /> Audit Count
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Stock Movement Audit Log Trail */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                        <History className="w-4 h-4 text-brand-900 dark:text-amber-400" />
-                        Inventory Movement & Audit Trail
-                      </h3>
-                      <p className="text-[11px] text-slate-400">Complete immutable record of restocks, order deductions, and count adjustments</p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs">
-                      {['ALL', 'STOCK_ADDED', 'ORDER_DEDUCTION', 'ORDER_CANCELLATION_RESTOCK', 'MANUAL_ADJUSTMENT'].map(type => (
-                        <button
-                          key={type}
-                          onClick={() => setLogFilterType(type)}
-                          className={`px-2.5 py-1 rounded-lg font-bold text-[10px] border transition-colors ${
-                            logFilterType === type
-                              ? 'bg-brand-900 text-white border-brand-900'
-                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          {type === 'ALL' ? 'All Types' : type.replace(/_/g, ' ')}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 uppercase font-extrabold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th className="py-2.5 px-4">Date / Time</th>
-                          <th className="py-2.5 px-4">SKU & Product</th>
-                          <th className="py-2.5 px-4">Change Type</th>
-                          <th className="py-2.5 px-4 text-center">Movement</th>
-                          <th className="py-2.5 px-4 text-center">Previous &gt; New</th>
-                          <th className="py-2.5 px-4">Reason / Notes</th>
-                          <th className="py-2.5 px-4">Performed By</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {filteredLogs.map((log, i) => (
-                          <tr key={log._id || i} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40">
-                            <td className="py-2.5 px-4 text-slate-500 text-[11px]">
-                              {new Date(log.createdAt).toLocaleString()}
-                            </td>
-                            <td className="py-2.5 px-4">
-                              <strong className="block text-slate-900 dark:text-white truncate max-w-xs">{log.productName}</strong>
-                              <span className="font-mono text-[10px] text-slate-400">{log.sku}</span>
-                            </td>
-                            <td className="py-2.5 px-4">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                                log.changeType === 'STOCK_ADDED'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : log.changeType === 'ORDER_DEDUCTION'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : log.changeType === 'ORDER_CANCELLATION_RESTOCK'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {log.changeType.replace(/_/g, ' ')}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 text-center font-bold">
-                              <span className={log.quantityChange >= 0 ? 'text-emerald-600' : 'text-red-600'}>
-                                {log.quantityChange >= 0 ? `+${log.quantityChange}` : log.quantityChange}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 text-center font-mono text-[11px]">
-                              {log.previousStock} &rarr; <strong>{log.newStock}</strong>
-                            </td>
-                            <td className="py-2.5 px-4 text-slate-600 text-[11px] truncate max-w-xs">{log.reason}</td>
-                            <td className="py-2.5 px-4 text-slate-500 text-[11px]">{log.adminName || log.performedBy}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
             {/* ================= TAB 3: PRODUCTS MASTER ================= */}
             {activeTab === 'products' && (
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
@@ -1635,7 +1245,7 @@ export const AdminDashboard = () => {
                         setEditingProduct(null);
                         setProdForm({
                           name: '', brand: brands[0]?.name || 'Amul', category: categories[0]?.name || 'Food & Beverages',
-                          sku: '', hsn: '19053100', price: 1200, mrp: 1400, stock: 100, lowStockThreshold: 20,
+                          sku: '', hsn: '19053100', price: 1200, stock: 100, lowStockThreshold: 20,
                           packSize: '1 Unit', bundleSize: '5 Units', caseSize: '10 Units',
                           isFeatured: true, isNew: true, status: 'Published',
                           image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
@@ -1657,7 +1267,6 @@ export const AdminDashboard = () => {
                         <th className="py-3 px-4">Product & SKU</th>
                         <th className="py-3 px-4">Brand</th>
                         <th className="py-3 px-4">Pack Info</th>
-                        <th className="py-3 px-4 text-center">Stock</th>
                         <th className="py-3 px-4 text-center">Badges</th>
                         <th className="py-3 px-4 text-center">Status</th>
                         <th className="py-3 px-4 text-center">Actions</th>
@@ -1679,11 +1288,6 @@ export const AdminDashboard = () => {
                           <td className="py-3 px-4 text-[10px] text-slate-500">
                             <div>Pack: <strong>{prod.packSize || '1 Unit'}</strong></div>
                             <div>Case: <strong>{prod.caseSize || '10 Units'}</strong></div>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${prod.stock > (prod.lowStockThreshold || 20) ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                              {prod.stock} units
-                            </span>
                           </td>
                           <td className="py-3 px-4 text-center space-x-1">
                             <button
@@ -2099,7 +1703,7 @@ export const AdminDashboard = () => {
                   <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <div>
                       <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Product Catalogue Master</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">All {products.length} SKUs with packaging & tax slabs</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">All {products.length} SKUs with packaging details</p>
                     </div>
                     <button
                       onClick={() => exportProductsCSV(products)}
@@ -3088,39 +2692,7 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Warehouse Inventory & Alert Thresholds */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                      Current Stock Count (Units) *
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      required
-                      value={prodForm.stock}
-                      onChange={(e) => setProdForm({ ...prodForm, stock: Math.max(0, Number(e.target.value)) })}
-                      placeholder="e.g. 250"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                      Low Stock Alert Threshold *
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={prodForm.lowStockThreshold}
-                      onChange={(e) => setProdForm({ ...prodForm, lowStockThreshold: Math.max(1, Number(e.target.value)) })}
-                      placeholder="e.g. 25"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-amber-600 dark:text-amber-400"
-                    />
-                  </div>
-                </div>
-
-                {/* 4. Product Photos (Max 3 Photos, Cloudinary CDN Storage, Max 2MB per Photo) */}
+                {/* 3. Product Photos (Max 3 Photos, Cloudinary CDN Storage, Max 2MB per Photo) */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">

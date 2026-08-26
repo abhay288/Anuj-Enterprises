@@ -19,7 +19,7 @@ export const ProductCardSkeleton = () => (
 );
 
 const ProductListItem = ({ product }) => {
-  const { addToCart, navigateTo } = useApp();
+  const { addToCart, navigateTo, t } = useApp();
   const [quantity, setQuantity] = useState(1);
 
   const handleQtyInput = (e) => {
@@ -47,7 +47,7 @@ const ProductListItem = ({ product }) => {
           <span className="text-xs text-slate-400 font-mono">HSN: {product.hsn || '19053100'}</span>
           {product.isNew && (
             <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded bg-amber-400 text-slate-950">
-              NEW ARRIVAL
+              {t('new_arrival', 'NEW ARRIVAL')}
             </span>
           )}
           {product.isFeatured && (
@@ -71,7 +71,6 @@ const ProductListItem = ({ product }) => {
           {product.packSize && <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Pack: <strong>{product.packSize}</strong></span>}
           {product.bundleSize && <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Bundle: <strong>{product.bundleSize}</strong></span>}
           {product.caseSize && <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">Case: {product.caseSize}</span>}
-          <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">Stock: {product.stock} units</span>
         </div>
       </div>
 
@@ -129,7 +128,6 @@ export const ProductGrid = () => {
     selectedCategoryFilter && selectedCategoryFilter !== 'All' ? [selectedCategoryFilter] : ['All']
   );
   const [selectedBrands, setSelectedBrands] = useState(['All']);
-  const [stockOnly, setStockOnly] = useState(false);
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [newOnly, setNewOnly] = useState(false);
   const [bulkOnly, setBulkOnly] = useState(false);
@@ -140,7 +138,7 @@ export const ProductGrid = () => {
   useEffect(() => {
     updatePageSEO({
       title: 'B2B Product Catalogue & Sourcing Directory',
-      description: 'Explore verified FMCG wholesale catalog at Anuj Enterprises. Direct manufacturer supplies for Amul, Nestle, Britannia, Dabur, ITC, and more with GST tax invoices.'
+      description: 'Explore verified FMCG wholesale catalog at Anuj Enterprises. Direct manufacturer supplies for Amul, Nestle, Britannia, Dabur, ITC, and more with official invoices.'
     });
   }, []);
 
@@ -158,7 +156,6 @@ export const ProductGrid = () => {
     setSelectedCategories(['All']);
     setSelectedCategoryFilter('All');
     setSelectedBrands(['All']);
-    setStockOnly(false);
     setFeaturedOnly(false);
     setNewOnly(false);
     setBulkOnly(false);
@@ -177,8 +174,6 @@ export const ProductGrid = () => {
       if (selectedBrands.length > 0 && !selectedBrands.includes('All')) {
         if (!selectedBrands.includes(p.brand)) return false;
       }
-      // Stock availability check
-      if (stockOnly && p.stock <= 0) return false;
       // Featured check
       if (featuredOnly && !p.isFeatured) return false;
       // New Arrival check
@@ -215,7 +210,7 @@ export const ProductGrid = () => {
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
-  }, [products, selectedCategories, selectedBrands, stockOnly, featuredOnly, newOnly, bulkOnly, searchQuery, sortBy]);
+  }, [products, selectedCategories, selectedBrands, featuredOnly, newOnly, bulkOnly, searchQuery, sortBy]);
 
   return (
     <div className="py-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
@@ -233,7 +228,7 @@ export const ProductGrid = () => {
               B2B Enterprise Catalogue & Sourcing
             </h1>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Displaying {filteredProducts.length} verified products with direct manufacturer supply & tax invoices.
+              Displaying {filteredProducts.length} verified products with direct manufacturer supply & official invoices.
             </p>
           </div>
 
@@ -287,8 +282,6 @@ export const ProductGrid = () => {
           setSelectedCategories={setSelectedCategories}
           selectedBrands={selectedBrands}
           setSelectedBrands={setSelectedBrands}
-          stockOnly={stockOnly}
-          setStockOnly={setStockOnly}
           featuredOnly={featuredOnly}
           setFeaturedOnly={setFeaturedOnly}
           newOnly={newOnly}
@@ -343,8 +336,6 @@ export const ProductGrid = () => {
         setSelectedCategories={setSelectedCategories}
         selectedBrands={selectedBrands}
         setSelectedBrands={setSelectedBrands}
-        stockOnly={stockOnly}
-        setStockOnly={setStockOnly}
         featuredOnly={featuredOnly}
         setFeaturedOnly={setFeaturedOnly}
         newOnly={newOnly}

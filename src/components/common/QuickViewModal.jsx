@@ -4,7 +4,7 @@ import { X, ShoppingCart, Star, ArrowRight, Check, Box, Sparkles, Building2, Pac
 import { useApp } from '../../context/AppContext';
 
 export const QuickViewModal = () => {
-  const { isQuickViewOpen, quickViewProduct, closeQuickView, addToCart, navigateTo } = useApp();
+  const { isQuickViewOpen, quickViewProduct, closeQuickView, addToCart, navigateTo, t } = useApp();
   const [qty, setQty] = useState(1);
 
   if (!isQuickViewOpen || !quickViewProduct) return null;
@@ -166,7 +166,7 @@ export const QuickViewModal = () => {
                   }}
                   className="flex-1 py-3 px-4 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white font-extrabold text-xs rounded-xl shadow flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
                 >
-                  <ShoppingCart className="w-4 h-4" /> Add to Order Cart
+                  <ShoppingCart className="w-4 h-4" /> {t('add_to_cart', 'Add to Order Cart')}
                 </button>
               </div>
 
@@ -178,7 +178,7 @@ export const QuickViewModal = () => {
                 }}
                 className="w-full py-1.5 text-xs font-bold text-brand-900 dark:text-amber-400 hover:underline flex items-center justify-center gap-1"
               >
-                <span>View Full Product Specifications & Margin Table</span>
+                <span>{t('view_details', 'View Full Specifications')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

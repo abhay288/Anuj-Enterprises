@@ -330,7 +330,6 @@ export const SalesmanDashboard = () => {
           {[
             { id: 'orders', label: `My Order History (${myOrders.length})`, icon: FileText },
             { id: 'customers', label: `Customer Directory (${myCustomers.length})`, icon: Users },
-            { id: 'leaderboard', label: 'Sales Leaderboard', icon: Trophy },
             { id: 'analytics', label: 'Performance Metrics', icon: TrendingUp }
           ].map(tab => {
             const Icon = tab.icon;
@@ -575,123 +574,7 @@ export const SalesmanDashboard = () => {
           </div>
         )}
 
-        {/* ================= TAB 3: SALES FORCE LEADERBOARD ================= */}
-        {activeTab === 'leaderboard' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-500" />
-                    Sales Force Leaderboard & Territory Rankings
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Live territory dispatches ranked by total volume units dispatches & active retailer bookings.
-                  </p>
-                </div>
-                <div className="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-xs font-black flex items-center gap-1.5 self-start sm:self-auto">
-                  <Crown className="w-4 h-4 text-amber-500" />
-                  <span>{salesmanLeaderboard.length} Active Representatives</span>
-                </div>
-              </div>
-
-              {/* Leaderboard Table / Rankings List */}
-              <div className="space-y-3">
-                {salesmanLeaderboard.map((s, idx) => {
-                  const maxUnits = Math.max(...salesmanLeaderboard.map(rep => rep.totalQuantity), 1);
-                  const pct = Math.round((s.totalQuantity / maxUnits) * 100);
-                  const isTop = idx === 0 && s.totalQuantity > 0;
-                  const isMe = s.id.toUpperCase() === activeSalesmanId;
-
-                  return (
-                    <div
-                      key={s.id}
-                      className={`p-4 rounded-2xl border transition-all ${
-                        isMe
-                          ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 shadow-sm'
-                          : isTop
-                          ? 'bg-amber-500/5 border-amber-500/30'
-                          : 'bg-slate-50/70 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span
-                            className={`w-8 h-8 rounded-2xl flex items-center justify-center text-xs font-black shrink-0 shadow-sm ${
-                              idx === 0
-                                ? 'bg-amber-500 text-slate-950 font-black ring-2 ring-amber-400/50'
-                                : idx === 1
-                                ? 'bg-slate-300 text-slate-900 font-black'
-                                : idx === 2
-                                ? 'bg-amber-800 text-white font-black'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                            }`}
-                          >
-                            {idx === 0 ? '👑 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `#${idx + 1}`}
-                          </span>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
-                                {s.name}
-                              </h4>
-                              {isMe && (
-                                <span className="px-2 py-0.5 bg-brand-950 text-white font-black text-[9px] uppercase rounded-full tracking-wider">
-                                  You
-                                </span>
-                              )}
-                              {isTop && (
-                                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[9px] uppercase rounded-full flex items-center gap-1 shadow-sm">
-                                  <Crown className="w-3 h-3 fill-slate-950" /> Top Performer
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
-                              Territory: <strong>{s.region}</strong> • Rep ID: <span className="font-mono">{s.id}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-right shrink-0 self-end sm:self-auto">
-                          <div>
-                            <span className="text-xs font-black text-slate-900 dark:text-white block">
-                              {s.ordersCount} Bookings
-                            </span>
-                            <span className="text-[10px] text-slate-400">Total Orders</span>
-                          </div>
-                          <div className="pl-3 border-l border-slate-200 dark:border-slate-800">
-                            <span className="text-sm font-black text-brand-900 dark:text-amber-400 block">
-                              {s.totalQuantity.toLocaleString()} Units
-                            </span>
-                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                              Dispatched Volume
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Visual Relative Volume Progress Bar */}
-                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isMe
-                              ? 'bg-gradient-to-r from-amber-500 to-emerald-500'
-                              : isTop
-                              ? 'bg-amber-500'
-                              : 'bg-brand-600 dark:bg-brand-500'
-                          }`}
-                          style={{ width: `${Math.max(pct, s.totalQuantity > 0 ? 6 : 0)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 4: REAL PERFORMANCE ANALYTICS ================= */}
+        {/* ================= TAB 3: REAL PERFORMANCE ANALYTICS ================= */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -715,55 +598,6 @@ export const SalesmanDashboard = () => {
                   <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Registered Customers</span>
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">{myCustomers.length} Retailers</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Embedded Sales Force Leaderboard */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-500" />
-                  Territory Sales Force Leaderboard
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('leaderboard')}
-                  className="text-xs font-extrabold text-brand-900 dark:text-amber-400 hover:underline"
-                >
-                  View Full Standings →
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {salesmanLeaderboard.slice(0, 5).map((s, idx) => {
-                  const isTop = idx === 0 && s.totalQuantity > 0;
-                  const isMe = s.id.toUpperCase() === activeSalesmanId;
-
-                  return (
-                    <div
-                      key={s.id}
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
-                        isMe
-                          ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 font-bold'
-                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 truncate pr-2">
-                        <span className="font-black text-amber-600 text-xs shrink-0 w-6">#{idx + 1}</span>
-                        <div className="truncate">
-                          <strong className="text-slate-900 dark:text-white block truncate">
-                            {s.name} {isMe && '(You)'}
-                          </strong>
-                          <span className="text-[10px] text-slate-400 block truncate">{s.region}</span>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <strong className="text-slate-900 dark:text-white block">{s.totalQuantity.toLocaleString()} Units</strong>
-                        <span className="text-[10px] text-slate-400">{s.ordersCount} Orders</span>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>

@@ -26,7 +26,8 @@ export const CartView = () => {
     setIsSalesmanModalOpen,
     checkoutOrder,
     selectedCustomerForOrder,
-    showToast
+    showToast,
+    t
   } = useApp();
 
   // Customer Entry Flow Modes: 'quick' | 'full'
@@ -206,18 +207,18 @@ export const CartView = () => {
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
               <button onClick={() => navigateTo('catalogue')} className="hover:underline flex items-center gap-1 font-bold">
-                <ArrowLeft className="w-3.5 h-3.5" /> Continue Shopping
+                <ArrowLeft className="w-3.5 h-3.5" /> {t('back_to_products', 'Continue Shopping')}
               </button>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Salesman Order Cart & Offline Checkout
+              {t('cart_title', 'Salesman Order Cart & Offline Checkout')}
             </h1>
           </div>
           <button
             onClick={clearCart}
             className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Clear Cart
+            <Trash2 className="w-3.5 h-3.5" /> {t('clear_filters', 'Clear Cart')}
           </button>
         </div>
 
@@ -548,7 +549,7 @@ export const CartView = () => {
                 {/* Salesman Representative & Territory Route Entry Section */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
-                    Sales Representative & Territory Route Details (Appears on Tax Invoice)
+                    Sales Representative & Territory Route Details (Appears on Invoice)
                   </span>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

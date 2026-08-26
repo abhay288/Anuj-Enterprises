@@ -157,7 +157,7 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g. GST, Expiry, Credit, Kanpur..."
+                  placeholder="e.g. Invoicing, Expiry, Credit, Kanpur..."
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:border-amber-500"
                 />
               </div>

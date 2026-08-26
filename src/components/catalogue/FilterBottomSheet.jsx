@@ -10,8 +10,6 @@ export const FilterBottomSheet = ({
   setSelectedCategories,
   selectedBrands = ['All'],
   setSelectedBrands,
-  stockOnly,
-  setStockOnly,
   featuredOnly,
   setFeaturedOnly,
   newOnly,
@@ -126,21 +124,9 @@ export const FilterBottomSheet = ({
             {/* Quick Sourcing Toggles */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
-                Stock & Availability Flags
+                Availability Flags
               </label>
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStockOnly(!stockOnly)}
-                  className={`p-2.5 rounded-xl font-bold text-xs border text-left flex items-center justify-between transition-colors ${
-                    stockOnly
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  <span>In Stock Only</span>
-                  {stockOnly && <Check className="w-3.5 h-3.5 text-white" />}
-                </button>
 
                 <button
                   type="button"

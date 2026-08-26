@@ -69,12 +69,10 @@ export const exportProductsCSV = (products) => {
     name: 'Product Name / Title',
     brand: 'Manufacturer / Brand',
     category: 'Category',
-    stock: 'Current Warehouse Stock (Units)',
-    lowStockThreshold: 'Low Stock Alert Level',
     packSize: 'Consumer Unit Pack Size',
     bundleSize: 'Inner Bundle Size',
     caseSize: 'Master Case Packaging Size',
-    hsn: 'HSN Tax Code',
+    hsn: 'HSN Code',
     status: 'Catalog Status'
   };
   downloadExcel('Anuj_Enterprises_Product_Catalog', products, headers, 'Product Catalog');

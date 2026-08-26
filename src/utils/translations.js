@@ -1,0 +1,170 @@
+export const translations = {
+  en: {
+    // Navigation & Header
+    nav_home: 'Home',
+    nav_products: 'Products',
+    nav_categories: 'Categories',
+    nav_cart: 'Cart',
+    nav_salesman: 'Salesman Login',
+    nav_admin: 'Admin Panel',
+    nav_support: 'Support',
+    nav_about: 'About Us',
+    nav_contact: 'Contact',
+    search_placeholder: 'Search FMCG products, brands, SKUs...',
+    all_categories: 'All Categories',
+    
+    // Actions & Buttons
+    add_to_cart: 'Add to Cart',
+    buy_now: 'Order Now',
+    quick_view: 'Quick View',
+    view_details: 'View Details',
+    clear_filters: 'Reset Filters',
+    apply_filters: 'Apply Filters',
+    filter_by: 'Filter By',
+    search: 'Search',
+    submit: 'Submit',
+    cancel: 'Cancel',
+    save: 'Save',
+    edit: 'Edit',
+    delete: 'Delete',
+    download_invoice: 'Download Invoice',
+    proceed_to_checkout: 'Proceed to Order Checkout',
+    place_order: 'Confirm & Book Wholesale Order',
+    back_to_products: '← Back to Product Catalogue',
+
+    // Product Specifications
+    b2b_price: 'Wholesale Price',
+    pack_size: 'Unit Pack Size',
+    case_size: 'Master Case Size',
+    bundle_size: 'Inner Bundle Size',
+    hsn_code: 'HSN Code',
+    sku_code: 'SKU Code',
+    brand: 'Brand',
+    category: 'Category',
+    quantity: 'Quantity (Cases / Units)',
+    subtotal: 'Subtotal Amount',
+    total_amount: 'Total Payable Amount',
+
+    // Status Badges & Alerts
+    featured: 'Featured',
+    new_arrival: 'New Item',
+    in_stock: 'Available in Stock',
+    verified_wholesaler: 'Verified FMCG Distributor',
+
+    // Cart & Checkout
+    cart_title: 'Wholesale Purchase Cart',
+    empty_cart: 'Your cart is empty',
+    empty_cart_msg: 'Browse our wholesale FMCG catalogue to add products to your cart.',
+    cart_summary: 'Order Summary',
+    select_customer: 'Select Registered Retailer / Customer',
+    enter_custom_customer: 'Or Enter Retail Store Details',
+    retailer_name: 'Retail Store Name *',
+    retailer_phone: 'Contact Phone Number *',
+    retailer_address: 'Delivery Address *',
+    gstin: 'ID (Optional)',
+
+    // Salesman & Admin Portal
+    salesman_dashboard: 'Sales Executive Dashboard',
+    admin_dashboard: 'Executive Admin Dashboard',
+    order_history: 'Order History',
+    customer_directory: 'Customer Directory',
+    performance_metrics: 'Performance Metrics',
+    products_master: 'Products Master',
+    company_roster: 'Company Roster',
+    logout: 'Logout',
+    rep_id: 'Representative ID',
+    login_title: 'B2B Sales Representative Access',
+    enter_rep_id: 'Enter Sales Rep ID (e.g. REP-101)',
+    login: 'Login to Portal',
+
+    // Footer & Common
+    footer_tagline: 'India\'s Leading Wholesale FMCG Supply Partner',
+    copyright: 'All Rights Reserved. Anuj Enterprises.',
+    support_helpline: 'Wholesale Support Helpline',
+    gst_registered: 'FMCG Business'
+  },
+  hi: {
+    // Navigation & Header
+    nav_home: 'होम',
+    nav_products: 'प्रोडक्ट्स',
+    nav_categories: 'कैटेगरीज',
+    nav_cart: 'कार्ट',
+    nav_salesman: 'सेल्समैन लॉगिन',
+    nav_admin: 'एडमिन पैनल',
+    nav_support: 'सहायता',
+    nav_about: 'हमारे बारे में',
+    nav_contact: 'संपर्क करें',
+    search_placeholder: 'FMCG प्रोडक्ट्स, ब्रांड्स सर्च करें...',
+    all_categories: 'सभी कैटेगरीज',
+
+    // Actions & Buttons
+    add_to_cart: 'कार्ट में जोड़ें',
+    buy_now: 'ऑर्डर करें',
+    quick_view: 'क्विक व्यू',
+    view_details: 'डिटेल्स देखें',
+    clear_filters: 'फ़िल्टर हटाएं',
+    apply_filters: 'फ़िल्टर लागू करें',
+    filter_by: 'फ़िल्टर करें',
+    search: 'सर्च करें',
+    submit: 'सबमिट करें',
+    cancel: 'रद्द करें',
+    save: 'सेव करें',
+    edit: 'एडिट करें',
+    delete: 'हटाएं',
+    download_invoice: 'इनवॉइस डाउनलोड करें',
+    proceed_to_checkout: 'ऑर्डर चेकआउट करें',
+    place_order: 'होलसेल ऑर्डर पक्का करें',
+    back_to_products: '← प्रोडक्ट्स लिस्ट पर वापस जाएं',
+
+    // Product Specifications
+    b2b_price: 'होलसेल रेट',
+    pack_size: 'पैक साइज़',
+    case_size: 'मास्टर केस साइज़',
+    bundle_size: 'बंडल साइज़',
+    hsn_code: 'HSN कोड',
+    sku_code: 'SKU कोड',
+    brand: 'ब्रांड',
+    category: 'कैटेगरी',
+    quantity: 'मात्रा (केस / यूनिट्स)',
+    subtotal: 'कुल कीमत',
+    total_amount: 'कुल भुगतान राशि',
+
+    // Status Badges & Alerts
+    featured: 'बेस्ट सेलर',
+    new_arrival: 'नया प्रोडक्ट',
+    in_stock: 'स्टॉक में उपलब्ध',
+    verified_wholesaler: 'प्रमाणित FMCG डिस्ट्रीब्यूटर',
+
+    // Cart & Checkout
+    cart_title: 'आपकी होलसेल कार्ट',
+    empty_cart: 'आपकी कार्ट खाली है',
+    empty_cart_msg: 'कार्ट में जोड़ने के लिए प्रोडक्ट्स लिस्ट देखें।',
+    cart_summary: 'ऑर्डर विवरण',
+    select_customer: 'दुकानदार / ग्राहक चुनें',
+    enter_custom_customer: 'या नए दुकानदार की जानकारी भरें',
+    retailer_name: 'दुकान / स्टोर का नाम *',
+    retailer_phone: 'मोबाइल नंबर *',
+    retailer_address: 'डिलीवरी का पता *',
+    gstin: 'टैक्स आईडी (ऐच्छिक)',
+
+    // Salesman & Admin Portal
+    salesman_dashboard: 'सेल्समैन डैशबोर्ड',
+    admin_dashboard: 'एडमिन डैशबोर्ड',
+    order_history: 'ऑर्डर हिस्ट्री',
+    customer_directory: 'दुकानदार लिस्ट',
+    performance_metrics: 'परफॉरमेंस रिपोर्ट',
+    products_master: 'प्रोडक्ट्स लिस्ट',
+    company_roster: 'सेल्समैन लिस्ट',
+    logout: 'लॉगआउट',
+    rep_id: 'सेल्समैन आईडी',
+    login_title: 'सेल्समैन लॉगिन',
+    enter_rep_id: 'अपनी सेल्समैन आईडी दर्ज करें (जैसे REP-101)',
+    login: 'लॉगिन करें',
+
+    // Footer & Common
+    footer_tagline: 'भारत का भरोसेमंद FMCG होलसेल सप्लायर',
+    copyright: 'सर्वाधिकार सुरक्षित। अनुज एंटरप्राइजेज।',
+    support_helpline: 'होलसेल हेल्प लाइन',
+    gst_registered: 'FMCG बिज़नेस'
+  }
+};

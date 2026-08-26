@@ -293,12 +293,12 @@ export const BulkCsvModal = ({ isOpen, onClose }) => {
   // Download Sample CSV
   const downloadSampleCsv = () => {
     const csvContent = 
-`Product Name,Brand,Category,SKU,Unit Pack Size,Inner Bundle Size,Master Case Size,Stock Count,Low Stock Threshold,Image 1,Image 2,Image 3,Description,Featured,New,Status
-Amul Taaza Homogenised Toned Milk 1L Tetra Pak,Amul,Food & Beverages,AML-TAZ-1L-12,1 Litre Tetra,6 Packs,12 Units / Case,250,20,amul_taaza_1.jpg,amul_taaza_2.jpg,amul_taaza_3.jpg,High-margin UHT treated toned milk pack with 180-day ambient shelf life.,true,false,Published
-Nestlé Koko Krunch Chocolate Whole Grain Cereal 500g,Nestlé,Food & Beverages,NST-KKR-500G-12,500g Box,6 Boxes,12 Boxes / Carton,120,15,koko_krunch_1.jpg,koko_krunch_2.jpg,,Crunchy whole grain chocolate wheat curl cereal loaded with vitamins.,true,true,Published
-Coca-Cola Original Taste Carbonated Soft Drink 750ml,Coca-Cola,Food & Beverages,KO-KO-750ML-24,750ml PET,6 Bottles,24 Bottles Shrink Crate,400,30,coca_cola_1.jpg,coca_cola_2.jpg,,Classic refreshing carbonated cola beverage with authentic taste formulation.,false,true,Published
-Bisleri Packaged Natural Mountain Water 1L Bottle,Bisleri,Food & Beverages,BSL-WTR-1L-24,1 Litre Bottle,12 Bottles,24 Bottles Crate,800,50,bisleri_1.jpg,,,Pure ozonated packaged drinking water with added essential minerals.,true,false,Published
-Dove Cream Beauty Bathing Soap 125g,Hindustan Unilever,Personal Care,HUL-DOV-125G-36,125g Bar,6 Bars,36 Bars Master Pack,180,25,dove_soap_1.jpg,dove_soap_2.jpg,,Moisturizing cream beauty bathing bar with 1/4th moisturizing milk.,true,false,Published`;
+`Product Name,Brand,Category,SKU,Unit Pack Size,Inner Bundle Size,Master Case Size,Image 1,Image 2,Image 3,Description,Featured,New,Status
+Amul Taaza Homogenised Toned Milk 1L Tetra Pak,Amul,Food & Beverages,AML-TAZ-1L-12,1 Litre Tetra,6 Packs,12 Units / Case,amul_taaza_1.jpg,amul_taaza_2.jpg,amul_taaza_3.jpg,High-margin UHT treated toned milk pack with 180-day ambient shelf life.,true,false,Published
+Nestlé Koko Krunch Chocolate Whole Grain Cereal 500g,Nestlé,Food & Beverages,NST-KKR-500G-12,500g Box,6 Boxes,12 Boxes / Carton,koko_krunch_1.jpg,koko_krunch_2.jpg,,Crunchy whole grain chocolate wheat curl cereal loaded with vitamins.,true,true,Published
+Coca-Cola Original Taste Carbonated Soft Drink 750ml,Coca-Cola,Food & Beverages,KO-KO-750ML-24,750ml PET,6 Bottles,24 Bottles Shrink Crate,coca_cola_1.jpg,coca_cola_2.jpg,,Classic refreshing carbonated cola beverage with authentic taste formulation.,false,true,Published
+Bisleri Packaged Natural Mountain Water 1L Bottle,Bisleri,Food & Beverages,BSL-WTR-1L-24,1 Litre Bottle,12 Bottles,24 Bottles Crate,bisleri_1.jpg,,,Pure ozonated packaged drinking water with added essential minerals.,true,false,Published
+Dove Cream Beauty Bathing Soap 125g,Hindustan Unilever,Personal Care,HUL-DOV-125G-36,125g Bar,6 Bars,36 Bars Master Pack,dove_soap_1.jpg,dove_soap_2.jpg,,Moisturizing cream beauty bathing bar with 1/4th moisturizing milk.,true,false,Published`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -974,7 +974,6 @@ Dove Cream Beauty Bathing Soap 125g,Hindustan Unilever,Personal Care,HUL-DOV-125
                               <th className="p-2.5">Brand</th>
                               <th className="p-2.5">SKU</th>
                               <th className="p-2.5">Packaging</th>
-                              <th className="p-2.5 text-center">Stock</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
@@ -996,7 +995,6 @@ Dove Cream Beauty Bathing Soap 125g,Hindustan Unilever,Personal Care,HUL-DOV-125
                                 <td className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">{item.brand}</td>
                                 <td className="p-2.5 font-mono font-bold text-slate-500">{item.sku}</td>
                                 <td className="p-2.5 text-slate-500 font-mono text-[10px]">{item.packSize} • {item.caseSize}</td>
-                                <td className="p-2.5 text-center font-extrabold text-emerald-600 font-mono">{item.stock}</td>
                               </tr>
                             ))}
                           </tbody>

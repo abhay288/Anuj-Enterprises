@@ -12,7 +12,8 @@ export const BottomNav = () => {
     user, 
     cartTotalQty, 
     setIsSalesmanModalOpen, 
-    setIsMobileFilterOpen 
+    setIsMobileFilterOpen,
+    t
   } = useApp();
 
   // Role-Aware Navigation Tabs (Requirement 2)
@@ -20,32 +21,32 @@ export const BottomNav = () => {
     // SALESMAN TABS: Home, Products, Orders, Invoices, Profile
     if (user.role === 'salesman') {
       return [
-        { id: 'home', label: 'Home', icon: Home, action: () => navigateTo('home'), active: view === 'home' },
-        { id: 'catalogue', label: 'Products', icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
-        { id: 'orders', label: 'Orders', icon: ShoppingBag, action: () => navigateTo('salesman-dash'), active: view === 'salesman-dash' },
-        { id: 'invoices', label: 'Invoices', icon: FileText, action: () => navigateTo('salesman-dash'), active: false },
-        { id: 'profile', label: 'Profile', icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+        { id: 'home', label: t('nav_home', 'Home'), icon: Home, action: () => navigateTo('home'), active: view === 'home' },
+        { id: 'catalogue', label: t('nav_products', 'Products'), icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
+        { id: 'orders', label: t('order_history', 'Orders'), icon: ShoppingBag, action: () => navigateTo('salesman-dash'), active: view === 'salesman-dash' },
+        { id: 'invoices', label: t('download_invoice', 'Invoices'), icon: FileText, action: () => navigateTo('salesman-dash'), active: false },
+        { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
       ];
     }
 
     // ADMIN TABS: Dashboard, Orders, Products, Brands, Profile
     if (user.role === 'admin') {
       return [
-        { id: 'admin-dash', label: 'Dashboard', icon: LayoutDashboard, action: () => navigateTo('admin-dash'), active: view === 'admin-dash' },
-        { id: 'orders', label: 'Orders', icon: FileText, action: () => navigateTo('admin-dash'), active: false },
-        { id: 'products', label: 'Products', icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
-        { id: 'brands', label: 'Brands', icon: Layers, action: () => navigateTo('admin-dash'), active: false },
-        { id: 'profile', label: 'Profile', icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+        { id: 'admin-dash', label: t('nav_admin', 'Dashboard'), icon: LayoutDashboard, action: () => navigateTo('admin-dash'), active: view === 'admin-dash' },
+        { id: 'orders', label: t('order_history', 'Orders'), icon: FileText, action: () => navigateTo('admin-dash'), active: false },
+        { id: 'products', label: t('nav_products', 'Products'), icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
+        { id: 'brands', label: t('brands', 'Brands'), icon: Layers, action: () => navigateTo('admin-dash'), active: false },
+        { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
       ];
     }
 
     // NORMAL USER / GUEST TABS: Home, Categories, Search, Cart, Profile
     return [
-      { id: 'home', label: 'Home', icon: Home, action: () => navigateTo('home'), active: view === 'home' },
-      { id: 'categories', label: 'Categories', icon: Grid, action: () => { navigateTo('catalogue'); setIsMobileFilterOpen(true); }, active: view === 'catalogue' },
-      { id: 'search', label: 'Search', icon: Search, action: () => navigateTo('catalogue'), active: false },
-      { id: 'cart', label: 'Cart', icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
-      { id: 'profile', label: 'Profile', icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+      { id: 'home', label: t('nav_home', 'Home'), icon: Home, action: () => navigateTo('home'), active: view === 'home' },
+      { id: 'categories', label: t('nav_categories', 'Categories'), icon: Grid, action: () => { navigateTo('catalogue'); setIsMobileFilterOpen(true); }, active: view === 'catalogue' },
+      { id: 'search', label: t('search', 'Search'), icon: Search, action: () => navigateTo('catalogue'), active: false },
+      { id: 'cart', label: t('nav_cart', 'Cart'), icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
+      { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
     ];
   };
 

@@ -20,10 +20,28 @@ import { inventoryService } from '../services/inventoryService';
 import { generateProductSlug, findProductBySlugOrId } from '../utils/slugUtils';
 import { checkUnwantedContent } from '../utils/securityUtils';
 import { updatePageSEO } from '../utils/seoUtils';
+import { translations } from '../utils/translations';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('anuj_language') || 'en';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('anuj_language', language);
+  }, [language]);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage(prev => (prev === 'en' ? 'hi' : 'en'));
+  }, []);
+
+  const t = useCallback((key, fallback) => {
+    const langDict = translations[language] || translations.en;
+    return langDict[key] || fallback || key;
+  }, [language]);
+
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('anuj_products_v3');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
@@ -69,16 +87,6 @@ export const AppProvider = ({ children }) => {
         targetRole: 'ALL',
         isRead: false,
         time: '10m ago'
-      },
-      {
-        id: 'notif-2',
-        type: 'LOW_STOCK',
-        title: 'Critical Stock Alert',
-        message: 'Amul Butter 500g is approaching minimum threshold (15 units remaining).',
-        targetRole: 'ADMIN',
-        isRead: false,
-        actionView: 'admin',
-        time: '1h ago'
       }
     ];
   });
@@ -944,13 +952,12 @@ export const AppProvider = ({ children }) => {
     });
 
     try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } catch (e) {}
-    showToast(`Order #${newInvoiceId} created successfully! Tax invoice generated.`, 'success');
+    showToast(`Order #${newInvoiceId} created successfully! Invoice generated.`, 'success');
   };
 
-  // Helper to ensure every newly added or edited product has a clean B2B Details Card (No GST, No FSSAI, No Tier pricing)
+  // Helper to ensure every newly added or edited product has a clean B2B Details Card (No FSSAI, No Tier pricing)
   const formatRichProductData = (prod) => {
     const price = Math.max(1, parseFloat(prod.price) || 500);
-    const mrp = prod.mrp ? Math.max(price, parseFloat(prod.mrp)) : Math.round(price * 1.15);
     const imgUrl = prod.image || (prod.images && prod.images[0]) || "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
     
     const imagesList = (prod.gallery && prod.gallery.length > 0)
@@ -963,11 +970,11 @@ export const AppProvider = ({ children }) => {
     const bundleSize = prod.bundleSize || "5 Units Inner Bundle";
     const caseSize = prod.caseSize || "10 Units / Master Case";
 
-    // Clean statutory specs to remove GST, FSSAI, and HSN as requested
+    // Clean statutory specs to remove FSSAI and HSN as requested
     let cleanSpecs = {};
     if (prod.specs && Object.keys(prod.specs).length > 0) {
       Object.entries(prod.specs).forEach(([k, v]) => {
-        if (!k.includes('GST') && !k.includes('FSSAI') && !k.includes('HSN')) {
+        if (!k.includes('FSSAI') && !k.includes('HSN')) {
           cleanSpecs[k] = v;
         }
       });
@@ -994,7 +1001,6 @@ export const AppProvider = ({ children }) => {
       category: prod.category || "Food & Beverages",
       sku: prod.sku || `SKU-${Date.now().toString().slice(-6)}`,
       price: Math.round(price),
-      mrp: Math.round(mrp),
       stock: prod.stock !== undefined ? parseInt(prod.stock, 10) : 100,
       lowStockThreshold: prod.lowStockThreshold || 20,
       minOrderQty: prod.minOrderQty || 1,
@@ -1450,16 +1456,9 @@ export const AppProvider = ({ children }) => {
     return cart.reduce((acc, item) => acc + (Number(item.unitPrice || item.price || 0) * (item.qty || 1)), 0);
   }, [cart]);
 
-  const cartGst = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      const gstRate = Number(item.gst || item.tax || 18) / 100;
-      return acc + (Number(item.unitPrice || item.price || 0) * (item.qty || 1) * gstRate);
-    }, 0);
-  }, [cart]);
-
   const cartGrandTotal = useMemo(() => {
-    return cartSubtotal + cartGst;
-  }, [cartSubtotal, cartGst]);
+    return cartSubtotal;
+  }, [cartSubtotal]);
 
   const cartTotalQty = useMemo(() => {
     return cart.reduce((acc, item) => acc + (item.qty || 1), 0);
@@ -1500,7 +1499,6 @@ export const AppProvider = ({ children }) => {
       selectedInvoice,
       isMobileFilterOpen,
       cartSubtotal,
-      cartGst,
       cartGrandTotal,
       cartTotalQty,
       setSearchQuery,
@@ -1548,6 +1546,10 @@ export const AppProvider = ({ children }) => {
       restockProduct,
       adjustProductStock,
       updateProductThreshold,
+      language,
+      setLanguage,
+      toggleLanguage,
+      t,
       showToast,
       headlineConfig,
       updateHeadlineConfig,

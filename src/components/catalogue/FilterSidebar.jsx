@@ -116,8 +116,6 @@ export const FilterSidebar = ({
   setSelectedCategories,
   selectedBrands = ['All'],
   setSelectedBrands,
-  stockOnly,
-  setStockOnly,
   featuredOnly,
   setFeaturedOnly,
   newOnly,
@@ -126,7 +124,7 @@ export const FilterSidebar = ({
   setBulkOnly,
   onReset
 }) => {
-  const { categories, brands, products, setIsMobileFilterOpen } = useApp();
+  const { categories, brands, products, setIsMobileFilterOpen, t } = useApp();
 
   const availableCategories = useMemo(() => {
     if (!selectedBrands || selectedBrands.length === 0 || selectedBrands.includes('All')) {
@@ -144,7 +142,6 @@ export const FilterSidebar = ({
   const activeCount = 
     (selectedBrands.includes('All') ? 0 : selectedBrands.length) +
     (selectedCategories.includes('All') ? 0 : selectedCategories.length) +
-    (stockOnly ? 1 : 0) +
     (featuredOnly ? 1 : 0) +
     (newOnly ? 1 : 0) +
     (bulkOnly ? 1 : 0);
@@ -177,13 +174,13 @@ export const FilterSidebar = ({
           <div className="flex items-center gap-2 pr-4 border-r border-slate-200 dark:border-slate-800 shrink-0">
             <Filter className="w-4 h-4 text-brand-900 dark:text-brand-400" />
             <h2 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-              Filters {activeCount > 0 && <span className="text-amber-500 font-bold">({activeCount})</span>}
+              {t('filter_by', 'Filters')} {activeCount > 0 && <span className="text-amber-500 font-bold">({activeCount})</span>}
             </h2>
           </div>
 
           {/* 1st Filter: Company / Brand */}
           <MultiSelectDropdown
-            label="Company / Brand"
+            label={t('brand', 'Company / Brand')}
             icon={Building2}
             allLabel={`All Companies (${brands.length})`}
             options={brands}
@@ -193,9 +190,9 @@ export const FilterSidebar = ({
 
           {/* 2nd Filter: Category */}
           <MultiSelectDropdown
-            label="Category Segment"
+            label={t('category', 'Category Segment')}
             icon={Package}
-            allLabel="All Categories"
+            allLabel={t('all_categories', 'All Categories')}
             options={availableCategories}
             selectedValues={selectedCategories}
             onChange={setSelectedCategories}
@@ -203,17 +200,6 @@ export const FilterSidebar = ({
 
           {/* Quick Filter Pill Buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-2 xl:pt-0">
-            <button
-              type="button"
-              onClick={() => setStockOnly(!stockOnly)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
-                stockOnly
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              In Stock
-            </button>
 
             <button
               type="button"
@@ -224,7 +210,7 @@ export const FilterSidebar = ({
                   : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
               }`}
             >
-              <Sparkles className="w-3 h-3" /> New Arrivals
+              <Sparkles className="w-3 h-3" /> {t('new_arrival', 'New Arrivals')}
             </button>
 
             <button
@@ -236,7 +222,7 @@ export const FilterSidebar = ({
                   : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
               }`}
             >
-              Featured
+              {t('featured', 'Featured')}
             </button>
 
             <button
@@ -259,7 +245,7 @@ export const FilterSidebar = ({
           onClick={onReset}
           className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
         >
-          <RotateCcw className="w-3.5 h-3.5" /> Clear All
+          <RotateCcw className="w-3.5 h-3.5" /> {t('clear_filters', 'Clear All')}
         </button>
       </div>
 
