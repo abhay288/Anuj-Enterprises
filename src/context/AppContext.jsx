@@ -1408,21 +1408,52 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await customerService.createCustomer(preparedData);
       if (res.data?.customer) {
-        setCustomers(prev => [res.data.customer, ...prev]);
+        setCustomers(prev => {
+          const updated = [res.data.customer, ...prev];
+          localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+          return updated;
+        });
         showToast(`Customer "${custData.name}" registered successfully`, 'success');
         return res.data.customer;
       }
     } catch (e) {}
     const newCust = {
       ...preparedData,
-      id: `CUST-${Date.now()}`,
-      customerId: `CUST-${Date.now()}`,
-      createdBy: user.salesmanId || 'AE-SM-001'
+      id: custData.id || `CUST-${Date.now()}`,
+      customerId: custData.customerId || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
+      createdBy: user?.salesmanId || 'ADMIN'
     };
-    setCustomers(prev => [newCust, ...prev]);
+    setCustomers(prev => {
+      const updated = [newCust, ...prev];
+      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      return updated;
+    });
     showToast(`Customer "${custData.name}" saved to roster`, 'success');
     return newCust;
   };
+
+  const updateCustomer = useCallback((custData) => {
+    setCustomers(prev => {
+      const updated = prev.map(c => {
+        if (c.id === custData.id || c.customerId === custData.customerId) {
+          return { ...c, ...custData };
+        }
+        return c;
+      });
+      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      return updated;
+    });
+    showToast(`Customer "${custData.name}" updated successfully`, 'success');
+  }, []);
+
+  const deleteCustomer = useCallback((custId) => {
+    setCustomers(prev => {
+      const updated = prev.filter(c => c.id !== custId && c.customerId !== custId);
+      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Customer account deleted successfully', 'info');
+  }, []);
 
   const loadCustomerForOrder = (customer) => {
     setSelectedCustomerForOrder(customer);
@@ -1612,6 +1643,8 @@ export const AppProvider = ({ children }) => {
       addBrand,
       deleteBrand,
       saveCustomer,
+      updateCustomer,
+      deleteCustomer,
       loadCustomerForOrder,
       reorderPreviousOrder,
       restockProduct,

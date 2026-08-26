@@ -37,6 +37,9 @@ export const AdminDashboard = () => {
     salesmen, 
     orders, 
     customers, 
+    saveCustomer,
+    updateCustomer,
+    deleteCustomer,
     addProduct, 
     updateProduct, 
     deleteProduct, 
@@ -112,7 +115,21 @@ export const AdminDashboard = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isAddSalesmanOpen, setIsAddSalesmanOpen] = useState(false);
   const [editingSalesman, setEditingSalesman] = useState(null);
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  const [custForm, setCustForm] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+    address: '',
+    city: 'Kanpur',
+    state: 'Uttar Pradesh',
+    pincode: '208001',
+    classification: 'NORMAL',
+    password: 'Cust@123'
+  });
 
   // Restock / Inventory Modals
   const [restockTarget, setRestockTarget] = useState(null);
@@ -635,6 +652,32 @@ export const AdminDashboard = () => {
     setSalesmanPasswordTarget(null);
   };
 
+  const handleSaveCustomerSubmit = (e) => {
+    e.preventDefault();
+    if (!custForm.name || !custForm.name.trim()) return;
+    if (editingCustomer) {
+      updateCustomer({
+        ...editingCustomer,
+        ...custForm
+      });
+      setEditingCustomer(null);
+    } else {
+      saveCustomer(custForm);
+    }
+    setIsAddCustomerOpen(false);
+    setCustForm({
+      name: '',
+      mobile: '',
+      email: '',
+      address: '',
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
+      pincode: '208001',
+      classification: 'NORMAL',
+      password: 'Cust@123'
+    });
+  };
+
   return (
     <div className="py-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -747,7 +790,10 @@ export const AdminDashboard = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    window.scrollTo({ top: 100, behavior: 'smooth' });
+                  }}
                   className={`w-full text-left px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition-colors ${
                     isActive
                       ? 'bg-brand-900 text-white dark:bg-brand-600 shadow-md'
@@ -997,7 +1043,27 @@ export const AdminDashboard = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => {
+                          setEditingCustomer(null);
+                          setCustForm({
+                            name: '',
+                            mobile: '',
+                            email: '',
+                            address: '',
+                            city: 'Kanpur',
+                            state: 'Uttar Pradesh',
+                            pincode: '208001',
+                            classification: 'NORMAL',
+                            password: 'Cust@123'
+                          });
+                          setIsAddCustomerOpen(true);
+                        }}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
+                      >
+                        <Plus className="w-4 h-4" /> Add Registered Customer / User
+                      </button>
                       <button
                         onClick={() => exportCustomersCSV(customers || [])}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
@@ -1115,7 +1181,7 @@ export const AdminDashboard = () => {
                                 </td>
 
                                 <td className="py-3.5 px-4 text-center">
-                                  <div className="flex items-center justify-center gap-2">
+                                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                     {cust.mobile && (
                                       <a
                                         href={`https://api.whatsapp.com/send?phone=${String(cust.mobile).replace(/[^0-9]/g, '')}`}
@@ -1129,9 +1195,43 @@ export const AdminDashboard = () => {
                                     )}
                                     <button
                                       onClick={() => {
+                                        setEditingCustomer(cust);
+                                        setCustForm({
+                                          id: cust.id || cust.customerId,
+                                          customerId: cust.customerId || cust.id,
+                                          name: cust.name || '',
+                                          mobile: cust.mobile || '',
+                                          email: cust.email || '',
+                                          address: cust.address || '',
+                                          city: cust.city || 'Kanpur',
+                                          state: cust.state || 'Uttar Pradesh',
+                                          pincode: cust.pincode || '208001',
+                                          classification: cust.classification || 'NORMAL',
+                                          password: cust.password || 'Cust@123'
+                                        });
+                                        setIsAddCustomerOpen(true);
+                                      }}
+                                      className="p-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-slate-950 rounded-lg transition-colors"
+                                      title="Edit Customer"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`Are you sure you want to delete customer account "${custName}"?`)) {
+                                          deleteCustomer(cust.id || cust.customerId);
+                                        }
+                                      }}
+                                      className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg transition-colors"
+                                      title="Delete Customer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
                                         setActiveTab('orders');
                                       }}
-                                      className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-lg font-bold text-[10px] flex items-center gap-1 shadow-sm"
+                                      className="px-2 py-1 bg-brand-900 hover:bg-brand-800 text-white rounded-lg font-bold text-[10px] flex items-center gap-1 shadow-sm"
                                     >
                                       <Eye className="w-3 h-3" /> Orders
                                     </button>
@@ -3102,6 +3202,169 @@ export const AdminDashboard = () => {
                   <span>Delete Account</span>
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add / Edit Registered Customer Modal */}
+      <AnimatePresence>
+        {isAddCustomerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              <div className="bg-slate-900 text-white p-6 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base">
+                      {editingCustomer ? 'Edit Registered Customer Details' : 'Register New Customer / User Account'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Retail store, wholesale buyer, or direct consumer account</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsAddCustomerOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomerSubmit} className="p-6 space-y-4 text-xs">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Store / Customer / Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={custForm.name}
+                    onChange={(e) => setCustForm({ ...custForm, name: e.target.value })}
+                    placeholder="e.g. Mahavir Super Market / Rakesh Gupta"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Mobile Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={custForm.mobile}
+                      onChange={(e) => setCustForm({ ...custForm, mobile: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={custForm.email}
+                      onChange={(e) => setCustForm({ ...custForm, email: e.target.value })}
+                      placeholder="customer@example.com"
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      City / Mandi
+                    </label>
+                    <input
+                      type="text"
+                      value={custForm.city}
+                      onChange={(e) => setCustForm({ ...custForm, city: e.target.value })}
+                      placeholder="Kanpur"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      value={custForm.state}
+                      onChange={(e) => setCustForm({ ...custForm, state: e.target.value })}
+                      placeholder="Uttar Pradesh"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Delivery Address
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={custForm.address}
+                    onChange={(e) => setCustForm({ ...custForm, address: e.target.value })}
+                    placeholder="Shop No., Market Road, Landmark, Kanpur..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-xs"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Customer Classification
+                    </label>
+                    <select
+                      value={custForm.classification}
+                      onChange={(e) => setCustForm({ ...custForm, classification: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    >
+                      <option value="NORMAL">NORMAL (Standard Verified)</option>
+                      <option value="DAMAGE">DAMAGE (Return / Claims Account)</option>
+                      <option value="EXPIRY">EXPIRY (Stock Replacements Account)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Account Password
+                    </label>
+                    <input
+                      type="text"
+                      value={custForm.password}
+                      onChange={(e) => setCustForm({ ...custForm, password: e.target.value })}
+                      placeholder="Cust@123"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddCustomerOpen(false)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl shadow transition-colors"
+                  >
+                    {editingCustomer ? 'Update Customer Record' : 'Save Customer to Database'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
