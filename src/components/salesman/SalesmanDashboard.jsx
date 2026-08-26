@@ -134,10 +134,10 @@ export const SalesmanDashboard = () => {
     if (!customerSearchQuery.trim()) return myCustomers;
     const q = customerSearchQuery.toLowerCase().trim();
     return myCustomers.filter(c => 
-      c.name.toLowerCase().includes(q) ||
-      (c.mobile && c.mobile.includes(q)) ||
-      (c.customerId && c.customerId.toLowerCase().includes(q)) ||
-      (c.city && c.city.toLowerCase().includes(q))
+      (c && c.name && c.name.toLowerCase().includes(q)) ||
+      (c && c.mobile && c.mobile.includes(q)) ||
+      (c && c.customerId && c.customerId.toLowerCase().includes(q)) ||
+      (c && c.city && c.city.toLowerCase().includes(q))
     );
   }, [myCustomers, customerSearchQuery]);
 

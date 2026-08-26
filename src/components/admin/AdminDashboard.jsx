@@ -514,16 +514,22 @@ export const AdminDashboard = () => {
   }, [inventoryLogs, logFilterType]);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter(c => {
-      if (!customerSearch.trim()) return true;
+    const list = Array.isArray(customers) ? customers : [];
+    return list.filter(c => {
+      if (!c) return false;
+      if (!customerSearch || !customerSearch.trim()) return true;
       const q = customerSearch.toLowerCase().trim();
+      const name = String(c.name || '').toLowerCase();
+      const email = String(c.email || '').toLowerCase();
+      const mobile = String(c.mobile || '');
+      const city = String(c.city || '').toLowerCase();
+      const customerId = String(c.customerId || c.id || '').toLowerCase();
       return (
-        (c.name && c.name.toLowerCase().includes(q)) ||
-        (c.email && c.email.toLowerCase().includes(q)) ||
-        (c.mobile && c.mobile.includes(q)) ||
-        (c.city && c.city.toLowerCase().includes(q)) ||
-        (c.customerId && c.customerId.toLowerCase().includes(q)) ||
-        (c.id && c.id.toLowerCase().includes(q))
+        name.includes(q) ||
+        email.includes(q) ||
+        mobile.includes(q) ||
+        city.includes(q) ||
+        customerId.includes(q)
       );
     });
   }, [customers, customerSearch]);
@@ -997,6 +1003,7 @@ export const AdminDashboard = () => {
             )}
 
             {/* ================= TAB: REGISTERED CUSTOMERS / USERS DIRECTORY ================= */}
+            {/* ================= TAB: REGISTERED CUSTOMERS / USERS DIRECTORY ================= */}
             {activeTab === 'customers' && (
               <div className="space-y-6">
                 {/* Customer Analytics KPI Cards */}
@@ -1006,7 +1013,7 @@ export const AdminDashboard = () => {
                       Total Registered Users
                     </span>
                     <span className="text-2xl font-black text-slate-900 dark:text-white">
-                      {customers.length} Accounts
+                      {(Array.isArray(customers) ? customers : []).length} Accounts
                     </span>
                     <span className="text-[10px] font-extrabold text-emerald-600 block mt-1">Live Database Roster</span>
                   </div>
@@ -1016,7 +1023,7 @@ export const AdminDashboard = () => {
                       Kanpur HQ Territory
                     </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {customers.filter(c => (c.city || '').toLowerCase().includes('kanpur')).length} Stores
+                      {(Array.isArray(customers) ? customers : []).filter(c => c && String(c.city || '').toLowerCase().includes('kanpur')).length} Stores
                     </span>
                     <span className="text-[10px] font-extrabold text-amber-600 block mt-1">Primary Wholesale Mandi</span>
                   </div>
@@ -1026,7 +1033,7 @@ export const AdminDashboard = () => {
                       Normal Customer Status
                     </span>
                     <span className="text-2xl font-black text-emerald-600">
-                      {customers.filter(c => !c.classification || c.classification === 'NORMAL').length} Retailers
+                      {(Array.isArray(customers) ? customers : []).filter(c => c && (!c.classification || c.classification === 'NORMAL')).length} Retailers
                     </span>
                     <span className="text-[10px] font-extrabold text-slate-400 block mt-1">Verified Standard Buying</span>
                   </div>
@@ -1036,7 +1043,7 @@ export const AdminDashboard = () => {
                       Special Classifications
                     </span>
                     <span className="text-2xl font-black text-brand-900 dark:text-amber-400">
-                      {customers.filter(c => c.classification === 'DAMAGE' || c.classification === 'EXPIRY').length} Stores
+                      {(Array.isArray(customers) ? customers : []).filter(c => c && (c.classification === 'DAMAGE' || c.classification === 'EXPIRY')).length} Stores
                     </span>
                     <span className="text-[10px] font-extrabold text-slate-400 block mt-1">Damage / Expiry Accounts</span>
                   </div>
@@ -1057,7 +1064,7 @@ export const AdminDashboard = () => {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => exportCustomersCSV(customers)}
+                        onClick={() => exportCustomersCSV(customers || [])}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
                       >
                         <Download className="w-4 h-4" /> Export Users Excel (.XLSX)
@@ -1101,13 +1108,18 @@ export const AdminDashboard = () => {
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredCustomers.length > 0 ? (
                           filteredCustomers.map(cust => {
-                            const custOrdersCount = orders.filter(o => 
-                              (o.customerName && o.customerName.toLowerCase() === cust.name.toLowerCase()) ||
-                              (o.customerId && o.customerId === (cust.customerId || cust.id))
+                            if (!cust) return null;
+                            const custName = cust.name || cust.email || cust.mobile || 'Registered Customer';
+                            const custId = cust.customerId || cust.id || 'CUST-000';
+                            const custOrdersCount = (Array.isArray(orders) ? orders : []).filter(o => 
+                              o && (
+                                (o.customerName && custName && String(o.customerName).toLowerCase() === String(custName).toLowerCase()) ||
+                                (o.customerId && String(o.customerId) === String(custId))
+                              )
                             ).length;
 
                             return (
-                              <tr key={cust.id || cust.customerId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40">
+                              <tr key={cust.id || cust.customerId || Math.random()} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40">
                                 <td className="py-3.5 px-4">
                                   <div className="flex items-center gap-2.5">
                                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/20 shrink-0">
@@ -1115,10 +1127,10 @@ export const AdminDashboard = () => {
                                     </div>
                                     <div>
                                       <strong className="block text-slate-900 dark:text-white font-extrabold text-xs">
-                                        {cust.name}
+                                        {custName}
                                       </strong>
                                       <span className="text-[10px] text-slate-400 font-mono">
-                                        ID: {cust.customerId || cust.id}
+                                        ID: {custId}
                                       </span>
                                     </div>
                                   </div>
@@ -1171,7 +1183,7 @@ export const AdminDashboard = () => {
                                   <div className="flex items-center justify-center gap-2">
                                     {cust.mobile && (
                                       <a
-                                        href={`https://api.whatsapp.com/send?phone=${cust.mobile.replace(/[^0-9]/g, '')}`}
+                                        href={`https://api.whatsapp.com/send?phone=${String(cust.mobile).replace(/[^0-9]/g, '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-lg transition-colors"
