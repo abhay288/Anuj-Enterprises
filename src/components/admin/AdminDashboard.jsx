@@ -809,79 +809,7 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Spotlight Row: Top Performing Salesman & Top Selling Product */}
-                {/* Spotlight Row: Top Selling Product */}
-                <div>
-                  {/* Top Selling Product Card */}
-                  <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-slate-900/80 dark:to-slate-900/40 border border-emerald-500/30 shadow-md">
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 flex items-center gap-1.5 shadow-sm">
-                          <Flame className="w-3.5 h-3.5" />
-                          Most Sold Product
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 capitalize">
-                          ({timeframe})
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setActiveTab('products')}
-                        className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                      >
-                        Products Master <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
 
-                    {biData.topProduct && biData.topProduct.unitsSold > 0 ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3.5">
-                          {biData.topProduct.image ? (
-                            <img
-                              src={biData.topProduct.image}
-                              alt={biData.topProduct.name}
-                              className="w-12 h-12 rounded-2xl object-cover border border-emerald-500/20 shadow-md shrink-0 bg-white"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-md shrink-0">
-                              <Package className="w-6 h-6" />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-base font-black text-slate-900 dark:text-white truncate">
-                                {biData.topProduct.name}
-                              </h4>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              SKU: {biData.topProduct.sku} • {biData.topProduct.brand} • {biData.topProduct.category}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-emerald-500/20">
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Units Sold</span>
-                            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                              {biData.topProduct.unitsSold.toLocaleString()}
-                            </span>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-950/60 border border-emerald-500/20">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Category</span>
-                            <span className="text-lg font-black text-slate-900 dark:text-white truncate block">
-                              {biData.topProduct.category || 'General'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-dashed border-slate-300 dark:border-slate-800 text-center">
-                        <Package className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No product item dispatches in this period.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 {/* Order Volume Trend Chart */}
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
