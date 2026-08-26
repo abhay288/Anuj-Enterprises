@@ -318,7 +318,22 @@ export const AppProvider = ({ children }) => {
       try {
         const ordRes = await orderService.getOrders();
         if (ordRes.data?.orders && ordRes.data.orders.length > 0) {
-          setOrders(ordRes.data.orders);
+          setOrders(prev => {
+            const apiOrders = ordRes.data.orders;
+            const merged = [...apiOrders];
+            for (const p of prev) {
+              const exists = merged.some(m => 
+                (m.id && m.id === p.id) || 
+                (m.invoiceNumber && m.invoiceNumber === p.invoiceNumber) ||
+                (m.orderId && m.orderId === p.orderId)
+              );
+              if (!exists) {
+                merged.push(p);
+              }
+            }
+            localStorage.setItem('anuj_orders_v3', JSON.stringify(merged));
+            return merged;
+          });
         }
       } catch (e) {
         console.log('Using initial orders cache');
@@ -977,11 +992,18 @@ export const AppProvider = ({ children }) => {
     const newInvoiceId = `AE-2026-${String(countInvoices).padStart(6, '0')}`;
     const newOrderId = `ORD-2026-${String(countInvoices).padStart(6, '0')}`;
 
+    const now = new Date();
+    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+
     const newOrder = {
       id: newInvoiceId,
       orderId: newOrderId,
       invoiceNumber: newInvoiceId,
-      date: new Date().toISOString().split('T')[0],
+      date: now.toISOString().split('T')[0],
+      day: dayName,
+      time: timeStr,
+      timestamp: now.toISOString(),
       customerName: (customerDetails.customerName && customerDetails.customerName.trim()) || user?.name || selectedCustomerForOrder?.name || "General Retail Store",
       customerMobile: customerDetails.customerMobile || "+91 98200 11223",
       customerAddress: customerDetails.customerAddress || "Bhiwandi Central B2B Hub, Thane",

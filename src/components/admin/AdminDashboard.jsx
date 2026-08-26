@@ -269,6 +269,9 @@ export const AdminDashboard = () => {
   const [salesmanSearch, setSalesmanSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderTypeFilter, setOrderTypeFilter] = useState('ALL'); // 'ALL' | 'URGENT' | 'EXPIRED' | 'RETURN'
+  const [orderDateFilter, setOrderDateFilter] = useState('ALL'); // 'ALL' | 'TODAY' | 'YESTERDAY' | '7D' | 'MONTH' | 'CUSTOM'
+  const [orderStartDate, setOrderStartDate] = useState('');
+  const [orderEndDate, setOrderEndDate] = useState('');
   const [inventorySearch, setInventorySearch] = useState('');
 
   // Fetch Server Analytics
@@ -1420,6 +1423,56 @@ export const AdminDashboard = () => {
                   </button>
                 </div>
 
+                {/* Interactive Date Range & Timeframe Filter Sub-Bar */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
+                    <Calendar className="w-4 h-4 text-amber-500" />
+                    <span>Filter Invoices by Date System:</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: 'ALL', label: 'All Dates' },
+                      { id: 'TODAY', label: 'Today' },
+                      { id: 'YESTERDAY', label: 'Yesterday' },
+                      { id: '7D', label: 'Last 7 Days' },
+                      { id: 'MONTH', label: 'This Month' },
+                      { id: 'CUSTOM', label: 'Custom Date Range' }
+                    ].map(df => (
+                      <button
+                        key={df.id}
+                        type="button"
+                        onClick={() => setOrderDateFilter(df.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                          orderDateFilter === df.id
+                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm font-extrabold'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {df.label}
+                      </button>
+                    ))}
+
+                    {orderDateFilter === 'CUSTOM' && (
+                      <div className="flex items-center gap-2 pl-2 border-l border-slate-300 dark:border-slate-700">
+                        <input
+                          type="date"
+                          value={orderStartDate}
+                          onChange={(e) => setOrderStartDate(e.target.value)}
+                          className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-semibold text-slate-900 dark:text-white"
+                        />
+                        <span className="text-slate-400">to</span>
+                        <input
+                          type="date"
+                          value={orderEndDate}
+                          onChange={(e) => setOrderEndDate(e.target.value)}
+                          className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-semibold text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
@@ -1441,11 +1494,54 @@ export const AdminDashboard = () => {
                           if (orderTypeFilter === 'RETURN') return (o.returnItems && o.returnItems.length > 0) || o.hasReturnItems;
                           return true;
                         })
+                        .filter(o => {
+                          if (orderDateFilter === 'ALL') return true;
+                          if (!o.date) return true;
+                          const oDateStr = String(o.date).split('T')[0];
+                          const todayStr = new Date().toISOString().split('T')[0];
+
+                          if (orderDateFilter === 'TODAY') {
+                            return oDateStr === todayStr;
+                          }
+                          if (orderDateFilter === 'YESTERDAY') {
+                            const yest = new Date();
+                            yest.setDate(yest.getDate() - 1);
+                            return oDateStr === yest.toISOString().split('T')[0];
+                          }
+                          if (orderDateFilter === '7D') {
+                            const sevenDaysAgo = new Date();
+                            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                            return new Date(oDateStr) >= sevenDaysAgo;
+                          }
+                          if (orderDateFilter === 'MONTH') {
+                            const now = new Date();
+                            const oD = new Date(oDateStr);
+                            return oD.getMonth() === now.getMonth() && oD.getFullYear() === now.getFullYear();
+                          }
+                          if (orderDateFilter === 'CUSTOM') {
+                            if (orderStartDate && oDateStr < orderStartDate) return false;
+                            if (orderEndDate && oDateStr > orderEndDate) return false;
+                            return true;
+                          }
+                          return true;
+                        })
                         .filter(o => !orderSearch || (o.invoiceNumber && o.invoiceNumber.toLowerCase().includes(orderSearch.toLowerCase())) || (o.customerName && o.customerName.toLowerCase().includes(orderSearch.toLowerCase())))
                         .map(order => {
                           const hasUrgent = order.hasUrgentItems || order.items?.some(i => i.isPriority);
                           const expCount = order.expiredItems?.length || 0;
                           const retCount = order.returnItems?.length || 0;
+
+                          // Format Date, Day, Time & Timestamp
+                          let dObj = new Date();
+                          if (order.timestamp) {
+                            dObj = new Date(order.timestamp);
+                          } else if (order.date) {
+                            dObj = new Date(order.date.includes('T') ? order.date : `${order.date}T12:00:00`);
+                          }
+                          if (isNaN(dObj.getTime())) dObj = new Date();
+
+                          const dayStr = order.day || dObj.toLocaleDateString('en-US', { weekday: 'short' });
+                          const timeStr = order.time || dObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
                           return (
                             <tr key={order.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/40 ${
@@ -1461,7 +1557,10 @@ export const AdminDashboard = () => {
                                   </span>
                                 )}
                               </td>
-                              <td className="py-3.5 px-4 text-slate-600 font-medium">{order.date}</td>
+                              <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                                <strong className="block text-xs font-extrabold">{order.date} ({dayStr})</strong>
+                                <span className="text-[10px] text-slate-400 block font-semibold">🕒 {timeStr}</span>
+                              </td>
                               <td className="py-3.5 px-4">
                                 <strong className="text-slate-900 dark:text-white font-bold block">{order.customerName}</strong>
                                 <span className="text-[10px] text-slate-400 font-medium">{order.customerType || 'Normal Customer'}</span>
