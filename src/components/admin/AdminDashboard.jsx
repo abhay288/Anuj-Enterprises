@@ -452,7 +452,7 @@ export const AdminDashboard = () => {
         const rev = Number(item.subtotal || item.total || (qty * price) || 0);
 
         if (!productMap[pId]) {
-          const catalogItem = products.find(p => p.id === item.id || p.sku === item.sku || (item.name && p.name.toLowerCase() === item.name.toLowerCase()));
+          const catalogItem = products.find(p => p && (p.id === item.id || p.sku === item.sku || (item.name && p.name && String(p.name).toLowerCase() === String(item.name).toLowerCase())));
           productMap[pId] = {
             id: pId,
             name: catalogItem?.name || name,
@@ -501,10 +501,15 @@ export const AdminDashboard = () => {
   }, [orders, products, salesmen, timeframe, customStartDate, customEndDate, serverAnalytics]);
 
   const filteredInventoryProducts = useMemo(() => {
-    return products.filter(p => {
-      if (!inventorySearch.trim()) return true;
-      const q = inventorySearch.toLowerCase();
-      return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+    const list = Array.isArray(products) ? products : [];
+    return list.filter(p => {
+      if (!p) return false;
+      if (!inventorySearch || !inventorySearch.trim()) return true;
+      const q = inventorySearch.toLowerCase().trim();
+      const pName = String(p.name || '').toLowerCase();
+      const pSku = String(p.sku || '').toLowerCase();
+      const pBrand = String(p.brand || '').toLowerCase();
+      return pName.includes(q) || pSku.includes(q) || pBrand.includes(q);
     });
   }, [products, inventorySearch]);
 
