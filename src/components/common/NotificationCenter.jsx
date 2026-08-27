@@ -33,14 +33,14 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
   }
 
   // Filter active notifications for active role
-  const roleNotifications = notifications.filter(n => {
+  const roleNotifications = (notifications || []).filter(n => {
     if (!n) return false;
     if (!n.targetRole) return true;
     return n.targetRole === role || n.targetRole === 'ALL';
   });
 
   // Filter history notifications for active role
-  const roleHistory = notificationHistory.filter(n => {
+  const roleHistory = (notificationHistory || []).filter(n => {
     if (!n) return false;
     if (!n.targetRole) return true;
     return n.targetRole === role || n.targetRole === 'ALL';
@@ -58,6 +58,15 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
       (h.invoiceNumber && h.invoiceNumber.toLowerCase().includes(q))
     );
   });
+
+  const handleOpenHistory = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsOpen(false);
+    setIsHistoryOpen(true);
+  };
 
   const handleNotificationClick = (notif) => {
     markNotificationAsRead(notif.id);
@@ -90,8 +99,8 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
   };
 
   return (
-    <div className="relative">
-      {/* Top Bell Button */}
+    <div className="relative flex items-center gap-1.5">
+      {/* 1. Active Notifications Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center justify-center"
@@ -101,6 +110,20 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-slate-950 rounded-full font-black text-[10px] flex items-center justify-center shadow animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* 2. Direct 1-Tap Notification History Button */}
+      <button
+        onClick={handleOpenHistory}
+        className="relative p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 transition-colors flex items-center justify-center group"
+        title="View Notification History (Last 10 Days Log)"
+      >
+        <History className="w-4 h-4 text-amber-400 group-hover:rotate-[-12deg] transition-transform" />
+        {roleHistory.length > 0 && (
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-brand-900 text-amber-300 border border-amber-400/40 rounded-full font-black text-[9px] flex items-center justify-center shadow">
+            {roleHistory.length}
           </span>
         )}
       </button>
@@ -167,10 +190,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
 
                   {/* Notification History Button */}
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      setIsHistoryOpen(true);
-                    }}
+                    onClick={handleOpenHistory}
                     className="text-[10px] bg-brand-900 hover:bg-brand-800 text-amber-300 font-extrabold flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-400/30 transition-all shadow-sm"
                     title="View Notification History (Last 10 Days)"
                   >
@@ -190,10 +210,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       Notifications are cleared or auto-archived to history after 7 days.
                     </p>
                     <button
-                      onClick={() => {
-                        setIsOpen(false);
-                        setIsHistoryOpen(true);
-                      }}
+                      onClick={handleOpenHistory}
                       className="mt-2 text-amber-400 hover:underline font-extrabold text-[11px] inline-flex items-center gap-1"
                     >
                       <History className="w-3.5 h-3.5" /> View Notification History ({roleHistory.length})
@@ -267,11 +284,15 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
         )}
       </AnimatePresence>
 
-      {/* NOTIFICATION HISTORY MODAL (Rendered at document.body via Portal to prevent z-index / header clipping) */}
+      {/* NOTIFICATION HISTORY MODAL (Portal to document.body) */}
       <AnimatePresence>
         {isHistoryOpen && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
+            onClick={() => setIsHistoryOpen(false)}
+          >
             <motion.div
+              onClick={(e) => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
