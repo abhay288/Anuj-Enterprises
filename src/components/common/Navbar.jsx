@@ -63,8 +63,8 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Live Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="hidden lg:flex flex-1 max-w-md relative">
+        {/* Live Search Bar (Responsive on Mobile, Tablet & Desktop) */}
+        <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-xs lg:max-w-md relative">
           <div className="relative w-full">
             <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
             <input

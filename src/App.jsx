@@ -6,6 +6,7 @@ import { Toast } from './components/common/Toast';
 import { BottomNav } from './components/common/BottomNav';
 import { WhatsAppFloatingButton } from './components/common/WhatsAppFloatingButton';
 import { HeadlineBar } from './components/common/HeadlineBar';
+import { PWAInstallPrompt } from './components/common/PWAInstallPrompt';
 
 // Lazy Loaded Dynamic Routes & Heavy Modals for Maximum Core Web Vitals
 const HomeDashboard = lazy(() => import('./components/home/HomeDashboard').then(m => ({ default: m.HomeDashboard })));
@@ -64,6 +65,7 @@ const MainContent = () => {
       <Footer />
       <BottomNav />
       <Toast />
+      <PWAInstallPrompt />
       
       {/* Lazy Modals */}
       <Suspense fallback={null}>

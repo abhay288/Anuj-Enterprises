@@ -262,8 +262,8 @@ export const SalesmanDashboard = () => {
           </div>
         </div>
 
-        {/* Live Database-Driven Performance Summary Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        {/* Live Database-Driven Performance Summary Bar (Tablet & Desktop 4-Col Grid) */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
               Today's Orders

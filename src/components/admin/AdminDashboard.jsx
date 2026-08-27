@@ -768,11 +768,11 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Layout Grid: Sidebar Navigation + Main Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative">
+        {/* Layout Grid: Sidebar Navigation + Main Panel (Optimized for Mobile, Tablet & Desktop) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
           
-          {/* Left Sidebar Navigation (Sticky & Independent Scroll) */}
-          <aside className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto space-y-1 self-start z-10">
+          {/* Left Sidebar Navigation (Sticky & Independent Scroll on Tablet & Desktop) */}
+          <aside className="md:col-span-4 lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm md:sticky md:top-28 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto space-y-1 self-start z-10">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 py-2 block">
               BI Modules
             </span>
@@ -811,7 +811,7 @@ export const AdminDashboard = () => {
           </aside>
 
           {/* Right Main Content Area (Scrolls Independently) */}
-          <main className="lg:col-span-9 space-y-6 min-w-0">
+          <main className="md:col-span-8 lg:col-span-9 space-y-6 min-w-0">
             
             {/* ================= TAB 1: EXECUTIVE ANALYTICS DASHBOARD ================= */}
             {activeTab === 'analytics' && (
@@ -839,7 +839,7 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Total Orders</span>
                     <span className="text-2xl font-black text-slate-900 dark:text-white block">{biData.kpis.totalOrders}</span>
