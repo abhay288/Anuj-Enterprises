@@ -204,7 +204,13 @@ export const SalesmanDashboard = () => {
   const handleCreateCustomerSubmit = async (e) => {
     e.preventDefault();
     if (!newCustomerForm.name.trim()) return;
-    await saveCustomer(newCustomerForm);
+    const formattedMobile = newCustomerForm.mobile 
+      ? (newCustomerForm.mobile.startsWith('+91') ? newCustomerForm.mobile : `+91 ${newCustomerForm.mobile}`)
+      : '';
+    await saveCustomer({
+      ...newCustomerForm,
+      mobile: formattedMobile
+    });
     setIsNewCustomerModalOpen(false);
     setNewCustomerForm({
       name: '',
@@ -644,14 +650,25 @@ export const SalesmanDashboard = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Mobile Number *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="+91 98XXX XXXXX"
-                      value={newCustomerForm.mobile}
-                      onChange={(e) => setNewCustomerForm({ ...newCustomerForm, mobile: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
-                    />
+                    <div className="relative flex items-center">
+                      <span className="absolute left-2.5 text-xs font-black text-amber-500 select-none">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
+                        maxLength={10}
+                        required
+                        placeholder="98XXXXXXXX"
+                        value={newCustomerForm.mobile}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setNewCustomerForm({ ...newCustomerForm, mobile: digits });
+                        }}
+                        className="w-full pl-11 pr-2.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-xs text-slate-900 dark:text-white tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Classification</label>

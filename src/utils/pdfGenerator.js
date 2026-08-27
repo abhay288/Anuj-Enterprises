@@ -77,26 +77,34 @@ export const generateInvoicePDF = (order) => {
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(71, 85, 105);
-  doc.text(`Contact: ${order.customerMobile || '+91 98200 11223'}`, 18, startY + 19);
-  doc.text(`Address: ${order.customerAddress || 'Kanpur B2B Hub'}`, 18, startY + 25);
-  doc.text(`Location: ${order.customerCity || 'Kanpur'}, ${order.customerState || 'Uttar Pradesh'}`, 18, startY + 31);
+  if (order.customerMobile) {
+    doc.text(`Contact: ${order.customerMobile}`, 18, startY + 19);
+  }
+  if (order.customerAddress) {
+    doc.text(`Address: ${order.customerAddress}`, 18, startY + 25);
+  }
+  if (order.customerCity || order.customerState) {
+    doc.text(`Location: ${order.customerCity || 'Kanpur'}, ${order.customerState || 'Uttar Pradesh'}`, 18, startY + 31);
+  }
 
   // Salesman Info Right
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('SALESMAN & ROUTE DETAILS', 115, startY + 6);
+  doc.text('SHOP OWNER & ROUTE DETAILS', 115, startY + 6);
 
   doc.setTextColor(15, 23, 42);
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${order.salesmanName || 'Rajesh Kumar'} (ID: ${order.salesmanId || 'AE-SM-001'})`, 115, startY + 13);
+  doc.text(`${order.shopOwnerName || order.salesmanName || 'Shop Owner'}`, 115, startY + 13);
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(71, 85, 105);
-  doc.text(`Area: ${order.salesmanArea || 'South Kanpur Central'}`, 115, startY + 19);
-  doc.text(`Route: ${order.salesmanRoute || 'Route #4 — Wholesale Mandi'}`, 115, startY + 25);
+  doc.text(`Area: ${order.shopOwnerArea || order.salesmanArea || 'South Kanpur Central'}`, 115, startY + 19);
+  if (order.shopRoute || order.salesmanRoute) {
+    doc.text(`Route: ${order.shopRoute || order.salesmanRoute}`, 115, startY + 25);
+  }
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(5, 150, 105);
   doc.text(`Payment Method: ${(order.paymentMethod || order.paymentMode || 'Cash').toUpperCase()}`, 115, startY + 31);
@@ -197,13 +205,14 @@ export const shareInvoicePDFToWhatsApp = async (order, showToast = null) => {
 📋 *Invoice No:* ${invoiceNumber}
 📅 *Date:* ${order.date || new Date().toISOString().split('T')[0]}
 
-👤 *CUSTOMER DETAILS:*
-• *Name:* ${order.customerName || 'Valued Retailer'}
+👤 *SHOP & BUYER DETAILS:*
+• *Shop Name:* ${order.customerName || 'Valued Retailer'}
 • *Location:* ${order.customerCity || 'Kanpur'}, ${order.customerState || 'Uttar Pradesh'}
 
-👨‍💼 *SALESMAN:* ${order.salesmanName || 'Rajesh Kumar'} (${order.salesmanId || 'AE-SM-001'})
-• *Area:* ${order.salesmanArea || 'South Kanpur Central'}
-• *Route:* ${order.salesmanRoute || 'Route #4 — Wholesale Mandi'}
+👨‍💼 *SHOP OWNER & TERRITORY:*
+• *Owner Name:* ${order.shopOwnerName || order.salesmanName || 'Shop Owner'}
+• *Area:* ${order.shopOwnerArea || order.salesmanArea || 'South Kanpur Central'}
+• *Route:* ${order.shopRoute || order.salesmanRoute || 'Wholesale Mandi'}
 
 💳 *PAYMENT METHOD:* ${order.paymentMethod || order.paymentMode || 'Cash'}
 🔢 *TOTAL VOLUME:* ${order.totalQuantity || order.items?.reduce((a, b) => a + (b.qty || 0), 0) || 0} Units

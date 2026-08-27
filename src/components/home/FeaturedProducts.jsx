@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
 
 export const FeaturedProducts = () => {
-  const { products, navigateTo } = useApp();
+  const { products, navigateTo, t } = useApp();
   const [activeTab, setActiveTab] = useState('featured'); // 'featured' | 'trending' | 'bulk'
 
   const filteredProducts = products.filter(p => {
@@ -22,10 +22,10 @@ export const FeaturedProducts = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400 block mb-1">
-              Industrial Grade Verified Inventory
+              {t('verified_wholesaler', 'Industrial Grade Verified Inventory')}
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Featured Supply Catalog
+              {t('featured_catalog', 'Featured Supply Catalog')}
             </h2>
           </div>
 
@@ -39,7 +39,7 @@ export const FeaturedProducts = () => {
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
               }`}
             >
-              <Award className="w-3.5 h-3.5" /> Featured Supplies
+              <Award className="w-3.5 h-3.5" /> {t('featured', 'Featured Supplies')}
             </button>
             <button
               onClick={() => setActiveTab('trending')}
@@ -49,7 +49,7 @@ export const FeaturedProducts = () => {
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
               }`}
             >
-              <Flame className="w-3.5 h-3.5 text-amber-400" /> High Demand
+              <Flame className="w-3.5 h-3.5 text-amber-400" /> {t('high_demand', 'High Demand')}
             </button>
             <button
               onClick={() => setActiveTab('bulk')}
@@ -59,7 +59,7 @@ export const FeaturedProducts = () => {
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Tiered Bulk Deals
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> {t('bulk_deals', 'Tiered Bulk Deals')}
             </button>
           </div>
         </div>
@@ -77,7 +77,7 @@ export const FeaturedProducts = () => {
             onClick={() => navigateTo('catalogue')}
             className="px-8 py-4 bg-slate-900 hover:bg-brand-900 text-white dark:bg-slate-800 dark:hover:bg-brand-600 font-extrabold text-sm rounded-2xl shadow-xl transition-all hover:scale-105 inline-flex items-center gap-2"
           >
-            <span>Explore Complete B2B Catalog ({products.length} Items)</span>
+            <span>{t('explore_complete_catalog', 'Explore Complete B2B Catalog')} ({products.length} {t('items', 'Items')})</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

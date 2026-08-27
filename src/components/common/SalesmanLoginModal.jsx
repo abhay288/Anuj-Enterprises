@@ -17,7 +17,7 @@ export const SalesmanLoginModal = () => {
     showToast
   } = useApp();
 
-  const [authMode, setAuthMode] = useState(salesmanModalMode || 'salesman');
+  const [authMode, setAuthMode] = useState(salesmanModalMode || 'user');
 
   useEffect(() => {
     if (salesmanModalMode) {
@@ -337,16 +337,25 @@ export const SalesmanLoginModal = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                          Mobile Number
+                          Mobile Number *
                         </label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs font-black text-amber-500 select-none">
+                            +91
+                          </span>
                           <input
-                            type="text"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]{10}"
+                            maxLength={10}
+                            required
                             value={regForm.mobile}
-                            onChange={(e) => setRegForm({ ...regForm, mobile: e.target.value })}
-                            placeholder="+91 98XXX XXXXX"
-                            className="w-full pl-8 pr-2.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setRegForm({ ...regForm, mobile: digits });
+                            }}
+                            placeholder="98XXXXXXXX"
+                            className="w-full pl-11 pr-2.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500"
                           />
                         </div>
                       </div>

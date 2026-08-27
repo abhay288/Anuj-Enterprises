@@ -40,12 +40,14 @@ export const AdminDashboard = () => {
     saveCustomer,
     updateCustomer,
     deleteCustomer,
+    refreshCustomers,
     addProduct, 
     updateProduct, 
     deleteProduct, 
     duplicateProduct,
     toggleProductFeatured,
     toggleProductNew,
+    toggleProductNrp,
     toggleProductStatus,
     addSalesman,
     updateSalesman,
@@ -539,6 +541,12 @@ export const AdminDashboard = () => {
     return inventoryLogs.filter(l => l.changeType === logFilterType);
   }, [inventoryLogs, logFilterType]);
 
+  useEffect(() => {
+    if (activeTab === 'customers' && refreshCustomers) {
+      refreshCustomers();
+    }
+  }, [activeTab, refreshCustomers]);
+
   const filteredCustomers = useMemo(() => {
     const list = Array.isArray(customers) ? customers : [];
     return list.filter(c => {
@@ -547,7 +555,7 @@ export const AdminDashboard = () => {
       const q = customerSearch.toLowerCase().trim();
       const name = String(c.name || '').toLowerCase();
       const email = String(c.email || '').toLowerCase();
-      const mobile = String(c.mobile || '');
+      const mobile = String(c.mobile || c.phone || '');
       const city = String(c.city || '').toLowerCase();
       const customerId = String(c.customerId || c.id || '').toLowerCase();
       return (
@@ -579,6 +587,22 @@ export const AdminDashboard = () => {
     if (!thresholdTarget) return;
     await updateProductThreshold(thresholdTarget.id, thresholdVal);
     setThresholdTarget(null);
+  };
+
+  const handleAddCategory = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const val = newCategoryInput.trim();
+    if (!val) return;
+    addCategory(val);
+    setNewCategoryInput('');
+  };
+
+  const handleAddCompany = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const val = newCompanyInput.trim();
+    if (!val) return;
+    addBrand(val);
+    setNewCompanyInput('');
   };
 
   const handleSaveProduct = (statusOverride = null) => {
@@ -717,57 +741,6 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Global Date Filtering Toolbar */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-              Analytics Timeframe:
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {[
-              { id: 'today', label: 'Today' },
-              { id: '7d', label: '7 Days' },
-              { id: '30d', label: '30 Days' },
-              { id: '90d', label: '90 Days' },
-              { id: 'month', label: 'This Month' },
-              { id: 'custom', label: 'Custom Range' }
-            ].map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTimeframe(t.id)}
-                className={`px-3 py-1.5 rounded-xl font-bold border transition-colors ${
-                  timeframe === t.id
-                    ? 'bg-brand-900 text-white border-brand-900 shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-
-            {timeframe === 'custom' && (
-              <div className="flex items-center gap-2 pl-2">
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
-                />
-                <span className="text-slate-400">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Layout Grid: Sidebar Navigation + Main Panel (Optimized for Mobile, Tablet & Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
           
@@ -836,6 +809,57 @@ export const AdminDashboard = () => {
                     >
                       <Edit2 className="w-3 h-3" /> Edit Broadcast
                     </button>
+                  </div>
+                </div>
+
+                {/* Executive Analytics Date Filtering Toolbar */}
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                      Analytics Timeframe:
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {[
+                      { id: 'today', label: 'Today' },
+                      { id: '7d', label: '7 Days' },
+                      { id: '30d', label: '30 Days' },
+                      { id: '90d', label: '90 Days' },
+                      { id: 'month', label: 'This Month' },
+                      { id: 'custom', label: 'Custom Range' }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTimeframe(t.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold border transition-colors ${
+                          timeframe === t.id
+                            ? 'bg-brand-900 text-white border-brand-900 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+
+                    {timeframe === 'custom' && (
+                      <div className="flex items-center gap-2 pl-2">
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
+                        />
+                        <span className="text-slate-400">to</span>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -987,7 +1011,6 @@ export const AdminDashboard = () => {
             )}
 
             {/* ================= TAB: REGISTERED CUSTOMERS / USERS DIRECTORY ================= */}
-            {/* ================= TAB: REGISTERED CUSTOMERS / USERS DIRECTORY ================= */}
             {activeTab === 'customers' && (
               <div className="space-y-6">
                 {/* Customer Analytics KPI Cards */}
@@ -997,7 +1020,7 @@ export const AdminDashboard = () => {
                       Total Registered Users
                     </span>
                     <span className="text-2xl font-black text-slate-900 dark:text-white">
-                      {(Array.isArray(customers) ? customers : []).length} Accounts
+                      {(customers || []).length} Accounts
                     </span>
                     <span className="text-[10px] font-extrabold text-emerald-600 block mt-1">Live Database Roster</span>
                   </div>
@@ -1007,7 +1030,7 @@ export const AdminDashboard = () => {
                       Kanpur HQ Territory
                     </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {(Array.isArray(customers) ? customers : []).filter(c => c && String(c.city || '').toLowerCase().includes('kanpur')).length} Stores
+                      {(customers || []).filter(c => c && String(c.city || '').toLowerCase().includes('kanpur')).length} Stores
                     </span>
                     <span className="text-[10px] font-extrabold text-amber-600 block mt-1">Primary Wholesale Mandi</span>
                   </div>
@@ -1017,7 +1040,7 @@ export const AdminDashboard = () => {
                       Normal Customer Status
                     </span>
                     <span className="text-2xl font-black text-emerald-600">
-                      {(Array.isArray(customers) ? customers : []).filter(c => c && (!c.classification || c.classification === 'NORMAL')).length} Retailers
+                      {(customers || []).filter(c => c && (!c.classification || c.classification === 'NORMAL')).length} Retailers
                     </span>
                     <span className="text-[10px] font-extrabold text-slate-400 block mt-1">Verified Standard Buying</span>
                   </div>
@@ -1027,7 +1050,7 @@ export const AdminDashboard = () => {
                       Special Classifications
                     </span>
                     <span className="text-2xl font-black text-brand-900 dark:text-amber-400">
-                      {(Array.isArray(customers) ? customers : []).filter(c => c && (c.classification === 'DAMAGE' || c.classification === 'EXPIRY')).length} Stores
+                      {(customers || []).filter(c => c && (c.classification === 'DAMAGE' || c.classification === 'EXPIRY')).length} Stores
                     </span>
                     <span className="text-[10px] font-extrabold text-slate-400 block mt-1">Damage / Expiry Accounts</span>
                   </div>
@@ -1042,11 +1065,18 @@ export const AdminDashboard = () => {
                         Registered Customers & User Accounts Directory
                       </h3>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Full view of registered retail stores, user accounts, delivery locations, and contact details.
+                        Live records of registered retail stores, user accounts, delivery locations, and contact details from database.
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={refreshCustomers}
+                        className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                        title="Sync latest customer records from database"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-amber-500" /> Refresh DB
+                      </button>
                       <button
                         onClick={() => {
                           setEditingCustomer(null);
@@ -1068,7 +1098,7 @@ export const AdminDashboard = () => {
                         <Plus className="w-4 h-4" /> Add Registered Customer / User
                       </button>
                       <button
-                        onClick={() => exportCustomersCSV(customers || [])}
+                        onClick={() => exportCustomersCSV(filteredCustomers)}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition-colors flex items-center gap-1.5"
                       >
                         <Download className="w-4 h-4" /> Export Users Excel (.XLSX)
@@ -1246,7 +1276,7 @@ export const AdminDashboard = () => {
                         ) : (
                           <tr>
                             <td colSpan="6" className="py-8 text-center text-slate-400 font-bold">
-                              No registered customers found matching "{customerSearch}".
+                              {customerSearch ? `No registered customers found matching "${customerSearch}".` : 'No registered customer accounts recorded in database yet.'}
                             </td>
                           </tr>
                         )}
@@ -1342,7 +1372,7 @@ export const AdminDashboard = () => {
                               New
                             </button>
                             <button
-                              onClick={() => updateProduct({ ...prod, isNrp: !prod.isNrp })}
+                              onClick={() => toggleProductNrp(prod.id || prod._id)}
                               className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}
                               title="Toggle No Return Policy (NRP)"
                             >
@@ -1750,65 +1780,119 @@ export const AdminDashboard = () => {
                 
                 {/* Categories Master */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-amber-500" />
-                    Product Categories ({categories.length})
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-amber-500" />
+                      Product Categories ({categories.length})
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      Live Filterable
+                    </span>
+                  </div>
 
-                  <form onSubmit={(e) => { e.preventDefault(); if (newCategoryInput.trim()) { addCategory(newCategoryInput.trim()); setNewCategoryInput(''); } }} className="flex gap-2">
+                  <form onSubmit={handleAddCategory} className="flex gap-2">
                     <input
                       type="text"
                       value={newCategoryInput}
                       onChange={(e) => setNewCategoryInput(e.target.value)}
-                      placeholder="New Category Name..."
-                      className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl text-xs"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(e); }}
+                      placeholder="New Category Name (e.g. Spices & Masalas)..."
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
-                    <button type="submit" className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold">
+                    <button 
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
                       Add
                     </button>
                   </form>
 
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs">
-                    {categories.map(c => (
-                      <div key={c.id || c.name} className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between">
-                        <span className="font-bold text-slate-900 dark:text-white">{c.name}</span>
-                        <button onClick={() => deleteCategory(c.id || c._id)} className="text-red-500 hover:text-red-700 p-1">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    {categories.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400 text-xs">No categories added yet</div>
+                    ) : (
+                      categories.map((c, idx) => {
+                        const catName = typeof c === 'string' ? c : (c.name || `Category ${idx + 1}`);
+                        const catId = (typeof c === 'object' && (c.id || c._id)) || catName;
+                        return (
+                          <div key={catId || idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-amber-500/30 transition-all">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                              <span className="font-extrabold text-slate-900 dark:text-white truncate">{catName}</span>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => deleteCategory(catId)} 
+                              className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
+                              title={`Delete ${catName}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
                 {/* Companies / Brands Master */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Store className="w-4 h-4 text-amber-500" />
-                    Authorized Companies / Brands ({brands.length})
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Store className="w-4 h-4 text-blue-500" />
+                      Authorized Companies / Brands ({brands.length})
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      Live Filterable
+                    </span>
+                  </div>
 
-                  <form onSubmit={(e) => { e.preventDefault(); if (newCompanyInput.trim()) { addBrand(newCompanyInput.trim()); setNewCompanyInput(''); } }} className="flex gap-2">
+                  <form onSubmit={handleAddCompany} className="flex gap-2">
                     <input
                       type="text"
                       value={newCompanyInput}
                       onChange={(e) => setNewCompanyInput(e.target.value)}
-                      placeholder="New Company / Brand Name..."
-                      className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl text-xs"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddCompany(e); }}
+                      placeholder="New Company / Brand Name (e.g. Dabur, ITC)..."
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
-                    <button type="submit" className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-bold">
+                    <button 
+                      type="button"
+                      onClick={handleAddCompany}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
                       Add
                     </button>
                   </form>
 
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs">
-                    {brands.map(b => (
-                      <div key={b.id || b.name} className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-between">
-                        <span className="font-bold text-slate-900 dark:text-white">{b.name}</span>
-                        <button onClick={() => deleteBrand(b.id || b._id)} className="text-red-500 hover:text-red-700 p-1">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    {brands.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400 text-xs">No brands added yet</div>
+                    ) : (
+                      brands.map((b, idx) => {
+                        const brandName = typeof b === 'string' ? b : (b.name || `Brand ${idx + 1}`);
+                        const brandId = (typeof b === 'object' && (b.id || b._id)) || brandName;
+                        return (
+                          <div key={brandId || idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-blue-500/30 transition-all">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                              <span className="font-extrabold text-slate-900 dark:text-white truncate">{brandName}</span>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => deleteBrand(brandId)} 
+                              className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
+                              title={`Delete ${brandName}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 

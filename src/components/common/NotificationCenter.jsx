@@ -138,11 +138,11 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllNotificationsAsRead}
-                          className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-extrabold transition-colors px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
+                          className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-extrabold transition-colors px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20"
                           title="Mark all as read"
                         >
                           <Check className="w-3 h-3" /> Mark Read
@@ -151,7 +151,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       {roleNotifications.length > 0 && (
                         <button
                           onClick={clearAllNotifications}
-                          className="text-[10px] text-slate-300 hover:text-rose-400 flex items-center gap-1 font-bold transition-colors px-2 py-1 bg-slate-800 rounded-lg"
+                          className="text-[10px] text-slate-300 hover:text-rose-400 flex items-center gap-1 font-bold transition-colors px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg"
                           title="Move active notifications to 10-day History"
                         >
                           <Trash2 className="w-3 h-3" /> Clear All
@@ -159,7 +159,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       )}
                       <button 
                         onClick={() => setIsOpen(false)} 
-                        className="text-slate-400 hover:text-white p-1 rounded-lg ml-1"
+                        className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -229,7 +229,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                                 e.stopPropagation();
                                 clearNotification(notif.id);
                               }}
-                              className="opacity-60 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-all shrink-0"
+                              className="opacity-60 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition-all shrink-0 self-center"
                               title="Move to History"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -245,7 +245,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                     <button
                       type="button"
                       onClick={() => setViewMode('history')}
-                      className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-amber-300 font-extrabold text-xs rounded-xl border border-amber-500/30 transition-all flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-amber-300 font-extrabold text-xs rounded-xl border border-amber-500/30 hover:border-amber-500/50 transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       <History className="w-4 h-4 text-amber-400" />
                       <span>View Notification History (Last 10 Days) ({roleHistory.length})</span>
@@ -273,11 +273,11 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       <span className="font-extrabold text-xs">Notification History (10d)</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {roleHistory.length > 0 && (
                         <button
                           onClick={clearNotificationHistory}
-                          className="text-[10px] text-rose-400 hover:text-rose-300 font-extrabold px-2 py-1 bg-rose-600/20 rounded-lg border border-rose-500/30 transition-colors flex items-center gap-1"
+                          className="text-[10px] text-rose-400 hover:text-rose-300 font-extrabold px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 rounded-lg border border-rose-500/30 transition-colors flex items-center gap-1"
                           title="Purge History"
                         >
                           <Trash2 className="w-3 h-3" /> Purge
@@ -285,7 +285,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       )}
                       <button 
                         onClick={() => setIsOpen(false)} 
-                        className="text-slate-400 hover:text-white p-1 rounded-lg"
+                        className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -301,12 +301,12 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                         value={historySearch}
                         onChange={(e) => setHistorySearch(e.target.value)}
                         placeholder="Search history log..."
-                        className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        className="w-full pl-8 pr-12 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                       />
                       {historySearch && (
                         <button
                           onClick={() => setHistorySearch('')}
-                          className="absolute right-2 top-2 text-slate-400 hover:text-white text-[10px] font-bold"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700"
                         >
                           Clear
                         </button>

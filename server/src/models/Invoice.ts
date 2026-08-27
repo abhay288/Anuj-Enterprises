@@ -5,6 +5,9 @@ export interface IInvoice extends Document {
   orderId: string;
   salesmanId: string;
   salesmanName: string;
+  shopOwnerName?: string;
+  shopOwnerArea?: string;
+  shopRoute?: string;
   customerId?: string;
   customerName: string;
   customerClassification: 'NORMAL' | 'DAMAGE' | 'EXPIRY';
@@ -28,6 +31,9 @@ const InvoiceSchema: Schema = new Schema(
     orderId: { type: String, required: true, index: true },
     salesmanId: { type: String, required: true, index: true },
     salesmanName: { type: String, required: true },
+    shopOwnerName: { type: String, default: '' },
+    shopOwnerArea: { type: String, default: '' },
+    shopRoute: { type: String, default: '' },
     customerId: { type: String, default: '' },
     customerName: { type: String, required: true },
     customerClassification: { type: String, enum: ['NORMAL', 'DAMAGE', 'EXPIRY'], default: 'NORMAL' },

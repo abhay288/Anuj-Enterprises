@@ -121,7 +121,9 @@ export const ProductGrid = () => {
     selectedCategoryFilter, 
     setSelectedCategoryFilter,
     isMobileFilterOpen,
-    setIsMobileFilterOpen
+    setIsMobileFilterOpen,
+    navigateTo,
+    t
   } = useApp();
 
   const [selectedCategories, setSelectedCategories] = useState(
@@ -220,15 +222,15 @@ export const ProductGrid = () => {
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
-              <span>Home</span>
+              <span className="cursor-pointer hover:underline" onClick={() => navigateTo('home')}>{t('nav_home', 'Home')}</span>
               <span>/</span>
-              <span className="font-bold text-slate-900 dark:text-white">Product Catalogue</span>
+              <span className="font-bold text-slate-900 dark:text-white">{t('nav_products', 'Product Catalogue')}</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              B2B Enterprise Catalogue & Sourcing
+              {t('b2b_catalogue_title', 'B2B Enterprise Catalogue & Sourcing')}
             </h1>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Displaying {filteredProducts.length} verified products with direct manufacturer supply & official invoices.
+              {t('displaying', 'Displaying')} {filteredProducts.length} {t('verified_products', 'verified products with direct manufacturer supply & official invoices.')}
             </p>
           </div>
 
@@ -240,7 +242,7 @@ export const ProductGrid = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, SKU, brand..."
+                placeholder={t('search_placeholder', 'Search name, SKU, brand...')}
                 className="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-900 text-slate-900 dark:text-white shadow-sm"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />

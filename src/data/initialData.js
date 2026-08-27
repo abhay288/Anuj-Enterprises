@@ -682,6 +682,58 @@ export const INITIAL_CUSTOMERS = [
     classification: "NORMAL",
     customerMode: "FULL",
     createdBy: "AE-SM-001"
+  },
+  {
+    id: "CUST-1005",
+    customerId: "CUST-1005",
+    name: "Kanpur Central FMCG Wholesale Mandi",
+    mobile: "+91 88876 83782",
+    email: "kanpur.mandi@anujdemo.com",
+    address: "Collectorganj Wholesale Grain Market, Shop 45",
+    city: "Kanpur",
+    state: "Uttar Pradesh",
+    classification: "NORMAL",
+    customerMode: "FULL",
+    createdBy: "AE-SM-001"
+  },
+  {
+    id: "CUST-1006",
+    customerId: "CUST-1006",
+    name: "Awadh Mega Mart & Superstore",
+    mobile: "+91 70719 79894",
+    email: "awadh.orders@lucknowmart.demo",
+    address: "Hazratganj Main Commercial Complex",
+    city: "Lucknow",
+    state: "Uttar Pradesh",
+    classification: "NORMAL",
+    customerMode: "FULL",
+    createdBy: "SLS-101"
+  },
+  {
+    id: "CUST-1007",
+    customerId: "CUST-1007",
+    name: "Taj City Provision & Confectionery Store",
+    mobile: "+91 98110 33219",
+    email: "tajprovision@agratraders.demo",
+    address: "Sanjay Place Trade Centre, Block B",
+    city: "Agra",
+    state: "Uttar Pradesh",
+    classification: "NORMAL",
+    customerMode: "QUICK",
+    createdBy: "SLS-102"
+  },
+  {
+    id: "CUST-1008",
+    customerId: "CUST-1008",
+    name: "Kashi Vishwanath Traders & General Store",
+    mobile: "+91 98390 12345",
+    email: "kashi.traders@varanasifmcg.demo",
+    address: "Godowlia Chowk Commercial Lane",
+    city: "Varanasi",
+    state: "Uttar Pradesh",
+    classification: "DAMAGE",
+    customerMode: "FULL",
+    createdBy: "AE-SM-001"
   }
 ];
 

@@ -86,7 +86,7 @@ export const NewArrivalsBanner = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-xs font-black text-amber-400">Quote Pending</span>
+                    <span className="text-[11px] font-bold text-amber-400/90 uppercase tracking-wider">{item.category || 'Wholesale'}</span>
                     <button
                       onClick={() => addToCart(item, 1)}
                       className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] rounded-lg transition-colors"

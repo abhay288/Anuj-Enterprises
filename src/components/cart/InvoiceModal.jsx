@@ -213,28 +213,29 @@ export const InvoiceModal = () => {
               </div>
             </div>
 
-            {/* B2B Customer & Salesman Information Bar */}
+            {/* B2B Customer & Shop Owner Information Bar */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div className="space-y-1">
-                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Customer Details</h4>
+                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Shop & Buyer Details</h4>
                 <p className="font-extrabold text-slate-900 text-sm">{inv.customerName}</p>
-                <p className="text-slate-600">Contact: {inv.customerMobile || "+91 98200 11223"}</p>
+                {inv.customerMobile && <p className="text-slate-600">Contact: {inv.customerMobile}</p>}
                 {inv.customerAddress && <p className="text-slate-600">Address: {inv.customerAddress}</p>}
-                {inv.customerCity && <p className="text-slate-600">Location: {inv.customerCity}, {inv.customerState || 'Maharashtra'}</p>}
+                {inv.customerCity && <p className="text-slate-600">Location: {inv.customerCity}, {inv.customerState || 'Uttar Pradesh'}</p>}
               </div>
 
               <div className="md:text-right border-t md:border-t-0 md:border-l border-slate-200 pt-3 md:pt-0 md:pl-6 space-y-1">
-                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Salesman & Territory Route Details</h4>
+                <h4 className="font-extrabold uppercase tracking-wider text-slate-500 text-[10px]">Shop Owner & Route Details</h4>
                 <p className="font-extrabold text-slate-900 text-sm">
-                  {inv.salesmanName || "Rajesh Kumar"} (ID: <span className="font-mono">{inv.salesmanId || "AE-SM-001"}</span>)
-                </p>
-                <p className="text-slate-600">Phone: {inv.salesmanPhone || "+91 98765 43210"}</p>
-                <p className="text-slate-800 font-semibold">
-                  Area: <strong>{inv.salesmanArea || "South Kanpur Central"}</strong>
+                  {inv.shopOwnerName || inv.salesmanName || "Shop Owner"}
                 </p>
                 <p className="text-slate-800 font-semibold">
-                  Route: <strong>{inv.salesmanRoute || "Route #4 — Wholesale Mandi"}</strong>
+                  Shop Owner Area: <strong>{inv.shopOwnerArea || inv.salesmanArea || "South Kanpur Central"}</strong>
                 </p>
+                {(inv.shopRoute || inv.salesmanRoute) && (
+                  <p className="text-slate-800 font-semibold">
+                    Shop Route: <strong>{inv.shopRoute || inv.salesmanRoute}</strong>
+                  </p>
+                )}
                 <div className="pt-1 flex items-center md:justify-end gap-2 text-xs">
                   <span className="font-bold text-slate-600">Payment Method:</span>
                   <span className={`px-2.5 py-0.5 font-black text-[10px] rounded uppercase shadow-sm ${
@@ -261,8 +262,6 @@ export const InvoiceModal = () => {
                     <th className="py-2.5 px-3">Product Name & SKU</th>
                     <th className="py-2.5 px-3">Pack Info</th>
                     <th className="py-2.5 px-3 text-center">Quantity</th>
-                    <th className="py-2.5 px-3 text-right">Unit Rate</th>
-                    <th className="py-2.5 px-3 text-right">Total Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium">
@@ -288,10 +287,8 @@ export const InvoiceModal = () => {
                         {item.caseSize && <div className="text-amber-800 font-bold">Case: {item.caseSize}</div>}
                       </td>
                       <td className="py-3 px-3 text-center font-bold text-sm">
-                        {item.qty} {item.isPriority && <span className="text-[10px] font-black text-amber-700 block">⚡ Urgent</span>}
+                        {item.qty} Units {item.isPriority && <span className="text-[10px] font-black text-amber-700 block">⚡ Urgent</span>}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono">Price On Request</td>
-                      <td className="py-3 px-3 text-right font-mono font-bold text-brand-900">Quote Pending</td>
                     </tr>
                   ))}
                 </tbody>
@@ -310,9 +307,9 @@ export const InvoiceModal = () => {
                     <tr>
                       <th className="py-1.5 px-2">#</th>
                       <th className="py-1.5 px-2">Company / Brand</th>
-                      <th className="py-1.5 px-2">Product Title</th>
+                      <th className="py-1.5 px-2">Product & SKU</th>
+                      <th className="py-1.5 px-2">MFD Date</th>
                       <th className="py-1.5 px-2 text-center">Expired Qty</th>
-                      <th className="py-1.5 px-2">Batch / Note</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-200/60 font-semibold text-[11px]">
@@ -320,9 +317,14 @@ export const InvoiceModal = () => {
                       <tr key={ex.id || i} className="hover:bg-red-100/40">
                         <td className="py-1.5 px-2 text-red-700">{i + 1}</td>
                         <td className="py-1.5 px-2 font-bold text-slate-900">{ex.company}</td>
-                        <td className="py-1.5 px-2 text-slate-800">{ex.product}</td>
+                        <td className="py-1.5 px-2 text-slate-800">
+                          <div>{ex.product}</div>
+                          {ex.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {ex.sku}</div>}
+                        </td>
+                        <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
+                          {ex.noDateAvailable ? 'No Date Available' : ex.mfdDate ? `MFD: ${ex.mfdDate}` : ex.batchOrNote || 'Undated'}
+                        </td>
                         <td className="py-1.5 px-2 text-center font-black text-red-700">{ex.qty} Units</td>
-                        <td className="py-1.5 px-2 text-slate-600 italic">{ex.batchOrNote || 'Expired Batch'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -342,9 +344,9 @@ export const InvoiceModal = () => {
                     <tr>
                       <th className="py-1.5 px-2">#</th>
                       <th className="py-1.5 px-2">Company / Brand</th>
-                      <th className="py-1.5 px-2">Product Title</th>
-                      <th className="py-1.5 px-2 text-center">Return Qty</th>
+                      <th className="py-1.5 px-2">Product & SKU</th>
                       <th className="py-1.5 px-2">Damage Reason</th>
+                      <th className="py-1.5 px-2 text-center">Damage Qty</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-200/60 font-semibold text-[11px]">
@@ -352,9 +354,14 @@ export const InvoiceModal = () => {
                       <tr key={rt.id || i} className="hover:bg-orange-100/40">
                         <td className="py-1.5 px-2 text-orange-700">{i + 1}</td>
                         <td className="py-1.5 px-2 font-bold text-slate-900">{rt.company}</td>
-                        <td className="py-1.5 px-2 text-slate-800">{rt.product}</td>
+                        <td className="py-1.5 px-2 text-slate-800">
+                          <div>{rt.product}</div>
+                          {rt.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {rt.sku}</div>}
+                        </td>
+                        <td className="py-1.5 px-2 text-orange-800 font-medium">
+                          {rt.reason || 'Damaged Packaging'}
+                        </td>
                         <td className="py-1.5 px-2 text-center font-black text-orange-700">{rt.qty} Units</td>
-                        <td className="py-1.5 px-2 text-slate-600 italic">{rt.reason || 'Damaged Packaging'}</td>
                       </tr>
                     ))}
                   </tbody>

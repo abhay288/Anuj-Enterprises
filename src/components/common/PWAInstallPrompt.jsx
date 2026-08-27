@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, Smartphone, ShieldCheck, X, Zap, 
-  WifiOff, CheckCircle2, ArrowRight, Share, PlusSquare 
+  CheckCircle2, ArrowRight, Share, PlusSquare 
 } from 'lucide-react';
 
 export const PWAInstallPrompt = () => {
@@ -10,7 +10,6 @@ export const PWAInstallPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
@@ -41,13 +40,7 @@ export const PWAInstallPrompt = () => {
       }
     };
 
-    // Online / Offline Listeners
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
 
     // If iOS and not standalone, offer gentle PWA prompt if not dismissed
     if (isIosDevice && !isStandalone) {
@@ -59,8 +52,6 @@ export const PWAInstallPrompt = () => {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
     };
   }, [isStandalone]);
 
@@ -89,33 +80,6 @@ export const PWAInstallPrompt = () => {
 
   return (
     <>
-      {/* OFFLINE STATUS BANNER WITH LOGO */}
-      <AnimatePresence>
-        {isOffline && (
-          <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-slate-950 px-4 py-2 flex items-center justify-between text-xs font-bold shadow-md"
-          >
-            <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-lg bg-slate-950 p-0.5 flex items-center justify-center shrink-0 border border-amber-400">
-                  <img src="/pwa-192x192.png" alt="Anuj PWA Logo" className="w-full h-full object-contain" />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <WifiOff className="w-4 h-4 text-slate-950 animate-pulse" />
-                  <span>Offline Mode Active — Browsing Cached FMCG SKUs & Prices</span>
-                </div>
-              </div>
-              <span className="bg-slate-950 text-amber-400 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider hidden sm:inline-block">
-                Anuj PWA Offline
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* PWA INSTALL PROMPT POPUP / MODAL */}
       <AnimatePresence>
         {showPrompt && (

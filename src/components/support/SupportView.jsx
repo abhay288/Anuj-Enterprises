@@ -196,15 +196,26 @@ export const SupportView = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Mobile Number</label>
-                  <input
-                    type="tel"
-                    required
-                    value={ticketForm.phone}
-                    onChange={(e) => setTicketForm({ ...ticketForm, phone: e.target.value })}
-                    placeholder="+91 98200 00000"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl"
-                  />
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Mobile Number *</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs font-black text-amber-500 select-none">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]{10}"
+                      maxLength={10}
+                      required
+                      value={ticketForm.phone}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setTicketForm({ ...ticketForm, phone: digits });
+                      }}
+                      placeholder="98XXXXXXXX"
+                      className="w-full pl-12 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email (Optional)</label>

@@ -61,23 +61,23 @@ export const Footer = () => {
           {/* Col 2: Quick Links */}
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
-              Enterprise Navigation
+              {t('enterprise_navigation', 'Enterprise Navigation')}
             </h4>
             <ul className="space-y-2 text-xs">
-              {['Home', 'Products Catalogue', 'About Us', 'Support & FAQ', 'Contact HQ'].map((item, idx) => (
+              {[
+                { name: t('nav_home', 'Home'), viewName: 'home' },
+                { name: t('nav_products', 'Products Catalogue'), viewName: 'catalogue' },
+                { name: t('nav_about', 'About Us'), viewName: 'about' },
+                { name: t('nav_support', 'Support & FAQ'), viewName: 'support' },
+                { name: t('nav_contact', 'Contact Us'), viewName: 'support' }
+              ].map((item, idx) => (
                 <li key={idx}>
                   <button
-                    onClick={() => {
-                      if (item === 'Home') navigateTo('home');
-                      else if (item === 'Products Catalogue') navigateTo('catalogue');
-                      else if (item === 'About Us') navigateTo('about');
-                      else if (item === 'Support & FAQ') navigateTo('support');
-                      else if (item === 'Contact HQ') navigateTo('support');
-                    }}
+                    onClick={() => navigateTo(item.viewName)}
                     className="hover:text-amber-400 transition-colors flex items-center gap-1 group"
                   >
                     <ArrowUpRight className="w-3 h-3 text-slate-600 group-hover:text-amber-400 transition-colors" />
-                    {item}
+                    {item.name}
                   </button>
                 </li>
               ))}
@@ -87,7 +87,7 @@ export const Footer = () => {
           {/* Col 3: Categories */}
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
-              Top Industrial Categories
+              {t('top_categories', 'Top Industrial Categories')}
             </h4>
             <ul className="space-y-2 text-xs">
               {categories.slice(0, 5).map((cat) => (
@@ -106,12 +106,12 @@ export const Footer = () => {
           {/* Col 4: Contact HQ & Map Placeholder */}
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
-              Corporate Headquarters
+              {t('corporate_hq', 'Corporate Headquarters')}
             </h4>
             <div className="space-y-2.5 text-xs">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>Kanpur, Uttar Pradesh</span>
+                <span>{t('office_address', 'Collectorganj Wholesale Market, Kanpur, Uttar Pradesh - 208001')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -131,7 +131,7 @@ export const Footer = () => {
             <div className="mt-3 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-2 relative group">
               <div className="h-20 w-full bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-2">
                 <MapPin className="w-5 h-5 text-amber-400 animate-bounce mb-1" />
-                <span className="text-[10px] text-slate-300 font-bold">Kanpur HQ & Central Dispatch Hub</span>
+                <span className="text-[10px] text-slate-300 font-bold">{t('kanpur_hub', 'Kanpur HQ & Central Dispatch Hub')}</span>
               </div>
             </div>
           </div>
@@ -140,31 +140,31 @@ export const Footer = () => {
         {/* Bottom Legal Bar */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
-            <span>© 2026 Anuj Enterprises. All Rights Reserved.</span>
+            <span>{t('copyright', '© 2026 Anuj Enterprises. All Rights Reserved.')}</span>
             <span>•</span>
             <button 
               onClick={() => { navigateTo('privacy-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
               className="hover:text-amber-400 transition-colors font-medium"
             >
-              Privacy Policy
+              {t('privacy_policy', 'Privacy Policy')}
             </button>
             <span>•</span>
             <button 
               onClick={() => { navigateTo('terms-of-supply'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
               className="hover:text-amber-400 transition-colors font-medium"
             >
-              Terms of Supply
+              {t('terms_of_supply', 'Terms of Supply')}
             </button>
             <span>•</span>
             <button 
               onClick={() => { navigateTo('return-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
               className="hover:text-amber-400 transition-colors font-medium"
             >
-              Return & Claims Policy
+              {t('return_policy', 'Return & Claims Policy')}
             </button>
           </div>
           <div className="text-slate-400 text-xs">
-            Official B2B FMCG Distribution & Sourcing Platform • Kanpur HQ
+            {t('official_platform_notice', 'Official B2B FMCG Distribution & Sourcing Platform • Kanpur HQ')}
           </div>
         </div>
       </div>

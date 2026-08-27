@@ -57,8 +57,21 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const t = useCallback((key, fallback) => {
+    if (!key) return fallback || '';
     const langDict = translations[language] || translations.en;
-    return langDict[key] || fallback || key;
+    if (langDict[key]) return langDict[key];
+
+    if (language === 'hi') {
+      const enDict = translations.en;
+      const hiDict = translations.hi;
+      const searchStr = String(key).trim().toLowerCase();
+      for (const [k, val] of Object.entries(enDict)) {
+        if (typeof val === 'string' && val.trim().toLowerCase() === searchStr) {
+          return hiDict[k] || fallback || key;
+        }
+      }
+    }
+    return fallback !== undefined ? fallback : key;
   }, [language]);
 
   const [products, setProducts] = useState(() => {
@@ -88,7 +101,13 @@ export const AppProvider = ({ children }) => {
 
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('anuj_customers_v3');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
   });
 
   const [selectedCustomerForOrder, setSelectedCustomerForOrder] = useState(null);
@@ -406,11 +425,12 @@ export const AppProvider = ({ children }) => {
 
       try {
         const custRes = await customerService.getCustomers();
-        if (custRes.data?.customers && custRes.data.customers.length > 0) {
+        if (custRes.data?.customers) {
           setCustomers(custRes.data.customers);
+          localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers));
         }
       } catch (e) {
-        console.log('Using initial customers cache');
+        console.log('Customer fetch from DB');
       }
     };
 
@@ -531,6 +551,7 @@ export const AppProvider = ({ children }) => {
           if (type === 'SYNC_CATEGORIES' && payload) setCategories(payload);
           if (type === 'SYNC_BRANDS' && payload) setBrands(payload);
           if (type === 'SYNC_SALESMEN' && payload) setSalesmen(payload);
+          if (type === 'SYNC_CUSTOMERS' && payload) setCustomers(payload);
           if (type === 'SYNC_ORDERS' && payload) setOrders(payload);
           if (type === 'SYNC_NOTIFICATIONS' && payload) setNotifications(payload);
           if (type === 'SYNC_CART' && payload && payload.key === activeCartKeyRef.current) setCart(payload.cart);
@@ -547,6 +568,7 @@ export const AppProvider = ({ children }) => {
         if (e.key === 'anuj_categories_v3') setCategories(JSON.parse(e.newValue));
         if (e.key === 'anuj_brands_v3') setBrands(JSON.parse(e.newValue));
         if (e.key === 'anuj_salesmen_v3') setSalesmen(JSON.parse(e.newValue));
+        if (e.key === 'anuj_customers_v3') setCustomers(JSON.parse(e.newValue));
         if (e.key === 'anuj_orders_v3') setOrders(JSON.parse(e.newValue));
         if (e.key === 'anuj_notifications_v1') setNotifications(JSON.parse(e.newValue));
         if (e.key === activeCartKeyRef.current) setCart(JSON.parse(e.newValue));
@@ -990,10 +1012,13 @@ export const AppProvider = ({ children }) => {
       customerEmail: customerDetails.customerEmail || "purchase@relianceretail.demo",
       customerType: customerDetails.customerType || "Normal Customer",
       salesmanId: customerDetails.salesmanId || user.salesmanId || "AE-SM-001",
-      salesmanName: customerDetails.salesmanName || user.name || "Rajesh Kumar",
+      salesmanName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
       salesmanPhone: customerDetails.salesmanPhone || user.phone || "+91 98765 43210",
-      salesmanArea: customerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      salesmanArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
+      salesmanRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      shopOwnerName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
+      shopOwnerArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
+      shopRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "",
       paymentMethod: customerDetails.paymentMethod || "Cash",
       items: cart.map(item => ({
         id: item.product.id,
@@ -1076,10 +1101,13 @@ export const AppProvider = ({ children }) => {
       customerState: customerDetails.customerState || "Maharashtra",
       customerType: customerDetails.customerType || "Normal Customer",
       salesmanId: customerDetails.salesmanId || user.salesmanId || "AE-SM-001",
-      salesmanName: customerDetails.salesmanName || user.name || "Rajesh Kumar",
+      salesmanName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
       salesmanPhone: customerDetails.salesmanPhone || user.phone || "+91 98765 43210",
-      salesmanArea: customerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      salesmanArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
+      salesmanRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      shopOwnerName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
+      shopOwnerArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
+      shopRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "",
       paymentMethod: customerDetails.paymentMethod || "Cash",
       orderType: "Offline Collection",
       paymentMode: customerDetails.paymentMethod || "Cash",
@@ -1214,25 +1242,33 @@ export const AppProvider = ({ children }) => {
 
   const updateProduct = async (updatedProd) => {
     const formatted = formatRichProductData(updatedProd);
+    const targetId = formatted.id || formatted._id;
 
     // 1. Instant local update & cross-tab sync
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === formatted.id || p._id === formatted._id) ? { ...p, ...formatted } : p);
+      const updated = prev.map(p => {
+        const isMatch = (targetId && (p.id === targetId || (p._id && p._id === targetId))) ||
+                        (formatted.id && p.id === formatted.id) ||
+                        (formatted._id && p._id && p._id === formatted._id);
+        return isMatch ? { ...p, ...formatted } : p;
+      });
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
-    showToast(`Product details card updated live on website`, 'success');
+    showToast(`Product details updated live on website`, 'success');
 
     // 2. Background API Sync
     try {
-      await productService.updateProduct(formatted.id || formatted._id, formatted);
+      if (targetId) {
+        await productService.updateProduct(targetId, formatted);
+      }
     } catch (e) {}
   };
 
   const deleteProduct = async (productId) => {
     // 1. Instant local delete & cross-tab sync
     setProducts(prev => {
-      const updated = prev.filter(p => p.id !== productId && p._id !== productId);
+      const updated = prev.filter(p => p.id !== productId && (!p._id || p._id !== productId));
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1256,7 +1292,7 @@ export const AppProvider = ({ children }) => {
 
   const toggleProductFeatured = async (productId) => {
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isFeatured: !p.isFeatured } : p);
+      const updated = prev.map(p => (p.id === productId || (p._id && p._id === productId)) ? { ...p, isFeatured: !p.isFeatured } : p);
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1268,7 +1304,7 @@ export const AppProvider = ({ children }) => {
 
   const toggleProductNew = async (productId) => {
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, isNew: !p.isNew } : p);
+      const updated = prev.map(p => (p.id === productId || (p._id && p._id === productId)) ? { ...p, isNew: !p.isNew } : p);
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1278,9 +1314,24 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
+  const toggleProductNrp = async (productId) => {
+    setProducts(prev => {
+      const updated = prev.map(p => (p.id === productId || (p._id && p._id === productId)) ? { ...p, isNrp: !p.isNrp } : p);
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+    showToast('Updated NRP Status live', 'info');
+    try {
+      const current = products.find(p => p.id === productId || (p._id && p._id === productId));
+      if (current) {
+        await productService.updateProduct(productId, { ...current, isNrp: !current.isNrp });
+      }
+    } catch (e) {}
+  };
+
   const toggleProductStatus = async (productId) => {
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === productId || p._id === productId) ? { ...p, status: p.status === 'Published' ? 'Draft' : 'Published' } : p);
+      const updated = prev.map(p => (p.id === productId || (p._id && p._id === productId)) ? { ...p, status: p.status === 'Published' ? 'Draft' : 'Published' } : p);
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1373,11 +1424,20 @@ export const AppProvider = ({ children }) => {
 
   // Companies & Categories Management
   const addCategory = async (catName) => {
-    if (!catName || !catName.trim()) return;
-    const trimmed = catName.trim();
+    const nameStr = typeof catName === 'object' ? (catName.name || '') : String(catName || '');
+    const trimmed = nameStr.trim();
+    if (!trimmed) return;
+
+    const exists = categories.some(c => (typeof c === 'object' ? c.name : c)?.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      showToast(`Category "${trimmed}" already exists in catalog`, 'warning');
+      return;
+    }
+
     const newCat = { id: `cat-${Date.now()}`, name: trimmed, count: 0 };
     setCategories(prev => {
       const updated = [...prev, newCat];
+      localStorage.setItem('anuj_categories_v3', JSON.stringify(updated));
       broadcastSync('SYNC_CATEGORIES', updated);
       return updated;
     });
@@ -1389,7 +1449,13 @@ export const AppProvider = ({ children }) => {
 
   const deleteCategory = async (catId) => {
     setCategories(prev => {
-      const updated = prev.filter(c => c.id !== catId && c._id !== catId);
+      const updated = prev.filter(c => {
+        if (typeof c === 'object') {
+          return c.id !== catId && c._id !== catId && c.name !== catId;
+        }
+        return c !== catId;
+      });
+      localStorage.setItem('anuj_categories_v3', JSON.stringify(updated));
       broadcastSync('SYNC_CATEGORIES', updated);
       return updated;
     });
@@ -1400,11 +1466,20 @@ export const AppProvider = ({ children }) => {
   };
 
   const addBrand = async (brandName) => {
-    if (!brandName || !brandName.trim()) return;
-    const trimmed = brandName.trim();
+    const nameStr = typeof brandName === 'object' ? (brandName.name || '') : String(brandName || '');
+    const trimmed = nameStr.trim();
+    if (!trimmed) return;
+
+    const exists = brands.some(b => (typeof b === 'object' ? b.name : b)?.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      showToast(`Company "${trimmed}" already exists in catalog`, 'warning');
+      return;
+    }
+
     const newBrand = { id: `brand-${Date.now()}`, name: trimmed, country: 'India', count: 0, isNew: true };
     setBrands(prev => {
       const updated = [newBrand, ...prev];
+      localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
       broadcastSync('SYNC_BRANDS', updated);
       return updated;
     });
@@ -1416,7 +1491,13 @@ export const AppProvider = ({ children }) => {
 
   const deleteBrand = async (brandId) => {
     setBrands(prev => {
-      const updated = prev.filter(b => b.id !== brandId && b._id !== brandId);
+      const updated = prev.filter(b => {
+        if (typeof b === 'object') {
+          return b.id !== brandId && b._id !== brandId && b.name !== brandId;
+        }
+        return b !== brandId;
+      });
+      localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
       broadcastSync('SYNC_BRANDS', updated);
       return updated;
     });
@@ -1541,6 +1622,21 @@ export const AppProvider = ({ children }) => {
     });
     showToast('Customer account deleted successfully', 'info');
   }, []);
+
+  const refreshCustomers = useCallback(async () => {
+    try {
+      const res = await customerService.getCustomers();
+      if (res.data?.customers) {
+        setCustomers(res.data.customers);
+        localStorage.setItem('anuj_customers_v3', JSON.stringify(res.data.customers));
+        broadcastSync('SYNC_CUSTOMERS', res.data.customers);
+        return res.data.customers;
+      }
+    } catch (e) {
+      console.log('Customer fetch error:', e);
+    }
+    return [];
+  }, [broadcastSync]);
 
   const loadCustomerForOrder = (customer) => {
     setSelectedCustomerForOrder(customer);
@@ -1796,6 +1892,7 @@ export const AppProvider = ({ children }) => {
       duplicateProduct,
       toggleProductFeatured,
       toggleProductNew,
+      toggleProductNrp,
       toggleProductStatus,
       addSalesman,
       updateSalesman,
@@ -1809,6 +1906,7 @@ export const AppProvider = ({ children }) => {
       saveCustomer,
       updateCustomer,
       deleteCustomer,
+      refreshCustomers,
       loadCustomerForOrder,
       reorderPreviousOrder,
       restockProduct,

@@ -20,9 +20,14 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       customerState, 
       customerEmail, 
       customerType, 
+      shopOwnerName,
+      shopOwnerArea,
+      shopRoute,
       salesmanId, 
       salesmanName, 
       salesmanPhone,
+      salesmanArea,
+      salesmanRoute,
       expiredItems,
       returnItems
     } = req.body || {};
@@ -38,10 +43,14 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     if (!customerName || !String(customerName).trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Customer name is required',
+        message: 'Shop name is required',
         code: 'MISSING_CUSTOMER_NAME'
       });
     }
+
+    const resolvedShopOwnerName = shopOwnerName || salesmanName || req.user?.name || 'Shop Owner';
+    const resolvedShopOwnerArea = shopOwnerArea || salesmanArea || 'Kanpur Mandi Area';
+    const resolvedShopRoute = shopRoute || salesmanRoute || '';
 
     const processedItems = [];
     let grandTotal = 0;
@@ -171,7 +180,10 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       customerName: customerObj.name,
       customerClassification: normalizedClassification,
       salesmanId: salesmanId || req.user?.salesmanId || 'AE-SM-001',
-      salesmanName: salesmanName || req.user?.name || 'Field Sales Executive',
+      salesmanName: resolvedShopOwnerName,
+      shopOwnerName: resolvedShopOwnerName,
+      shopOwnerArea: resolvedShopOwnerArea,
+      shopRoute: resolvedShopRoute,
       shippingAddress: {
         street: customerAddress || '',
         city: customerCity || '',
@@ -198,6 +210,9 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       orderId,
       salesmanId: order.salesmanId,
       salesmanName: order.salesmanName,
+      shopOwnerName: resolvedShopOwnerName,
+      shopOwnerArea: resolvedShopOwnerArea,
+      shopRoute: resolvedShopRoute,
       customerId: customerObj.customerId,
       customerName: order.customerName,
       customerClassification: normalizedClassification,
