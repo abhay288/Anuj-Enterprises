@@ -7,6 +7,7 @@ import { AdminActivity } from '../models/AdminActivity.js';
 import { InventoryLog } from '../models/InventoryLog.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { parsePagination, escapeRegex } from '../utils/securityUtils.js';
+import { sendOrderInvoiceEmail } from '../utils/emailService.js';
 
 export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
@@ -241,6 +242,24 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       issuedAt: new Date()
     });
     await invoice.save();
+
+    // Asynchronously dispatch Order Invoice Email via Nodemailer (Gmail / SMTP)
+    sendOrderInvoiceEmail({
+      orderId,
+      invoiceNumber,
+      customerName: order.customerName,
+      shopOwnerName: resolvedShopOwnerName,
+      customerMobile: customerMobile || '+91 98200 11223',
+      customerAddress: customerAddress || '',
+      customerCity: customerCity || '',
+      customerState: customerState || '',
+      totalQuantity,
+      totalAmount: grandTotal,
+      items: processedItems,
+      date: new Date().toISOString().split('T')[0]
+    }, customerEmail).catch(err => {
+      console.warn('[OrderController] Email dispatch notification caught:', err?.message || err);
+    });
 
     return res.status(201).json({
       success: true,
