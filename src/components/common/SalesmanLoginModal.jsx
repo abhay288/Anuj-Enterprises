@@ -27,9 +27,9 @@ export const SalesmanLoginModal = () => {
   
   // Normal User State (Sign In & Self-Registration)
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [userPassword, setUserPassword] = useState('');
+  const [userName, setUserName] = useState('Reliance Retail Supermarket Chains');
+  const [userEmail, setUserEmail] = useState('purchase@relianceretail.demo');
+  const [userPassword, setUserPassword] = useState('Cust@123');
   const [showUserPassword, setShowUserPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [isCustomCity, setIsCustomCity] = useState(false);
@@ -138,6 +138,12 @@ export const SalesmanLoginModal = () => {
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const fillDemoUser = () => {
+    setUserEmail('purchase@relianceretail.demo');
+    setUserPassword('Cust@123');
+    setUserName('Reliance Retail Supermarket Chains');
   };
 
   const fillDemoSalesman = () => {
@@ -251,9 +257,19 @@ export const SalesmanLoginModal = () => {
                   /* Option 1: Normal User Sign In */
                   <form onSubmit={handleUserSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Email Address / Mobile Number *
-                      </label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                          Email Address / Mobile Number *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={fillDemoUser}
+                          className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-500" />
+                          Fill Demo User
+                        </button>
+                      </div>
                       <input
                         type="text"
                         required
@@ -286,6 +302,20 @@ export const SalesmanLoginModal = () => {
                           {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                    </div>
+
+                    <div className="p-3 bg-amber-50 dark:bg-slate-950 rounded-xl border border-amber-200 dark:border-slate-800 text-[11px] text-amber-800 dark:text-amber-300">
+                      <div className="flex justify-between items-center mb-1">
+                        <strong>Demo Customer Credentials:</strong>
+                        <button
+                          type="button"
+                          onClick={fillDemoUser}
+                          className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          Autofill
+                        </button>
+                      </div>
+                      <strong>Email:</strong> purchase@relianceretail.demo | <strong>Password:</strong> Cust@123
                     </div>
 
                     <button
