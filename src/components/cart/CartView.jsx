@@ -35,13 +35,37 @@ export const CartView = () => {
   // Customer Entry Flow Modes: 'quick' | 'full'
   const [customerMode, setCustomerMode] = useState('quick'); 
 
-  // Customer Form Fields
-  const [customerName, setCustomerName] = useState(() => selectedCustomerForOrder?.name || '');
-  const [customerMobile, setCustomerMobile] = useState(() => selectedCustomerForOrder?.mobile || '');
-  const [customerAddress, setCustomerAddress] = useState(() => selectedCustomerForOrder?.address || '');
-  const [customerCity, setCustomerCity] = useState(() => selectedCustomerForOrder?.city || '');
-  const [customerState, setCustomerState] = useState(() => selectedCustomerForOrder?.state || '');
-  const [customerEmail, setCustomerEmail] = useState(() => selectedCustomerForOrder?.email || '');
+  // Customer Form Fields (Auto-filled from user profile or selected customer)
+  const [customerName, setCustomerName] = useState(() => {
+    if (selectedCustomerForOrder?.name) return selectedCustomerForOrder.name;
+    if (user?.role === 'customer') return user.shopName || user.name || '';
+    return '';
+  });
+  const [customerMobile, setCustomerMobile] = useState(() => {
+    if (selectedCustomerForOrder?.mobile) return selectedCustomerForOrder.mobile;
+    if (user?.role === 'customer') return user.mobile || '';
+    return '';
+  });
+  const [customerAddress, setCustomerAddress] = useState(() => {
+    if (selectedCustomerForOrder?.address) return selectedCustomerForOrder.address;
+    if (user?.role === 'customer') return user.address || '';
+    return '';
+  });
+  const [customerCity, setCustomerCity] = useState(() => {
+    if (selectedCustomerForOrder?.city) return selectedCustomerForOrder.city;
+    if (user?.role === 'customer') return user.city || 'Kanpur';
+    return '';
+  });
+  const [customerState, setCustomerState] = useState(() => {
+    if (selectedCustomerForOrder?.state) return selectedCustomerForOrder.state;
+    if (user?.role === 'customer') return user.state || 'Uttar Pradesh';
+    return '';
+  });
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    if (selectedCustomerForOrder?.email) return selectedCustomerForOrder.email;
+    if (user?.role === 'customer') return user.email || '';
+    return '';
+  });
 
   // Expired Products Claim System State
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
@@ -312,12 +336,35 @@ export const CartView = () => {
       setCustomerCity(selectedCustomerForOrder.city || '');
       setCustomerState(selectedCustomerForOrder.state || '');
       setCustomerEmail(selectedCustomerForOrder.email || '');
+      if (selectedCustomerForOrder.ownerName || selectedCustomerForOrder.shopOwnerName) {
+        setSalesmanNameInput(selectedCustomerForOrder.ownerName || selectedCustomerForOrder.shopOwnerName || '');
+      }
+      if (selectedCustomerForOrder.area || selectedCustomerForOrder.city) {
+        setSalesmanAreaInput(selectedCustomerForOrder.area || selectedCustomerForOrder.city || '');
+      }
+    } else if (user?.role === 'customer') {
+      setCustomerName(user.shopName || user.name || '');
+      setCustomerMobile(user.mobile || '');
+      setCustomerAddress(user.address || '');
+      setCustomerCity(user.city || 'Kanpur');
+      setCustomerState(user.state || 'Uttar Pradesh');
+      setCustomerEmail(user.email || '');
+      setSalesmanNameInput(user.ownerName || user.shopOwnerName || user.name || '');
+      setSalesmanAreaInput(user.area || user.city || 'Kanpur');
     }
-  }, [selectedCustomerForOrder]);
+  }, [selectedCustomerForOrder, user]);
 
   const [salesmanIdInput, setSalesmanIdInput] = useState(() => user?.salesmanId || '');
-  const [salesmanNameInput, setSalesmanNameInput] = useState(() => (user?.role === 'salesman' ? user.name : ''));
-  const [salesmanAreaInput, setSalesmanAreaInput] = useState(() => user?.region || '');
+  const [salesmanNameInput, setSalesmanNameInput] = useState(() => {
+    if (user?.role === 'salesman') return user.name || '';
+    if (user?.role === 'customer') return user.ownerName || user.shopOwnerName || user.name || '';
+    return '';
+  });
+  const [salesmanAreaInput, setSalesmanAreaInput] = useState(() => {
+    if (user?.role === 'salesman') return user.region || '';
+    if (user?.role === 'customer') return user.area || user.city || 'Kanpur';
+    return '';
+  });
   const [salesmanRouteInput, setSalesmanRouteInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'Credit' | 'Online' | 'Special'
 
@@ -624,6 +671,22 @@ export const CartView = () => {
                   {t('enter_customer_details', 'Enter customer or retail store name for invoice generation')}
                 </p>
               </div>
+
+              {user?.role === 'customer' && (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>Auto-filled from your registered store profile: <strong>{user.shopName || user.name}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('customer-dash')}
+                    className="text-[11px] font-black text-amber-600 dark:text-amber-400 underline hover:text-amber-700 dark:hover:text-amber-200"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              )}
 
               {/* Form Input Fields */}
               <div className="space-y-4 pt-2">

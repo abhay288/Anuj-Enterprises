@@ -911,11 +911,16 @@ export const AppProvider = ({ children }) => {
       setUser({
         role: 'customer',
         name: foundCust.name,
+        shopName: foundCust.name,
+        ownerName: foundCust.ownerName || foundCust.shopOwnerName || foundCust.name,
         email: foundCust.email || target,
         mobile: foundCust.mobile,
         customerId: foundCust.customerId || foundCust.id,
-        city: foundCust.city,
-        address: foundCust.address
+        city: foundCust.city || 'Kanpur',
+        state: foundCust.state || 'Uttar Pradesh',
+        address: foundCust.address || '',
+        area: foundCust.area || foundCust.city || 'Kanpur',
+        gstin: foundCust.gstin || ''
       });
       setIsSalesmanModalOpen(false);
       showToast(`Welcome back, ${foundCust.name}!`, 'success');
@@ -925,7 +930,16 @@ export const AppProvider = ({ children }) => {
     // 3. Fallback sign in
     const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
     recordSuccessfulAuth('user');
-    setUser({ role: 'customer', name: displayName, email: target });
+    setUser({ 
+      role: 'customer', 
+      name: displayName,
+      shopName: displayName,
+      ownerName: displayName,
+      email: target,
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
+      area: 'Kanpur'
+    });
     setIsSalesmanModalOpen(false);
     showToast(`Signed in as ${displayName}`, 'success');
     return true;
@@ -1614,6 +1628,76 @@ export const AppProvider = ({ children }) => {
     showToast(`Customer "${custData.name}" updated successfully`, 'success');
   }, []);
 
+  const updateCustomerProfile = useCallback((profileData) => {
+    // 1. Update active user session state & storage
+    setUser(prev => {
+      const updatedUser = {
+        ...prev,
+        ...profileData,
+        name: profileData.name || profileData.shopName || prev.name,
+        shopName: profileData.shopName || profileData.name || prev.shopName || prev.name,
+        ownerName: profileData.ownerName || profileData.shopOwnerName || prev.ownerName || profileData.name || prev.name,
+        mobile: profileData.mobile || prev.mobile,
+        email: profileData.email || prev.email,
+        address: profileData.address !== undefined ? profileData.address : prev.address,
+        city: profileData.city || prev.city || 'Kanpur',
+        state: profileData.state || prev.state || 'Uttar Pradesh',
+        area: profileData.area || profileData.city || prev.area || 'Kanpur',
+        gstin: profileData.gstin !== undefined ? profileData.gstin : prev.gstin
+      };
+      localStorage.setItem('anuj_auth_user_v2', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+
+    // 2. Update persistent customer roster
+    setCustomers(prev => {
+      let matched = false;
+      const updated = prev.map(c => {
+        const isMatch = (profileData.id && c.id === profileData.id) ||
+          (profileData.customerId && c.customerId === profileData.customerId) ||
+          (profileData.email && c.email && c.email.toLowerCase() === profileData.email.toLowerCase()) ||
+          (profileData.mobile && c.mobile && c.mobile.replace(/\D/g, '') === profileData.mobile.replace(/\D/g, ''));
+        
+        if (isMatch) {
+          matched = true;
+          return {
+            ...c,
+            ...profileData,
+            name: profileData.shopName || profileData.name || c.name,
+            ownerName: profileData.ownerName || profileData.shopOwnerName || c.ownerName || profileData.name
+          };
+        }
+        return c;
+      });
+
+      if (!matched) {
+        const newRecord = {
+          id: profileData.id || `CUST-${Date.now()}`,
+          customerId: profileData.customerId || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
+          name: profileData.shopName || profileData.name || 'Registered Retailer',
+          ownerName: profileData.ownerName || profileData.shopOwnerName || profileData.name,
+          mobile: profileData.mobile || '',
+          email: profileData.email || '',
+          address: profileData.address || '',
+          city: profileData.city || 'Kanpur',
+          state: profileData.state || 'Uttar Pradesh',
+          area: profileData.area || profileData.city || 'Kanpur',
+          gstin: profileData.gstin || '',
+          classification: 'NORMAL',
+          customerMode: 'FULL',
+          password: profileData.password || 'Cust@123'
+        };
+        updated.unshift(newRecord);
+      }
+
+      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      return updated;
+    });
+
+    showToast('✅ Profile & Store details updated successfully!', 'success');
+    return true;
+  }, []);
+
   const deleteCustomer = useCallback((custId) => {
     setCustomers(prev => {
       const updated = prev.filter(c => c.id !== custId && c.customerId !== custId);
@@ -1905,6 +1989,7 @@ export const AppProvider = ({ children }) => {
       deleteBrand,
       saveCustomer,
       updateCustomer,
+      updateCustomerProfile,
       deleteCustomer,
       refreshCustomers,
       loadCustomerForOrder,

@@ -40,7 +40,18 @@ export const BottomNav = () => {
       ];
     }
 
-    // NORMAL USER / GUEST TABS: Home, Categories, Search, Cart, Profile
+    // CUSTOMER TABS: Home, Products, Invoices, Cart, My Account
+    if (user.role === 'customer') {
+      return [
+        { id: 'home', label: t('nav_home', 'Home'), icon: Home, action: () => navigateTo('home'), active: view === 'home' },
+        { id: 'catalogue', label: t('nav_products', 'Products'), icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
+        { id: 'invoices', label: t('download_invoice', 'Invoices'), icon: FileText, action: () => navigateTo('customer-dash'), active: view === 'customer-dash' },
+        { id: 'cart', label: t('nav_cart', 'Cart'), icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
+        { id: 'profile', label: 'My Account', icon: User, action: () => navigateTo('customer-dash'), active: view === 'customer-dash' },
+      ];
+    }
+
+    // GUEST TABS: Home, Categories, Search, Cart, Profile/Login
     return [
       { id: 'home', label: t('nav_home', 'Home'), icon: Home, action: () => navigateTo('home'), active: view === 'home' },
       { id: 'categories', label: t('nav_categories', 'Categories'), icon: Grid, action: () => { navigateTo('catalogue'); setIsMobileFilterOpen(true); }, active: view === 'catalogue' },

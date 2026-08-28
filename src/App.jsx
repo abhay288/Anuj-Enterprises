@@ -15,6 +15,7 @@ const ProductDetailView = lazy(() => import('./components/detail/ProductDetailVi
 const CartView = lazy(() => import('./components/cart/CartView').then(m => ({ default: m.CartView })));
 const SalesmanDashboard = lazy(() => import('./components/salesman/SalesmanDashboard').then(m => ({ default: m.SalesmanDashboard })));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const CustomerDashboard = lazy(() => import('./components/customer/CustomerDashboard').then(m => ({ default: m.CustomerDashboard })));
 const AboutView = lazy(() => import('./components/about/AboutView').then(m => ({ default: m.AboutView })));
 const SupportView = lazy(() => import('./components/support/SupportView').then(m => ({ default: m.SupportView })));
 const LegalView = lazy(() => import('./components/legal/LegalView').then(m => ({ default: m.LegalView })));
@@ -51,6 +52,7 @@ const MainContent = () => {
           {view === 'catalogue' && <ProductGrid />}
           {view === 'product-detail' && <ProductDetailView />}
           {view === 'cart' && <CartView />}
+          {(view === 'customer-dash' || view === 'customer' || view === 'user-dash' || view === 'profile') && <CustomerDashboard />}
           {(view === 'salesman-dash' || view === 'salesman') && <SalesmanDashboard />}
           {(view === 'admin-dash' || view === 'admin') && <AdminDashboard />}
           {view === 'about' && <AboutView />}

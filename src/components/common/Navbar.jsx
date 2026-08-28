@@ -198,6 +198,29 @@ export const Navbar = () => {
                       className="absolute right-0 top-full pt-2 w-56 z-50"
                     >
                       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 space-y-1">
+                        {user.role === 'customer' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setIsUserMenuOpen(false);
+                                navigateTo('customer-dash');
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-amber-500/10 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 rounded-xl flex items-center gap-2"
+                            >
+                              <LayoutDashboard className="w-4 h-4 text-amber-500" /> Customer Portal & Invoices
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsUserMenuOpen(false);
+                                navigateTo('customer-dash');
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center gap-2"
+                            >
+                              <User className="w-4 h-4 text-slate-400" /> Store Profile & Settings
+                            </button>
+                          </>
+                        )}
+
                         {user.role === 'salesman' && (
                           <button
                             onClick={() => {
