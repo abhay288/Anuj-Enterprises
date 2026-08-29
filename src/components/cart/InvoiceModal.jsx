@@ -4,10 +4,11 @@ import {
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
   Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Truck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
+import { sendDeliveryWhatsAppNotification } from '../../utils/deliveryNotificationUtils';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
@@ -159,11 +160,19 @@ export const InvoiceModal = () => {
               </button>
 
               <button
-                onClick={handleShareWhatsApp}
+                onClick={() => sendDeliveryWhatsAppNotification(inv, {}, showToast)}
                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow"
-                title="Share via WhatsApp"
+                title="Send Out For Delivery WhatsApp Alert to Customer"
               >
-                <MessageSquare className="w-4 h-4" /> <span>WhatsApp</span>
+                <Truck className="w-4 h-4" /> <span>Notify Delivery</span>
+              </button>
+
+              <button
+                onClick={handleShareWhatsApp}
+                className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow"
+                title="Share Invoice PDF via WhatsApp"
+              >
+                <MessageSquare className="w-4 h-4" /> <span>Share PDF</span>
               </button>
               
               <button

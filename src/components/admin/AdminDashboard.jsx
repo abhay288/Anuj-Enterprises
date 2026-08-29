@@ -9,7 +9,8 @@ import {
   Store, Clock, AlertCircle, ArrowUpRight, ArrowDownRight, PackageCheck,
   PackageX, ShieldAlert, ArrowRight, PackagePlus, History, SlidersHorizontal,
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
-  BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target
+  BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target,
+  Truck, MessageSquare, Send, ExternalLink
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -19,6 +20,7 @@ import { useApp } from '../../context/AppContext';
 import { analyticsService } from '../../services/analyticsService';
 import { inventoryService } from '../../services/inventoryService';
 import { AdminPasswordModal } from './AdminPasswordModal';
+import { WhatsAppDeliveryModal } from './WhatsAppDeliveryModal';
 import { 
   exportOrdersCSV, 
   exportProductsCSV, 
@@ -41,6 +43,7 @@ export const AdminDashboard = () => {
     updateCustomer,
     deleteCustomer,
     refreshCustomers,
+    updateOrderStatus,
     addProduct, 
     updateProduct, 
     deleteProduct, 
@@ -73,6 +76,7 @@ export const AdminDashboard = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'inventory' | 'products' | 'orders' | 'salesmen' | 'categories' | 'reports' | 'announcement' | 'policies'
+  const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
   
   // Legal Policy Editor State
   const [selectedPolicyKey, setSelectedPolicyKey] = useState('privacy'); // 'privacy' | 'terms' | 'returns'
@@ -1418,11 +1422,13 @@ export const AdminDashboard = () => {
                     />
                   </div>
 
-                  {/* Filter Chips for Urgent, Expired, and Return Orders */}
+                  {/* Filter Chips for Urgent, Expired, Delivery, and Return Orders */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {[
                       { id: 'ALL', label: 'All Invoices', count: orders.length },
                       { id: 'URGENT', label: '⚡ Urgent Priority', count: orders.filter(o => o.hasUrgentItems || o.items?.some(i => i.isPriority)).length },
+                      { id: 'DELIVERY', label: '🚚 Out for Delivery', count: orders.filter(o => o.status === 'OUT_FOR_DELIVERY' || o.status === 'Out For Delivery').length },
+                      { id: 'DELIVERED', label: '✅ Delivered', count: orders.filter(o => o.status === 'DELIVERED' || o.status === 'Delivered').length },
                       { id: 'EXPIRED', label: '⚠️ Expired Claims', count: orders.filter(o => (o.expiredItems && o.expiredItems.length > 0) || o.hasExpiredItems).length },
                       { id: 'RETURN', label: '🔄 Return Claims', count: orders.filter(o => (o.returnItems && o.returnItems.length > 0) || o.hasReturnItems).length }
                     ].map(f => (
@@ -1512,6 +1518,7 @@ export const AdminDashboard = () => {
                         <th className="py-3.5 px-4">Customer & Flags</th>
                         <th className="py-3.5 px-4">Representative</th>
                         <th className="py-3.5 px-4 text-center">Items</th>
+                        <th className="py-3.5 px-4 text-center">Status & Dispatch</th>
                         <th className="py-3.5 px-4 text-center">Special Dockets</th>
                         <th className="py-3.5 px-4 text-center">Actions</th>
                       </tr>
@@ -1520,6 +1527,8 @@ export const AdminDashboard = () => {
                       {orders
                         .filter(o => {
                           if (orderTypeFilter === 'URGENT') return o.hasUrgentItems || o.items?.some(i => i.isPriority);
+                          if (orderTypeFilter === 'DELIVERY') return o.status === 'OUT_FOR_DELIVERY' || o.status === 'Out For Delivery';
+                          if (orderTypeFilter === 'DELIVERED') return o.status === 'DELIVERED' || o.status === 'Delivered';
                           if (orderTypeFilter === 'EXPIRED') return (o.expiredItems && o.expiredItems.length > 0) || o.hasExpiredItems;
                           if (orderTypeFilter === 'RETURN') return (o.returnItems && o.returnItems.length > 0) || o.hasReturnItems;
                           return true;
@@ -1560,6 +1569,9 @@ export const AdminDashboard = () => {
                           const hasUrgent = order.hasUrgentItems || order.items?.some(i => i.isPriority);
                           const expCount = order.expiredItems?.length || 0;
                           const retCount = order.returnItems?.length || 0;
+                          const orderStatus = order.status || 'Confirmed';
+                          const isOutForDelivery = orderStatus === 'OUT_FOR_DELIVERY' || orderStatus === 'Out For Delivery';
+                          const isDelivered = orderStatus === 'DELIVERED' || orderStatus === 'Delivered';
 
                           // Format Date, Day, Time & Timestamp
                           let dObj = new Date();
@@ -1575,7 +1587,7 @@ export const AdminDashboard = () => {
 
                           return (
                             <tr key={order.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/40 ${
-                              hasUrgent ? 'bg-amber-50/20 dark:bg-amber-950/10' : ''
+                              hasUrgent ? 'bg-amber-50/20 dark:bg-amber-950/10' : isOutForDelivery ? 'bg-emerald-50/20 dark:bg-emerald-950/10' : ''
                             }`}>
                               <td className="py-3.5 px-4">
                                 <span className="font-mono font-bold text-brand-900 dark:text-brand-400 block">
@@ -1594,12 +1606,47 @@ export const AdminDashboard = () => {
                               <td className="py-3.5 px-4">
                                 <strong className="text-slate-900 dark:text-white font-bold block">{order.customerName}</strong>
                                 <span className="text-[10px] text-slate-400 font-medium">{order.customerType || 'Normal Customer'}</span>
+                                {order.customerMobile && (
+                                  <span className="text-[10px] text-slate-500 font-mono block">📞 {order.customerMobile}</span>
+                                )}
                               </td>
                               <td className="py-3.5 px-4 font-medium">{order.salesmanName || order.salesmanId}</td>
                               <td className="py-3.5 px-4 text-center font-bold">
                                 <div>{order.items?.length || 0} SKUs</div>
                                 <span className="text-[10px] text-slate-400 font-normal">({order.totalQuantity || 0} units)</span>
                               </td>
+
+                              {/* Order Status & Live Dispatch Selector */}
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="inline-flex flex-col items-center gap-1">
+                                  <select
+                                    value={orderStatus}
+                                    onChange={(e) => updateOrderStatus(order.id || order.orderId || order.invoiceNumber, e.target.value)}
+                                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition-all cursor-pointer focus:outline-none ${
+                                      isOutForDelivery
+                                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm animate-pulse'
+                                        : isDelivered
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300'
+                                        : orderStatus === 'CANCELLED' || orderStatus === 'Cancelled'
+                                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300'
+                                        : 'bg-brand-50 text-brand-900 dark:bg-slate-800 dark:text-white border-brand-200 dark:border-slate-700'
+                                    }`}
+                                  >
+                                    <option value="Confirmed">📋 Confirmed</option>
+                                    <option value="Processing">⏳ Processing</option>
+                                    <option value="OUT_FOR_DELIVERY">🚚 Out For Delivery</option>
+                                    <option value="DELIVERED">✅ Delivered</option>
+                                    <option value="CANCELLED">❌ Cancelled</option>
+                                  </select>
+
+                                  {isOutForDelivery && (
+                                    <span className="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase flex items-center gap-0.5">
+                                      <Truck className="w-3 h-3" /> In-Transit
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
                               <td className="py-3.5 px-4 text-center space-y-1">
                                 {expCount > 0 && (
                                   <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 font-extrabold text-[9px] uppercase inline-flex items-center gap-0.5 mx-auto">
@@ -1615,13 +1662,29 @@ export const AdminDashboard = () => {
                                   <span className="text-[10px] text-slate-400 font-mono">—</span>
                                 )}
                               </td>
+
+                              {/* Actions: View Invoice & WhatsApp Delivery Notification */}
                               <td className="py-3.5 px-4 text-center">
-                                <button
-                                  onClick={() => openInvoiceModal(order)}
-                                  className="px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-amber-400" /> View Invoice
-                                </button>
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  {/* WhatsApp Delivery Notification Button */}
+                                  <button
+                                    onClick={() => setSelectedOrderForDeliveryModal(order)}
+                                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold text-[11px] inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                    title="Notify Customer on WhatsApp for Out For Delivery"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 fill-white" />
+                                    <span>Notify WhatsApp</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => openInvoiceModal(order)}
+                                    className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                    title="View Full B2B Invoice"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Invoice</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -3555,6 +3618,15 @@ export const AdminDashboard = () => {
 
       {/* Change Password Modal */}
       <AdminPasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
+
+      {/* WhatsApp Out For Delivery Notification Modal */}
+      <WhatsAppDeliveryModal
+        isOpen={Boolean(selectedOrderForDeliveryModal)}
+        onClose={() => setSelectedOrderForDeliveryModal(null)}
+        order={selectedOrderForDeliveryModal}
+        onStatusUpdate={updateOrderStatus}
+        showToast={showToast}
+      />
     </div>
   );
 };

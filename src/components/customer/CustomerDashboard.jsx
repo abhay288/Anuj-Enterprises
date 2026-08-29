@@ -5,7 +5,7 @@ import {
   Download, Eye, Search, Calendar, ShoppingBag, Plus, 
   CheckCircle2, ArrowRight, ShieldCheck, RefreshCw, 
   Edit3, Save, Lock, EyeOff, Sparkles, Tag, ShoppingCart,
-  Layers, Package, Check, HelpCircle, ArrowUpRight
+  Layers, Package, Check, HelpCircle, ArrowUpRight, Truck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { generateInvoicePDF } from '../../utils/pdfGenerator';
@@ -406,13 +406,23 @@ export const CustomerDashboard = () => {
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-black text-sm text-slate-900 dark:text-white">
                               {order.invoiceNumber || order.id}
                             </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                              {order.status || 'Confirmed'}
-                            </span>
+                            {order.status === 'OUT_FOR_DELIVERY' || order.status === 'Out For Delivery' ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white flex items-center gap-1 shadow-sm animate-pulse">
+                                <Truck className="w-3 h-3" /> Out For Delivery (In-Transit)
+                              </span>
+                            ) : order.status === 'DELIVERED' || order.status === 'Delivered' ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Delivered
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                {order.status || 'Confirmed'}
+                              </span>
+                            )}
                           </div>
                           <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                             <Calendar className="w-3 h-3" />

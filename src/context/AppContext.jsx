@@ -1172,6 +1172,59 @@ export const AppProvider = ({ children }) => {
     showToast(`Order #${newInvoiceId} created successfully! Invoice generated.`, 'success');
   };
 
+  const updateOrderStatus = async (orderId, newStatus, collectionStatus = null) => {
+    let updatedOrder = null;
+
+    setOrders(prev => {
+      const updated = prev.map(o => {
+        if (
+          (o.id && o.id === orderId) ||
+          (o.orderId && o.orderId === orderId) ||
+          (o.invoiceNumber && o.invoiceNumber === orderId)
+        ) {
+          const mod = {
+            ...o,
+            status: newStatus,
+            ...(collectionStatus ? { collectionStatus } : {})
+          };
+          updatedOrder = mod;
+          return mod;
+        }
+        return o;
+      });
+      try {
+        localStorage.setItem('anuj_orders_v3', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    try {
+      await orderService.updateOrderStatus(orderId, { 
+        status: newStatus, 
+        ...(collectionStatus ? { collectionStatus } : {}) 
+      });
+    } catch (e) {
+      console.log('Server status update fallback:', e.message);
+    }
+
+    const readableStatus = 
+      newStatus === 'OUT_FOR_DELIVERY' || newStatus === 'Out For Delivery' ? 'Out For Delivery 🚚' :
+      newStatus === 'DELIVERED' || newStatus === 'Delivered' ? 'Delivered ✅' :
+      newStatus === 'CANCELLED' || newStatus === 'Cancelled' ? 'Cancelled ❌' :
+      newStatus === 'CONFIRMED' || newStatus === 'Confirmed' || newStatus === 'Invoiced' ? 'Confirmed 📋' : newStatus;
+
+    addNotification({
+      type: 'ORDER_STATUS_UPDATE',
+      title: `Order Status: ${readableStatus}`,
+      message: `Order #${orderId} status is now ${readableStatus}.`,
+      orderId: orderId,
+      targetRole: 'ALL'
+    });
+
+    showToast(`Order #${orderId} updated to ${readableStatus}`, 'success');
+    return updatedOrder;
+  };
+
   // Helper to ensure every newly added or edited product has a clean B2B Details Card (No FSSAI, No Tier pricing)
   const formatRichProductData = (prod) => {
     const price = Math.max(1, parseFloat(prod.price) || 500);
@@ -1976,6 +2029,7 @@ export const AppProvider = ({ children }) => {
       setIsSalesmanModalOpen,
       setIsMobileFilterOpen,
       checkoutOrder,
+      updateOrderStatus,
       addProduct,
       updateProduct,
       deleteProduct,

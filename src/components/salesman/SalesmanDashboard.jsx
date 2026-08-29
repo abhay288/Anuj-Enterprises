@@ -6,11 +6,12 @@ import {
   TrendingUp, Filter, RefreshCw, Users, Plus, CheckCircle2, 
   RotateCcw, History, Store, Phone, MapPin, Tag, ArrowRight, 
   ShoppingCart, Package, Check, X, AlertCircle, Key, Zap, AlertOctagon,
-  Trophy, Crown, Award, Medal
+  Trophy, Crown, Award, Medal, Truck, MessageSquare
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { SalesmanPasswordModal } from './SalesmanPasswordModal';
+import { WhatsAppDeliveryModal } from '../admin/WhatsAppDeliveryModal';
 
 export const SalesmanDashboard = () => {
   const { 
@@ -28,6 +29,7 @@ export const SalesmanDashboard = () => {
     loadCustomerForOrder, 
     saveCustomer, 
     checkoutOrder, 
+    updateOrderStatus,
     logout, 
     navigateTo, 
     showToast 
@@ -37,6 +39,7 @@ export const SalesmanDashboard = () => {
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Custom Date'
   const [customDate, setCustomDate] = useState('');
+  const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
 
   // Customer Directory Search & State
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
@@ -462,12 +465,32 @@ export const SalesmanDashboard = () => {
                           <td className="py-3.5 px-4 text-center font-bold">{order.items?.length || 0} SKUs</td>
                           <td className="py-3.5 px-4 text-center font-black text-slate-900 dark:text-white">{totalUnits} Units</td>
                           <td className="py-3.5 px-4 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold text-[10px]">
-                              Offline - Pending
-                            </span>
+                            {order.status === 'OUT_FOR_DELIVERY' || order.status === 'Out For Delivery' ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white font-black text-[10px] inline-flex items-center gap-1 shadow-xs animate-pulse">
+                                <Truck className="w-3 h-3" /> Out For Delivery
+                              </span>
+                            ) : order.status === 'DELIVERED' || order.status === 'Delivered' ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold text-[10px] inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Delivered
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold text-[10px]">
+                                {order.status || 'Offline - Pending'}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              {/* WhatsApp Notify Button */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrderForDeliveryModal(order)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors"
+                                title="Notify Customer on WhatsApp for Delivery"
+                              >
+                                <MessageSquare className="w-3 h-3 fill-white" /> WhatsApp
+                              </button>
+
                               {/* Quick Reorder Action */}
                               <button
                                 type="button"
@@ -477,6 +500,7 @@ export const SalesmanDashboard = () => {
                               >
                                 <RotateCcw className="w-3 h-3" /> Reorder
                               </button>
+
                               {/* Invoice View */}
                               <button
                                 type="button"
@@ -766,6 +790,15 @@ export const SalesmanDashboard = () => {
 
       {/* Salesman Password Change Modal */}
       <SalesmanPasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
+
+      {/* WhatsApp Delivery Notification Modal */}
+      <WhatsAppDeliveryModal
+        isOpen={Boolean(selectedOrderForDeliveryModal)}
+        onClose={() => setSelectedOrderForDeliveryModal(null)}
+        order={selectedOrderForDeliveryModal}
+        onStatusUpdate={updateOrderStatus}
+        showToast={showToast}
+      />
     </div>
   );
 };
