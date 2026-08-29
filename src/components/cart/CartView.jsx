@@ -1622,7 +1622,7 @@ export const CartView = () => {
                             className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
                           />
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-white text-xs block flex items-center gap-1">
+                            <span className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Photo Attached Successfully
                             </span>
                             <button
