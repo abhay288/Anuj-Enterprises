@@ -3,14 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
-  Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon
+  Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
-  const [previewModalImage, setPreviewModalImage] = useState(null);
+  const [previewModalImages, setPreviewModalImages] = useState([]);
+  const [previewModalIndex, setPreviewModalIndex] = useState(0);
+
+  const openLightbox = (imgs, index = 0) => {
+    const list = Array.isArray(imgs) ? imgs : [imgs].filter(Boolean);
+    if (list.length === 0) return;
+    setPreviewModalImages(list);
+    setPreviewModalIndex(Math.min(index, list.length - 1));
+  };
 
   if (!isInvoiceModalOpen || !selectedInvoice) return null;
 
@@ -316,39 +325,54 @@ export const InvoiceModal = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-200/60 font-semibold text-[11px]">
-                    {inv.expiredItems.map((ex, i) => (
-                      <tr key={ex.id || i} className="hover:bg-red-100/40">
-                        <td className="py-1.5 px-2 text-red-700">{i + 1}</td>
-                        <td className="py-1.5 px-2 font-bold text-slate-900">{ex.company}</td>
-                        <td className="py-1.5 px-2 text-slate-800">
-                          <div>{ex.product}</div>
-                          {ex.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {ex.sku}</div>}
-                        </td>
-                        <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
-                          {ex.noDateAvailable ? 'No Date Available' : ex.mfdDate ? `MFD: ${ex.mfdDate}` : ex.batchOrNote || 'Undated'}
-                        </td>
-                        <td className="py-1.5 px-2 text-center">
-                          {ex.image ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalImage(ex.image)}
-                              className="group inline-flex items-center gap-1 p-0.5 rounded hover:bg-red-100 transition-colors"
-                              title="Click to view full attached photo"
-                            >
-                              <img
-                                src={ex.image}
-                                alt="Proof"
-                                className="w-8 h-8 object-cover rounded border border-red-300 shadow-xs group-hover:scale-105 transition-transform"
-                              />
-                              <Eye className="w-3 h-3 text-red-600 opacity-60 group-hover:opacity-100" />
-                            </button>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 italic">No Photo</span>
-                          )}
-                        </td>
-                        <td className="py-1.5 px-2 text-center font-black text-red-700">{ex.qty} Units</td>
-                      </tr>
-                    ))}
+                    {inv.expiredItems.map((ex, i) => {
+                      const exImgs = Array.isArray(ex.images) && ex.images.length > 0
+                        ? ex.images
+                        : ex.image ? [ex.image] : [];
+
+                      return (
+                        <tr key={ex.id || i} className="hover:bg-red-100/40">
+                          <td className="py-1.5 px-2 text-red-700">{i + 1}</td>
+                          <td className="py-1.5 px-2 font-bold text-slate-900">{ex.company}</td>
+                          <td className="py-1.5 px-2 text-slate-800">
+                            <div>{ex.product}</div>
+                            {ex.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {ex.sku}</div>}
+                          </td>
+                          <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
+                            {ex.noDateAvailable ? 'No Date Available' : ex.mfdDate ? `MFD: ${ex.mfdDate}` : ex.batchOrNote || 'Undated'}
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            {exImgs.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => openLightbox(exImgs, 0)}
+                                className="group inline-flex items-center gap-1.5 p-1 rounded-md hover:bg-red-100 transition-colors"
+                                title={`Click to inspect ${exImgs.length} attached photo(s)`}
+                              >
+                                <div className="relative">
+                                  <img
+                                    src={exImgs[0]}
+                                    alt="Proof"
+                                    className="w-8 h-8 object-cover rounded border border-red-300 shadow-xs group-hover:scale-105 transition-transform"
+                                  />
+                                  {exImgs.length > 1 && (
+                                    <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 bg-red-600 text-white font-black text-[8px] rounded-full shadow">
+                                      +{exImgs.length - 1}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-bold text-red-700">
+                                  {exImgs.length} Photo{exImgs.length > 1 ? 's' : ''}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No Photo</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-2 text-center font-black text-red-700">{ex.qty} Units</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -374,46 +398,61 @@ export const InvoiceModal = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-200/60 font-semibold text-[11px]">
-                    {inv.returnItems.map((rt, i) => (
-                      <tr key={rt.id || i} className="hover:bg-orange-100/40">
-                        <td className="py-1.5 px-2 text-orange-700">{i + 1}</td>
-                        <td className="py-1.5 px-2 font-bold text-slate-900">{rt.company}</td>
-                        <td className="py-1.5 px-2 text-slate-800">
-                          <div>{rt.product}</div>
-                          {rt.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {rt.sku}</div>}
-                        </td>
-                        <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
-                          {rt.damageDate || rt.date ? (
-                            <span className="font-bold">{rt.damageDate || rt.date}</span>
-                          ) : (
-                            <span className="text-slate-400 font-sans italic">No Date</span>
-                          )}
-                        </td>
-                        <td className="py-1.5 px-2 text-center">
-                          {rt.image ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalImage(rt.image)}
-                              className="group inline-flex items-center gap-1 p-0.5 rounded hover:bg-orange-100 transition-colors"
-                              title="Click to view full attached photo"
-                            >
-                              <img
-                                src={rt.image}
-                                alt="Proof"
-                                className="w-8 h-8 object-cover rounded border border-orange-300 shadow-xs group-hover:scale-105 transition-transform"
-                              />
-                              <Eye className="w-3 h-3 text-orange-600 opacity-60 group-hover:opacity-100" />
-                            </button>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 italic">No Photo</span>
-                          )}
-                        </td>
-                        <td className="py-1.5 px-2 text-orange-800 font-medium">
-                          {rt.reason || 'Damaged Packaging'}
-                        </td>
-                        <td className="py-1.5 px-2 text-center font-black text-orange-700">{rt.qty} Units</td>
-                      </tr>
-                    ))}
+                    {inv.returnItems.map((rt, i) => {
+                      const rtImgs = Array.isArray(rt.images) && rt.images.length > 0
+                        ? rt.images
+                        : rt.image ? [rt.image] : [];
+
+                      return (
+                        <tr key={rt.id || i} className="hover:bg-orange-100/40">
+                          <td className="py-1.5 px-2 text-orange-700">{i + 1}</td>
+                          <td className="py-1.5 px-2 font-bold text-slate-900">{rt.company}</td>
+                          <td className="py-1.5 px-2 text-slate-800">
+                            <div>{rt.product}</div>
+                            {rt.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {rt.sku}</div>}
+                          </td>
+                          <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
+                            {rt.damageDate || rt.date ? (
+                              <span className="font-bold">{rt.damageDate || rt.date}</span>
+                            ) : (
+                              <span className="text-slate-400 font-sans italic">No Date</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            {rtImgs.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => openLightbox(rtImgs, 0)}
+                                className="group inline-flex items-center gap-1.5 p-1 rounded-md hover:bg-orange-100 transition-colors"
+                                title={`Click to inspect ${rtImgs.length} attached photo(s)`}
+                              >
+                                <div className="relative">
+                                  <img
+                                    src={rtImgs[0]}
+                                    alt="Proof"
+                                    className="w-8 h-8 object-cover rounded border border-orange-300 shadow-xs group-hover:scale-105 transition-transform"
+                                  />
+                                  {rtImgs.length > 1 && (
+                                    <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 bg-orange-600 text-white font-black text-[8px] rounded-full shadow">
+                                      +{rtImgs.length - 1}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-bold text-orange-700">
+                                  {rtImgs.length} Photo{rtImgs.length > 1 ? 's' : ''}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No Photo</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-2 text-orange-800 font-medium">
+                            {rt.reason || 'Damaged Packaging'}
+                          </td>
+                          <td className="py-1.5 px-2 text-center font-black text-orange-700">{rt.qty} Units</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -462,38 +501,96 @@ export const InvoiceModal = () => {
 
         </motion.div>
 
-        {/* Invoice Full Photo Inspection Lightbox */}
-        {previewModalImage && (
+        {/* Invoice Full Photo Inspection Gallery Lightbox */}
+        {previewModalImages && previewModalImages.length > 0 && (
           <div
-            onClick={() => setPreviewModalImage(null)}
+            onClick={() => setPreviewModalImages([])}
             className="fixed inset-0 z-60 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-                <span className="font-extrabold text-slate-900 dark:text-white text-xs flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-brand-600 dark:text-amber-400" />
-                  Invoice Proof Photo Attachment
-                </span>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <ImageIcon className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <span className="font-extrabold text-slate-900 dark:text-white text-xs block">
+                      Invoice Proof Photo Attachment
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      Photo {previewModalIndex + 1} of {previewModalImages.length}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setPreviewModalImage(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                  onClick={() => setPreviewModalImages([])}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 bg-slate-950 flex items-center justify-center max-h-[75vh] overflow-hidden">
+
+              {/* Main Image Area with Left/Right Arrows */}
+              <div className="relative flex-1 bg-slate-950 flex items-center justify-center min-h-[320px] max-h-[62vh] overflow-hidden p-4">
                 <img
-                  src={previewModalImage}
-                  alt="Invoice Proof Full View"
-                  className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+                  src={previewModalImages[previewModalIndex] || previewModalImages[0]}
+                  alt={`Invoice Proof #${previewModalIndex + 1}`}
+                  className="max-h-[58vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
                 />
+
+                {/* Left Navigation Arrow */}
+                {previewModalImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalIndex(prev => (prev > 0 ? prev - 1 : previewModalImages.length - 1))}
+                    className="absolute left-3 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+                    title="Previous photo"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+
+                {/* Right Navigation Arrow */}
+                {previewModalImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalIndex(prev => (prev < previewModalImages.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-3 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+                    title="Next photo"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-                <span>Direct client attachment for invoice verification & offline claim settlement.</span>
+
+              {/* Bottom Thumbnail Strip & Settlement Note */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 space-y-2">
+                {previewModalImages.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 overflow-x-auto py-1">
+                    {previewModalImages.map((thumb, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPreviewModalIndex(idx)}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all shrink-0 aspect-square w-12 h-12 ${
+                          idx === previewModalIndex
+                            ? 'border-brand-600 dark:border-amber-400 scale-105 shadow-md'
+                            : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={thumb} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-center text-[11px] text-slate-500 font-medium">
+                  Direct client attachment for invoice verification & offline claim settlement.
+                </p>
               </div>
             </div>
           </div>

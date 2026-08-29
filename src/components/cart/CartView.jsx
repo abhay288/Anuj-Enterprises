@@ -4,7 +4,8 @@ import {
   ShoppingCart, Trash2, ArrowLeft, ShieldCheck, FileText, 
   Building2, ArrowRight, AlertTriangle, CheckCircle2, User, Phone, MapPin, Mail, Sparkles, Tag,
   Zap, RotateCcw, Plus, AlertOctagon, PackageX, ChevronDown, ChevronUp, ShieldAlert,
-  Edit2, Calendar, Check, Layers, Box, LogIn, Camera, Eye, Image as ImageIcon, X
+  Edit2, Calendar, Check, Layers, Box, LogIn, Camera, Eye, Image as ImageIcon, X,
+  ChevronLeft, ChevronRight, UploadCloud
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
@@ -12,13 +13,25 @@ import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAn
 
 import { checkUnwantedContent } from '../../utils/securityUtils';
 
+// 🛡️ Security & Performance Constants for Docket Photo Attachments
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per file max
+const MAX_PHOTOS_PER_ITEM = 5; // Up to 5 photos per product claim/docket
+
 /**
- * Client-Side Image Compression Utility
- * Resizes large photos to max 800px width/height and compresses to JPEG ~50-80KB.
- * Kept in memory / invoice state so it never bloats the database.
+ * Secure Client-Side Image Compression & Metadata Sanitization Utility
+ * Validates MIME type, rasterizes via Canvas (stripping dangerous EXIF/scripts),
+ * and compresses to safe JPEG ~50-80KB for fast client memory/invoice rendering.
  */
 const compressImageFile = (file, maxWidth = 800, quality = 0.75) => {
   return new Promise((resolve, reject) => {
+    if (!file || !ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      return reject(new Error('Invalid file type. Only JPG, PNG, WebP image files are permitted.'));
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return reject(new Error('File exceeds maximum size limit of 10MB.'));
+    }
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
@@ -42,13 +55,14 @@ const compressImageFile = (file, maxWidth = 800, quality = 0.75) => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        // Clean Canvas rasterization strips hidden malicious payloads & EXIF
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(dataUrl);
       };
-      img.onerror = (err) => reject(err);
+      img.onerror = () => reject(new Error('Corrupt or unreadable image file.'));
     };
-    reader.onerror = (err) => reject(err);
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
   });
 };
 
@@ -120,30 +134,65 @@ export const CartView = () => {
   const [expiredMfdDate, setExpiredMfdDate] = useState('');
   const [expiredNoDate, setExpiredNoDate] = useState(false);
   const [expiredQty, setExpiredQty] = useState(1);
-  const [expiredImage, setExpiredImage] = useState(null);
-  const [expiredImageLoading, setExpiredImageLoading] = useState(false);
+  const [expiredImages, setExpiredImages] = useState([]); // Array of clean compressed data URLs
+  const [expiredImagesLoading, setExpiredImagesLoading] = useState(false);
 
-  const handleExpiredImageChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('⚠️ Please select a valid image file (PNG, JPG, WebP)', 'warning');
+  // Lightbox Photo Inspection Modal State
+  const [previewModalImages, setPreviewModalImages] = useState([]); // Array of images in modal
+  const [previewModalIndex, setPreviewModalIndex] = useState(0); // Active slide index
+
+  const openLightbox = (imgs, startIndex = 0) => {
+    const list = Array.isArray(imgs) ? imgs : [imgs].filter(Boolean);
+    if (list.length === 0) return;
+    setPreviewModalImages(list);
+    setPreviewModalIndex(Math.min(startIndex, list.length - 1));
+  };
+
+  const handleExpiredImagesChange = async (e) => {
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+
+    if (expiredImages.length >= MAX_PHOTOS_PER_ITEM) {
+      showToast(`⚠️ Maximum ${MAX_PHOTOS_PER_ITEM} photos reached. Remove a photo to add a new one.`, 'warning');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('⚠️ Image size should be less than 10MB', 'warning');
-      return;
+
+    const filesToProcess = rawFiles.slice(0, MAX_PHOTOS_PER_ITEM - expiredImages.length);
+    if (rawFiles.length > filesToProcess.length) {
+      showToast(`⚠️ Only ${filesToProcess.length} additional photo(s) allowed (Max ${MAX_PHOTOS_PER_ITEM} total).`, 'info');
     }
+
+    setExpiredImagesLoading(true);
     try {
-      setExpiredImageLoading(true);
-      const compressed = await compressImageFile(file);
-      setExpiredImage(compressed);
-      showToast('✓ Photo attached to expiry claim (will show on invoice)', 'success');
+      const processed = [];
+      for (const file of filesToProcess) {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+          showToast(`⚠️ Skipped "${file.name}": Only JPG, PNG, WebP allowed.`, 'warning');
+          continue;
+        }
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+          showToast(`⚠️ Skipped "${file.name}": Exceeds 10MB limit.`, 'warning');
+          continue;
+        }
+        const compressed = await compressImageFile(file);
+        processed.push(compressed);
+      }
+
+      if (processed.length > 0) {
+        setExpiredImages(prev => [...prev, ...processed].slice(0, MAX_PHOTOS_PER_ITEM));
+        showToast(`✓ Attached ${processed.length} photo(s) to expired claim (Total: ${expiredImages.length + processed.length})`, 'success');
+      }
     } catch (err) {
-      showToast('Failed to process image file', 'error');
+      showToast(err.message || 'Failed to process images', 'error');
     } finally {
-      setExpiredImageLoading(false);
+      setExpiredImagesLoading(false);
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveExpiredImage = (idxToRemove) => {
+    setExpiredImages(prev => prev.filter((_, idx) => idx !== idxToRemove));
+    showToast('Photo removed', 'info');
   };
 
   // Available Companies derived from real database brands & products
@@ -174,7 +223,7 @@ export const CartView = () => {
     setExpiredMfdDate('');
     setExpiredNoDate(false);
     setExpiredQty(1);
-    setExpiredImage(null);
+    setExpiredImages([]);
     setEditingExpiredId(null);
   };
 
@@ -190,7 +239,10 @@ export const CartView = () => {
     setExpiredMfdDate(item.mfdDate || '');
     setExpiredNoDate(Boolean(item.noDateAvailable));
     setExpiredQty(item.qty || 1);
-    setExpiredImage(item.image || item.claimImage || null);
+    const itemImgs = Array.isArray(item.images) && item.images.length > 0 
+      ? item.images 
+      : item.image ? [item.image] : [];
+    setExpiredImages(itemImgs);
     setIsExpiredOpen(true);
   };
 
@@ -231,7 +283,8 @@ export const CartView = () => {
       qty: q,
       mfdDate: expiredNoDate ? '' : expiredMfdDate,
       noDateAvailable: expiredNoDate,
-      image: expiredImage || null,
+      images: expiredImages,
+      image: expiredImages[0] || null, // Backwards compatible with single photo
       batchOrNote: expiredNoDate ? 'No Date Available' : `MFD: ${expiredMfdDate}`
     };
 
@@ -245,7 +298,7 @@ export const CartView = () => {
         i.mfdDate === payload.mfdDate
       );
       if (duplicateIdx >= 0) {
-        setExpiredItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, image: payload.image || item.image } : item));
+        setExpiredItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, images: payload.images.length > 0 ? payload.images : item.images, image: payload.images[0] || item.image } : item));
         showToast(`✓ Added +${q} units to existing claim for ${selectedExpiredProductObj.name}`, 'success');
       } else {
         setExpiredItems(prev => [...prev, payload]);
@@ -274,30 +327,54 @@ export const CartView = () => {
   const [returnReason, setReturnReason] = useState('Damaged Packaging');
   const [customReturnReason, setCustomReturnReason] = useState('');
   const [isCustomReason, setIsCustomReason] = useState(false);
-  const [returnImage, setReturnImage] = useState(null);
-  const [returnImageLoading, setReturnImageLoading] = useState(false);
+  const [returnImages, setReturnImages] = useState([]); // Array of clean compressed data URLs
+  const [returnImagesLoading, setReturnImagesLoading] = useState(false);
 
-  const handleReturnImageChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('⚠️ Please select a valid image file (PNG, JPG, WebP)', 'warning');
+  const handleReturnImagesChange = async (e) => {
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+
+    if (returnImages.length >= MAX_PHOTOS_PER_ITEM) {
+      showToast(`⚠️ Maximum ${MAX_PHOTOS_PER_ITEM} photos reached. Remove a photo to add a new one.`, 'warning');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('⚠️ Image size should be less than 10MB', 'warning');
-      return;
+
+    const filesToProcess = rawFiles.slice(0, MAX_PHOTOS_PER_ITEM - returnImages.length);
+    if (rawFiles.length > filesToProcess.length) {
+      showToast(`⚠️ Only ${filesToProcess.length} additional photo(s) allowed (Max ${MAX_PHOTOS_PER_ITEM} total).`, 'info');
     }
+
+    setReturnImagesLoading(true);
     try {
-      setReturnImageLoading(true);
-      const compressed = await compressImageFile(file);
-      setReturnImage(compressed);
-      showToast('✓ Photo attached to damage docket (will show on invoice)', 'success');
+      const processed = [];
+      for (const file of filesToProcess) {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+          showToast(`⚠️ Skipped "${file.name}": Only JPG, PNG, WebP allowed.`, 'warning');
+          continue;
+        }
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+          showToast(`⚠️ Skipped "${file.name}": Exceeds 10MB limit.`, 'warning');
+          continue;
+        }
+        const compressed = await compressImageFile(file);
+        processed.push(compressed);
+      }
+
+      if (processed.length > 0) {
+        setReturnImages(prev => [...prev, ...processed].slice(0, MAX_PHOTOS_PER_ITEM));
+        showToast(`✓ Attached ${processed.length} photo(s) to damage docket (Total: ${returnImages.length + processed.length})`, 'success');
+      }
     } catch (err) {
-      showToast('Failed to process image file', 'error');
+      showToast(err.message || 'Failed to process images', 'error');
     } finally {
-      setReturnImageLoading(false);
+      setReturnImagesLoading(false);
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveReturnImage = (idxToRemove) => {
+    setReturnImages(prev => prev.filter((_, idx) => idx !== idxToRemove));
+    showToast('Photo removed', 'info');
   };
 
   const commonDamageReasons = [
@@ -1115,67 +1192,98 @@ export const CartView = () => {
                     </div>
                   </div>
 
-                  {/* 4. Photo / Proof Attachment Upload */}
-                  <div className="pt-1 text-xs">
-                    <div className="flex items-center justify-between mb-1.5">
+                  {/* 4. Multi-Photo / Proof Attachment Upload */}
+                  <div className="pt-1 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
                       <label className="font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <Camera className="w-3.5 h-3.5 text-rose-500" />
-                        Attach Expired Pack / MFD Batch Photo <span className="text-slate-400 font-normal">(Optional — Shows on Invoice)</span>
+                        Attach Expired Pack / MFD Batch Photos
+                        <span className="text-slate-400 font-normal">
+                          ({expiredImages.length}/{MAX_PHOTOS_PER_ITEM} photos • Shows on Invoice)
+                        </span>
                       </label>
-                      {expiredImage && (
+                      {expiredImages.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => setExpiredImage(null)}
+                          onClick={() => setExpiredImages([])}
                           className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
                         >
-                          <X className="w-3 h-3" /> Remove Photo
+                          <X className="w-3 h-3" /> Clear All Photos
                         </button>
                       )}
                     </div>
 
-                    {expiredImage ? (
-                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-xl shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={expiredImage}
-                            alt="Expired Claim Proof"
-                            onClick={() => setPreviewModalImage(expiredImage)}
-                            className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
-                          />
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Photo Attached Successfully
+                    {/* Uploaded Photos Grid Gallery */}
+                    {expiredImages.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-3 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl shadow-sm">
+                        {expiredImages.map((img, idx) => (
+                          <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 aspect-square">
+                            <img
+                              src={img}
+                              alt={`Expired proof #${idx + 1}`}
+                              onClick={() => openLightbox(expiredImages, idx)}
+                              className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 pointer-events-none">
+                              <button
+                                type="button"
+                                onClick={() => openLightbox(expiredImages, idx)}
+                                className="pointer-events-auto p-1.5 rounded-full bg-white/90 text-slate-900 shadow hover:bg-white transition-colors"
+                                title="Zoom photo"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-rose-600" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExpiredImage(idx)}
+                                className="pointer-events-auto p-1.5 rounded-full bg-rose-600 text-white shadow hover:bg-rose-700 transition-colors"
+                                title="Delete photo"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white text-[9px] font-bold rounded">
+                              #{idx + 1}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalImage(expiredImage)}
-                              className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1 mt-0.5"
-                            >
-                              <Eye className="w-3 h-3" /> Preview Full Photo
-                            </button>
                           </div>
-                        </div>
-                        <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0">
-                          Change
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleExpiredImageChange}
-                            className="hidden"
-                          />
-                        </label>
+                        ))}
+
+                        {/* Add More Photos Tile if under limit */}
+                        {expiredImages.length < MAX_PHOTOS_PER_ITEM && (
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-rose-300 dark:border-rose-800/80 hover:border-rose-500 rounded-xl cursor-pointer p-2 text-center transition-colors bg-rose-50/40 dark:bg-rose-950/20 aspect-square group">
+                            <Plus className="w-5 h-5 text-rose-500 group-hover:scale-110 transition-transform mb-1" />
+                            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">
+                              + Add More
+                            </span>
+                            <span className="text-[8px] text-slate-400">
+                              ({MAX_PHOTOS_PER_ITEM - expiredImages.length} left)
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              disabled={expiredImagesLoading}
+                              onChange={handleExpiredImagesChange}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
                       </div>
-                    ) : (
-                      <label className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-600 rounded-xl cursor-pointer transition-colors group">
-                        <Camera className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
+                    )}
+
+                    {/* Default Upload Trigger if 0 photos */}
+                    {expiredImages.length === 0 && (
+                      <label className="flex items-center justify-center gap-2 p-3.5 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-600 rounded-xl cursor-pointer transition-colors group">
+                        <UploadCloud className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
                         <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">
-                          {expiredImageLoading ? 'Compressing & Attaching Photo...' : 'Click / Tap to Take or Upload Expired Pack Photo'}
+                          {expiredImagesLoading ? 'Compressing & Sanitizing Photos...' : 'Click / Tap to Upload 1 or More Expired Product Photos (Max 5)'}
                         </span>
                         <input
                           type="file"
                           accept="image/*"
-                          disabled={expiredImageLoading}
-                          onChange={handleExpiredImageChange}
+                          multiple
+                          disabled={expiredImagesLoading}
+                          onChange={handleExpiredImagesChange}
                           className="hidden"
                         />
                       </label>
@@ -1234,51 +1342,65 @@ export const CartView = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {expiredItems.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-rose-50/30 dark:hover:bg-rose-950/20 transition-colors">
-                            <td className="py-3 px-3 text-slate-400 font-bold">{idx + 1}</td>
-                            <td className="py-3 px-3">
-                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-[10px] uppercase rounded-md">
-                                {item.company}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <strong className="text-slate-900 dark:text-white font-bold block">{item.product}</strong>
-                              <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>
-                            </td>
-                            <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-[11px]">
-                              {item.packInfo || item.packSize || item.caseSize || '-'}
-                            </td>
-                            <td className="py-3 px-3">
-                              {item.noDateAvailable ? (
-                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded">
-                                  No Date Available
+                        {expiredItems.map((item, idx) => {
+                          const itemImgs = Array.isArray(item.images) && item.images.length > 0
+                            ? item.images
+                            : item.image ? [item.image] : [];
+
+                          return (
+                            <tr key={item.id || idx} className="hover:bg-rose-50/30 dark:hover:bg-rose-950/20 transition-colors">
+                              <td className="py-3 px-3 text-slate-400 font-bold">{idx + 1}</td>
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-[10px] uppercase rounded-md">
+                                  {item.company}
                                 </span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1 w-fit">
-                                  <Calendar className="w-3 h-3" /> {item.mfdDate}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                              {item.image ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModalImage(item.image)}
-                                  className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
-                                  title="Click to view full attached photo"
-                                >
-                                  <img
-                                    src={item.image}
-                                    alt="Proof"
-                                    className="w-9 h-9 object-cover rounded-md border border-rose-300 dark:border-rose-800 group-hover:scale-105 transition-transform"
-                                  />
-                                  <Eye className="w-3 h-3 text-rose-600 dark:text-rose-400 opacity-70 group-hover:opacity-100" />
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-slate-400 italic">No Photo</span>
-                              )}
-                            </td>
+                              </td>
+                              <td className="py-3 px-3">
+                                <strong className="text-slate-900 dark:text-white font-bold block">{item.product}</strong>
+                                <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>
+                              </td>
+                              <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-[11px]">
+                                {item.packInfo || item.packSize || item.caseSize || '-'}
+                              </td>
+                              <td className="py-3 px-3">
+                                {item.noDateAvailable ? (
+                                  <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded">
+                                    No Date Available
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1 w-fit">
+                                    <Calendar className="w-3 h-3" /> {item.mfdDate}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                {itemImgs.length > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openLightbox(itemImgs, 0)}
+                                    className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                                    title={`Click to view ${itemImgs.length} attached photo(s)`}
+                                  >
+                                    <div className="relative">
+                                      <img
+                                        src={itemImgs[0]}
+                                        alt="Proof"
+                                        className="w-9 h-9 object-cover rounded-md border border-rose-300 dark:border-rose-800 group-hover:scale-105 transition-transform"
+                                      />
+                                      {itemImgs.length > 1 && (
+                                        <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 bg-rose-600 text-white font-black text-[9px] rounded-full shadow">
+                                          +{itemImgs.length - 1}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 group-hover:underline">
+                                      {itemImgs.length} Photo{itemImgs.length > 1 ? 's' : ''}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 italic">No Photo</span>
+                                )}
+                              </td>
                             <td className="py-3 px-3 text-center">
                               <span className="px-2.5 py-1 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-black rounded-lg text-xs">
                                 {item.qty} Units
@@ -1305,7 +1427,7 @@ export const CartView = () => {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        ); })}
                       </tbody>
                     </table>
                   </div>
@@ -1594,67 +1716,98 @@ export const CartView = () => {
                     )}
                   </div>
 
-                  {/* 4. Photo / Proof Attachment Upload */}
-                  <div className="pt-1 text-xs">
-                    <div className="flex items-center justify-between mb-1.5">
+                  {/* 4. Multi-Photo / Proof Attachment Upload */}
+                  <div className="pt-1 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
                       <label className="font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <Camera className="w-3.5 h-3.5 text-orange-500" />
-                        Attach Damaged Product Photo <span className="text-slate-400 font-normal">(Optional — Shows on Invoice)</span>
+                        Attach Damaged Product Photos
+                        <span className="text-slate-400 font-normal">
+                          ({returnImages.length}/{MAX_PHOTOS_PER_ITEM} photos • Shows on Invoice)
+                        </span>
                       </label>
-                      {returnImage && (
+                      {returnImages.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => setReturnImage(null)}
+                          onClick={() => setReturnImages([])}
                           className="text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-0.5"
                         >
-                          <X className="w-3 h-3" /> Remove Photo
+                          <X className="w-3 h-3" /> Clear All Photos
                         </button>
                       )}
                     </div>
 
-                    {returnImage ? (
-                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900/60 rounded-xl shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={returnImage}
-                            alt="Damage Docket Proof"
-                            onClick={() => setPreviewModalImage(returnImage)}
-                            className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
-                          />
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Photo Attached Successfully
+                    {/* Uploaded Photos Grid Gallery */}
+                    {returnImages.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-3 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900/60 rounded-2xl shadow-sm">
+                        {returnImages.map((img, idx) => (
+                          <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 aspect-square">
+                            <img
+                              src={img}
+                              alt={`Damage proof #${idx + 1}`}
+                              onClick={() => openLightbox(returnImages, idx)}
+                              className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 pointer-events-none">
+                              <button
+                                type="button"
+                                onClick={() => openLightbox(returnImages, idx)}
+                                className="pointer-events-auto p-1.5 rounded-full bg-white/90 text-slate-900 shadow hover:bg-white transition-colors"
+                                title="Zoom photo"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-orange-600" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveReturnImage(idx)}
+                                className="pointer-events-auto p-1.5 rounded-full bg-orange-600 text-white shadow hover:bg-orange-700 transition-colors"
+                                title="Delete photo"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white text-[9px] font-bold rounded">
+                              #{idx + 1}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalImage(returnImage)}
-                              className="text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:underline inline-flex items-center gap-1 mt-0.5"
-                            >
-                              <Eye className="w-3 h-3" /> Preview Full Photo
-                            </button>
                           </div>
-                        </div>
-                        <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0">
-                          Change
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleReturnImageChange}
-                            className="hidden"
-                          />
-                        </label>
+                        ))}
+
+                        {/* Add More Photos Tile if under limit */}
+                        {returnImages.length < MAX_PHOTOS_PER_ITEM && (
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-orange-300 dark:border-orange-800/80 hover:border-orange-500 rounded-xl cursor-pointer p-2 text-center transition-colors bg-orange-50/40 dark:bg-orange-950/20 aspect-square group">
+                            <Plus className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform mb-1" />
+                            <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300">
+                              + Add More
+                            </span>
+                            <span className="text-[8px] text-slate-400">
+                              ({MAX_PHOTOS_PER_ITEM - returnImages.length} left)
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              disabled={returnImagesLoading}
+                              onChange={handleReturnImagesChange}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
                       </div>
-                    ) : (
-                      <label className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-orange-400 dark:hover:border-orange-600 rounded-xl cursor-pointer transition-colors group">
-                        <Camera className="w-4 h-4 text-orange-500 group-hover:scale-110 transition-transform" />
+                    )}
+
+                    {/* Default Upload Trigger if 0 photos */}
+                    {returnImages.length === 0 && (
+                      <label className="flex items-center justify-center gap-2 p-3.5 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-orange-400 dark:hover:border-orange-600 rounded-xl cursor-pointer transition-colors group">
+                        <UploadCloud className="w-4 h-4 text-orange-500 group-hover:scale-110 transition-transform" />
                         <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">
-                          {returnImageLoading ? 'Compressing & Attaching Photo...' : 'Click / Tap to Take or Upload Damaged Product Photo'}
+                          {returnImagesLoading ? 'Compressing & Sanitizing Photos...' : 'Click / Tap to Upload 1 or More Damaged Product Photos (Max 5)'}
                         </span>
                         <input
                           type="file"
                           accept="image/*"
-                          disabled={returnImageLoading}
-                          onChange={handleReturnImageChange}
+                          multiple
+                          disabled={returnImagesLoading}
+                          onChange={handleReturnImagesChange}
                           className="hidden"
                         />
                       </label>
@@ -1714,52 +1867,66 @@ export const CartView = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {returnItems.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-orange-50/30 dark:hover:bg-orange-950/20 transition-colors">
-                            <td className="py-3 px-3 text-slate-400 font-bold">{idx + 1}</td>
-                            <td className="py-3 px-3">
-                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-[10px] uppercase rounded-md">
-                                {item.company}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <strong className="text-slate-900 dark:text-white font-bold block">{item.product}</strong>
-                              <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>
-                            </td>
-                            <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-[11px]">
-                              {item.packInfo || item.packSize || item.caseSize || '-'}
-                            </td>
-                            <td className="py-3 px-3 text-xs">
-                              {item.damageDate || item.date ? (
-                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-mono text-[11px]">
-                                  <Calendar className="w-3 h-3 text-orange-500" />
-                                  {item.damageDate || item.date}
+                        {returnItems.map((item, idx) => {
+                          const itemImgs = Array.isArray(item.images) && item.images.length > 0
+                            ? item.images
+                            : item.image ? [item.image] : [];
+
+                          return (
+                            <tr key={item.id || idx} className="hover:bg-orange-50/30 dark:hover:bg-orange-950/20 transition-colors">
+                              <td className="py-3 px-3 text-slate-400 font-bold">{idx + 1}</td>
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-[10px] uppercase rounded-md">
+                                  {item.company}
                                 </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold">
-                                  No Date
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                              {item.image ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModalImage(item.image)}
-                                  className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors"
-                                  title="Click to view full attached photo"
-                                >
-                                  <img
-                                    src={item.image}
-                                    alt="Proof"
-                                    className="w-9 h-9 object-cover rounded-md border border-orange-300 dark:border-orange-800 group-hover:scale-105 transition-transform"
-                                  />
-                                  <Eye className="w-3 h-3 text-orange-600 dark:text-orange-400 opacity-70 group-hover:opacity-100" />
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-slate-400 italic">No Photo</span>
-                              )}
-                            </td>
+                              </td>
+                              <td className="py-3 px-3">
+                                <strong className="text-slate-900 dark:text-white font-bold block">{item.product}</strong>
+                                <span className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</span>
+                              </td>
+                              <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-[11px]">
+                                {item.packInfo || item.packSize || item.caseSize || '-'}
+                              </td>
+                              <td className="py-3 px-3 text-xs">
+                                {item.damageDate || item.date ? (
+                                  <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-mono text-[11px]">
+                                    <Calendar className="w-3 h-3 text-orange-500" />
+                                    {item.damageDate || item.date}
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold">
+                                    No Date
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                {itemImgs.length > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openLightbox(itemImgs, 0)}
+                                    className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors"
+                                    title={`Click to view ${itemImgs.length} attached photo(s)`}
+                                  >
+                                    <div className="relative">
+                                      <img
+                                        src={itemImgs[0]}
+                                        alt="Proof"
+                                        className="w-9 h-9 object-cover rounded-md border border-orange-300 dark:border-orange-800 group-hover:scale-105 transition-transform"
+                                      />
+                                      {itemImgs.length > 1 && (
+                                        <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 bg-orange-600 text-white font-black text-[9px] rounded-full shadow">
+                                          +{itemImgs.length - 1}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 group-hover:underline">
+                                      {itemImgs.length} Photo{itemImgs.length > 1 ? 's' : ''}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 italic">No Photo</span>
+                                )}
+                              </td>
                             <td className="py-3 px-3">
                               <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 text-[11px] font-bold rounded-lg border border-orange-200 dark:border-orange-900 flex items-center gap-1.5 w-fit">
                                 <AlertTriangle className="w-3 h-3 text-orange-600 shrink-0" />
@@ -1792,7 +1959,7 @@ export const CartView = () => {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        ); })}
                       </tbody>
                     </table>
                   </div>
@@ -1900,45 +2067,103 @@ export const CartView = () => {
 
       </div>
 
-      {/* Lightbox Full Photo Preview Modal */}
+      {/* Lightbox Full Photo Interactive Gallery Modal */}
       <AnimatePresence>
-        {previewModalImage && (
+        {previewModalImages && previewModalImages.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setPreviewModalImage(null)}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setPreviewModalImages([])}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.92, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-                <span className="font-extrabold text-slate-900 dark:text-white text-xs flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-brand-600 dark:text-amber-400" />
-                  Attached Claim / Damage Photo Proof
-                </span>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <ImageIcon className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <span className="font-extrabold text-slate-900 dark:text-white text-xs block">
+                      Attached Claim / Damage Photo Proof
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      Photo {previewModalIndex + 1} of {previewModalImages.length}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setPreviewModalImage(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                  onClick={() => setPreviewModalImages([])}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 bg-slate-950 flex items-center justify-center max-h-[75vh] overflow-hidden">
+
+              {/* Main Image Display Area with Left/Right Arrows */}
+              <div className="relative flex-1 bg-slate-950 flex items-center justify-center min-h-[320px] max-h-[62vh] overflow-hidden p-4">
                 <img
-                  src={previewModalImage}
-                  alt="Full Proof View"
-                  className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+                  src={previewModalImages[previewModalIndex] || previewModalImages[0]}
+                  alt={`Proof #${previewModalIndex + 1}`}
+                  className="max-h-[58vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
                 />
+
+                {/* Left Arrow Button */}
+                {previewModalImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalIndex(prev => (prev > 0 ? prev - 1 : previewModalImages.length - 1))}
+                    className="absolute left-3 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+                    title="Previous photo"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+
+                {/* Right Arrow Button */}
+                {previewModalImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalIndex(prev => (prev < previewModalImages.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-3 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+                    title="Next photo"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-                <span>Proof attachment verified for offline docket collection & invoice reference.</span>
+
+              {/* Bottom Thumbnail Selector Strip & Note */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 space-y-2">
+                {previewModalImages.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 overflow-x-auto py-1">
+                    {previewModalImages.map((thumb, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPreviewModalIndex(idx)}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all shrink-0 aspect-square w-12 h-12 ${
+                          idx === previewModalIndex
+                            ? 'border-brand-600 dark:border-amber-400 scale-105 shadow-md'
+                            : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={thumb} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-center text-[11px] text-slate-500 font-medium">
+                  Verified high-resolution client attachment for offline docket inspection & invoice billing.
+                </p>
               </div>
             </motion.div>
           </motion.div>
