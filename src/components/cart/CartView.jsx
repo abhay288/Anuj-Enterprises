@@ -1,16 +1,56 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingCart, Trash2, ArrowLeft, ShieldCheck, FileText, 
   Building2, ArrowRight, AlertTriangle, CheckCircle2, User, Phone, MapPin, Mail, Sparkles, Tag,
   Zap, RotateCcw, Plus, AlertOctagon, PackageX, ChevronDown, ChevronUp, ShieldAlert,
-  Edit2, Calendar, Check, Layers, Box, LogIn
+  Edit2, Calendar, Check, Layers, Box, LogIn, Camera, Eye, Image as ImageIcon, X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
 import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
 
 import { checkUnwantedContent } from '../../utils/securityUtils';
+
+/**
+ * Client-Side Image Compression Utility
+ * Resizes large photos to max 800px width/height and compresses to JPEG ~50-80KB.
+ * Kept in memory / invoice state so it never bloats the database.
+ */
+const compressImageFile = (file, maxWidth = 800, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export const CartView = () => {
   const { 
@@ -31,6 +71,9 @@ export const CartView = () => {
     showToast,
     t
   } = useApp();
+
+  // Lightbox Preview Modal State for Full Photo Inspection
+  const [previewModalImage, setPreviewModalImage] = useState(null);
 
   // Customer Entry Flow Modes: 'quick' | 'full'
   const [customerMode, setCustomerMode] = useState('quick'); 
@@ -77,6 +120,31 @@ export const CartView = () => {
   const [expiredMfdDate, setExpiredMfdDate] = useState('');
   const [expiredNoDate, setExpiredNoDate] = useState(false);
   const [expiredQty, setExpiredQty] = useState(1);
+  const [expiredImage, setExpiredImage] = useState(null);
+  const [expiredImageLoading, setExpiredImageLoading] = useState(false);
+
+  const handleExpiredImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('⚠️ Please select a valid image file (PNG, JPG, WebP)', 'warning');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('⚠️ Image size should be less than 10MB', 'warning');
+      return;
+    }
+    try {
+      setExpiredImageLoading(true);
+      const compressed = await compressImageFile(file);
+      setExpiredImage(compressed);
+      showToast('✓ Photo attached to expiry claim (will show on invoice)', 'success');
+    } catch (err) {
+      showToast('Failed to process image file', 'error');
+    } finally {
+      setExpiredImageLoading(false);
+    }
+  };
 
   // Available Companies derived from real database brands & products
   const companyList = useMemo(() => {
@@ -106,6 +174,7 @@ export const CartView = () => {
     setExpiredMfdDate('');
     setExpiredNoDate(false);
     setExpiredQty(1);
+    setExpiredImage(null);
     setEditingExpiredId(null);
   };
 
@@ -121,6 +190,7 @@ export const CartView = () => {
     setExpiredMfdDate(item.mfdDate || '');
     setExpiredNoDate(Boolean(item.noDateAvailable));
     setExpiredQty(item.qty || 1);
+    setExpiredImage(item.image || item.claimImage || null);
     setIsExpiredOpen(true);
   };
 
@@ -161,6 +231,7 @@ export const CartView = () => {
       qty: q,
       mfdDate: expiredNoDate ? '' : expiredMfdDate,
       noDateAvailable: expiredNoDate,
+      image: expiredImage || null,
       batchOrNote: expiredNoDate ? 'No Date Available' : `MFD: ${expiredMfdDate}`
     };
 
@@ -174,7 +245,7 @@ export const CartView = () => {
         i.mfdDate === payload.mfdDate
       );
       if (duplicateIdx >= 0) {
-        setExpiredItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q } : item));
+        setExpiredItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, image: payload.image || item.image } : item));
         showToast(`✓ Added +${q} units to existing claim for ${selectedExpiredProductObj.name}`, 'success');
       } else {
         setExpiredItems(prev => [...prev, payload]);
@@ -203,6 +274,31 @@ export const CartView = () => {
   const [returnReason, setReturnReason] = useState('Damaged Packaging');
   const [customReturnReason, setCustomReturnReason] = useState('');
   const [isCustomReason, setIsCustomReason] = useState(false);
+  const [returnImage, setReturnImage] = useState(null);
+  const [returnImageLoading, setReturnImageLoading] = useState(false);
+
+  const handleReturnImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('⚠️ Please select a valid image file (PNG, JPG, WebP)', 'warning');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('⚠️ Image size should be less than 10MB', 'warning');
+      return;
+    }
+    try {
+      setReturnImageLoading(true);
+      const compressed = await compressImageFile(file);
+      setReturnImage(compressed);
+      showToast('✓ Photo attached to damage docket (will show on invoice)', 'success');
+    } catch (err) {
+      showToast('Failed to process image file', 'error');
+    } finally {
+      setReturnImageLoading(false);
+    }
+  };
 
   const commonDamageReasons = [
     'Damaged Packaging',
@@ -236,6 +332,7 @@ export const CartView = () => {
     setReturnDate('');
     setReturnNoDate(false);
     setReturnQty(1);
+    setReturnImage(null);
     setReturnReason('Damaged Packaging');
     setCustomReturnReason('');
     setIsCustomReason(false);
@@ -254,6 +351,7 @@ export const CartView = () => {
     setReturnQty(item.qty || 1);
     setReturnDate(item.damageDate || item.date || item.mfdDate || '');
     setReturnNoDate(Boolean(item.noDateAvailable));
+    setReturnImage(item.image || item.damageImage || null);
     if (commonDamageReasons.includes(item.reason) && item.reason !== 'Other (Custom Reason)') {
       setReturnReason(item.reason);
       setIsCustomReason(false);
@@ -314,6 +412,7 @@ export const CartView = () => {
       damageDate: returnNoDate ? '' : returnDate,
       date: returnNoDate ? '' : returnDate,
       noDateAvailable: returnNoDate,
+      image: returnImage || null,
       batchOrNote: returnNoDate ? 'No Date Available' : `Date: ${returnDate}`
     };
 
@@ -328,7 +427,7 @@ export const CartView = () => {
         i.damageDate === payload.damageDate
       );
       if (duplicateIdx >= 0) {
-        setReturnItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q } : item));
+        setReturnItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, image: payload.image || item.image } : item));
         showToast(`✓ Added +${q} units to existing damage claim for ${selectedReturnProductObj.name}`, 'success');
       } else {
         setReturnItems(prev => [...prev, payload]);
@@ -1016,6 +1115,73 @@ export const CartView = () => {
                     </div>
                   </div>
 
+                  {/* 4. Photo / Proof Attachment Upload */}
+                  <div className="pt-1 text-xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-rose-500" />
+                        Attach Expired Pack / MFD Batch Photo <span className="text-slate-400 font-normal">(Optional — Shows on Invoice)</span>
+                      </label>
+                      {expiredImage && (
+                        <button
+                          type="button"
+                          onClick={() => setExpiredImage(null)}
+                          className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
+                        >
+                          <X className="w-3 h-3" /> Remove Photo
+                        </button>
+                      )}
+                    </div>
+
+                    {expiredImage ? (
+                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={expiredImage}
+                            alt="Expired Claim Proof"
+                            onClick={() => setPreviewModalImage(expiredImage)}
+                            className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Photo Attached Successfully
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalImage(expiredImage)}
+                              className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1 mt-0.5"
+                            >
+                              <Eye className="w-3 h-3" /> Preview Full Photo
+                            </button>
+                          </div>
+                        </div>
+                        <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0">
+                          Change
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleExpiredImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-600 rounded-xl cursor-pointer transition-colors group">
+                        <Camera className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                          {expiredImageLoading ? 'Compressing & Attaching Photo...' : 'Click / Tap to Take or Upload Expired Pack Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={expiredImageLoading}
+                          onChange={handleExpiredImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-end gap-2.5 pt-2">
                     <button
                       type="button"
@@ -1062,6 +1228,7 @@ export const CartView = () => {
                           <th className="py-2.5 px-3">Product Name & SKU</th>
                           <th className="py-2.5 px-3">Pack Details</th>
                           <th className="py-2.5 px-3">MFD Date</th>
+                          <th className="py-2.5 px-3 text-center">Photo Proof</th>
                           <th className="py-2.5 px-3 text-center">Expired Qty</th>
                           <th className="py-2.5 px-3 text-center">Actions</th>
                         </tr>
@@ -1091,6 +1258,25 @@ export const CartView = () => {
                                 <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1 w-fit">
                                   <Calendar className="w-3 h-3" /> {item.mfdDate}
                                 </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {item.image ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModalImage(item.image)}
+                                  className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                                  title="Click to view full attached photo"
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt="Proof"
+                                    className="w-9 h-9 object-cover rounded-md border border-rose-300 dark:border-rose-800 group-hover:scale-105 transition-transform"
+                                  />
+                                  <Eye className="w-3 h-3 text-rose-600 dark:text-rose-400 opacity-70 group-hover:opacity-100" />
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">No Photo</span>
                               )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -1408,6 +1594,73 @@ export const CartView = () => {
                     )}
                   </div>
 
+                  {/* 4. Photo / Proof Attachment Upload */}
+                  <div className="pt-1 text-xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-orange-500" />
+                        Attach Damaged Product Photo <span className="text-slate-400 font-normal">(Optional — Shows on Invoice)</span>
+                      </label>
+                      {returnImage && (
+                        <button
+                          type="button"
+                          onClick={() => setReturnImage(null)}
+                          className="text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-0.5"
+                        >
+                          <X className="w-3 h-3" /> Remove Photo
+                        </button>
+                      )}
+                    </div>
+
+                    {returnImage ? (
+                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-900/60 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={returnImage}
+                            alt="Damage Docket Proof"
+                            onClick={() => setPreviewModalImage(returnImage)}
+                            className="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white text-xs block flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Photo Attached Successfully
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalImage(returnImage)}
+                              className="text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:underline inline-flex items-center gap-1 mt-0.5"
+                            >
+                              <Eye className="w-3 h-3" /> Preview Full Photo
+                            </button>
+                          </div>
+                        </div>
+                        <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0">
+                          Change
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleReturnImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-orange-400 dark:hover:border-orange-600 rounded-xl cursor-pointer transition-colors group">
+                        <Camera className="w-4 h-4 text-orange-500 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                          {returnImageLoading ? 'Compressing & Attaching Photo...' : 'Click / Tap to Take or Upload Damaged Product Photo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={returnImageLoading}
+                          onChange={handleReturnImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-end gap-2.5 pt-2">
                     <button
                       type="button"
@@ -1454,6 +1707,7 @@ export const CartView = () => {
                           <th className="py-2.5 px-3">Product Name & SKU</th>
                           <th className="py-2.5 px-3">Pack Details</th>
                           <th className="py-2.5 px-3">Damage Date</th>
+                          <th className="py-2.5 px-3 text-center">Photo Proof</th>
                           <th className="py-2.5 px-3">Damage Reason</th>
                           <th className="py-2.5 px-3 text-center">Damage Qty</th>
                           <th className="py-2.5 px-3 text-center">Actions</th>
@@ -1485,6 +1739,25 @@ export const CartView = () => {
                                 <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold">
                                   No Date
                                 </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {item.image ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModalImage(item.image)}
+                                  className="group inline-flex items-center gap-1.5 p-1 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors"
+                                  title="Click to view full attached photo"
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt="Proof"
+                                    className="w-9 h-9 object-cover rounded-md border border-orange-300 dark:border-orange-800 group-hover:scale-105 transition-transform"
+                                  />
+                                  <Eye className="w-3 h-3 text-orange-600 dark:text-orange-400 opacity-70 group-hover:opacity-100" />
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic">No Photo</span>
                               )}
                             </td>
                             <td className="py-3 px-3">
@@ -1626,6 +1899,51 @@ export const CartView = () => {
         </div>
 
       </div>
+
+      {/* Lightbox Full Photo Preview Modal */}
+      <AnimatePresence>
+        {previewModalImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewModalImage(null)}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+                <span className="font-extrabold text-slate-900 dark:text-white text-xs flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-brand-600 dark:text-amber-400" />
+                  Attached Claim / Damage Photo Proof
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalImage(null)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 bg-slate-950 flex items-center justify-center max-h-[75vh] overflow-hidden">
+                <img
+                  src={previewModalImage}
+                  alt="Full Proof View"
+                  className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+                />
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+                <span>Proof attachment verified for offline docket collection & invoice reference.</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Invoice Viewer Modal */}
       <InvoiceModal />

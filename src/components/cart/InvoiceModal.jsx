@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
-  Zap, AlertOctagon, RotateCcw, Calendar, Clock
+  Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
+  const [previewModalImage, setPreviewModalImage] = useState(null);
 
   if (!isInvoiceModalOpen || !selectedInvoice) return null;
 
@@ -296,6 +297,7 @@ export const InvoiceModal = () => {
             </div>
 
             {/* Expired Products Return / Replacement Docket (If recorded) */}
+            {/* Expired Goods Claims Docket (If recorded) */}
             {inv.expiredItems && inv.expiredItems.length > 0 && (
               <div className="space-y-2 p-3.5 rounded-xl border border-red-200 bg-red-50/40 text-xs">
                 <div className="flex items-center gap-2 font-black text-red-800 uppercase tracking-wide text-[11px]">
@@ -309,6 +311,7 @@ export const InvoiceModal = () => {
                       <th className="py-1.5 px-2">Company / Brand</th>
                       <th className="py-1.5 px-2">Product & SKU</th>
                       <th className="py-1.5 px-2">MFD Date</th>
+                      <th className="py-1.5 px-2 text-center">Photo Proof</th>
                       <th className="py-1.5 px-2 text-center">Expired Qty</th>
                     </tr>
                   </thead>
@@ -323,6 +326,25 @@ export const InvoiceModal = () => {
                         </td>
                         <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
                           {ex.noDateAvailable ? 'No Date Available' : ex.mfdDate ? `MFD: ${ex.mfdDate}` : ex.batchOrNote || 'Undated'}
+                        </td>
+                        <td className="py-1.5 px-2 text-center">
+                          {ex.image ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalImage(ex.image)}
+                              className="group inline-flex items-center gap-1 p-0.5 rounded hover:bg-red-100 transition-colors"
+                              title="Click to view full attached photo"
+                            >
+                              <img
+                                src={ex.image}
+                                alt="Proof"
+                                className="w-8 h-8 object-cover rounded border border-red-300 shadow-xs group-hover:scale-105 transition-transform"
+                              />
+                              <Eye className="w-3 h-3 text-red-600 opacity-60 group-hover:opacity-100" />
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">No Photo</span>
+                          )}
                         </td>
                         <td className="py-1.5 px-2 text-center font-black text-red-700">{ex.qty} Units</td>
                       </tr>
@@ -346,6 +368,7 @@ export const InvoiceModal = () => {
                       <th className="py-1.5 px-2">Company / Brand</th>
                       <th className="py-1.5 px-2">Product & SKU</th>
                       <th className="py-1.5 px-2">Damage Date</th>
+                      <th className="py-1.5 px-2 text-center">Photo Proof</th>
                       <th className="py-1.5 px-2">Damage Reason</th>
                       <th className="py-1.5 px-2 text-center">Damage Qty</th>
                     </tr>
@@ -364,6 +387,25 @@ export const InvoiceModal = () => {
                             <span className="font-bold">{rt.damageDate || rt.date}</span>
                           ) : (
                             <span className="text-slate-400 font-sans italic">No Date</span>
+                          )}
+                        </td>
+                        <td className="py-1.5 px-2 text-center">
+                          {rt.image ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalImage(rt.image)}
+                              className="group inline-flex items-center gap-1 p-0.5 rounded hover:bg-orange-100 transition-colors"
+                              title="Click to view full attached photo"
+                            >
+                              <img
+                                src={rt.image}
+                                alt="Proof"
+                                className="w-8 h-8 object-cover rounded border border-orange-300 shadow-xs group-hover:scale-105 transition-transform"
+                              />
+                              <Eye className="w-3 h-3 text-orange-600 opacity-60 group-hover:opacity-100" />
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">No Photo</span>
                           )}
                         </td>
                         <td className="py-1.5 px-2 text-orange-800 font-medium">
@@ -419,6 +461,43 @@ export const InvoiceModal = () => {
           </div>
 
         </motion.div>
+
+        {/* Invoice Full Photo Inspection Lightbox */}
+        {previewModalImage && (
+          <div
+            onClick={() => setPreviewModalImage(null)}
+            className="fixed inset-0 z-60 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+                <span className="font-extrabold text-slate-900 dark:text-white text-xs flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-brand-600 dark:text-amber-400" />
+                  Invoice Proof Photo Attachment
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalImage(null)}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 bg-slate-950 flex items-center justify-center max-h-[75vh] overflow-hidden">
+                <img
+                  src={previewModalImage}
+                  alt="Invoice Proof Full View"
+                  className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+                />
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+                <span>Direct client attachment for invoice verification & offline claim settlement.</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AnimatePresence>
   );

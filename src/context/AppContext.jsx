@@ -1050,8 +1050,9 @@ export const AppProvider = ({ children }) => {
         caseSize: item.product.caseSize,
         isPriority: Boolean(item.isPriority)
       })),
-      expiredItems: customerDetails.expiredItems || [],
-      returnItems: customerDetails.returnItems || [],
+      // Strip heavy base64 images from network payload to keep MongoDB database fast & lightweight
+      expiredItems: (customerDetails.expiredItems || []).map(({ image, ...rest }) => rest),
+      returnItems: (customerDetails.returnItems || []).map(({ image, ...rest }) => rest),
       hasUrgentItems: cart.some(item => item.isPriority),
       hasExpiredItems: Boolean(customerDetails.expiredItems && customerDetails.expiredItems.length > 0),
       hasReturnItems: Boolean(customerDetails.returnItems && customerDetails.returnItems.length > 0)
@@ -1060,9 +1061,14 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await orderService.createOrder(payload);
       if (res.data?.order) {
-        setOrders(prev => [res.data.order, ...prev]);
+        const fullOrderWithProof = {
+          ...res.data.order,
+          expiredItems: customerDetails.expiredItems || [],
+          returnItems: customerDetails.returnItems || []
+        };
+        setOrders(prev => [fullOrderWithProof, ...prev]);
         clearCart();
-        setLastCompletedOrder(res.data.order);
+        setLastCompletedOrder(fullOrderWithProof);
         setIsOrderSuccessModalOpen(true);
 
         // Add In-App Notifications
