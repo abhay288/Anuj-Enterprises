@@ -345,6 +345,7 @@ export const InvoiceModal = () => {
                       <th className="py-1.5 px-2">#</th>
                       <th className="py-1.5 px-2">Company / Brand</th>
                       <th className="py-1.5 px-2">Product & SKU</th>
+                      <th className="py-1.5 px-2">Damage Date</th>
                       <th className="py-1.5 px-2">Damage Reason</th>
                       <th className="py-1.5 px-2 text-center">Damage Qty</th>
                     </tr>
@@ -357,6 +358,13 @@ export const InvoiceModal = () => {
                         <td className="py-1.5 px-2 text-slate-800">
                           <div>{rt.product}</div>
                           {rt.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {rt.sku}</div>}
+                        </td>
+                        <td className="py-1.5 px-2 text-slate-700 font-mono text-[10px]">
+                          {rt.damageDate || rt.date ? (
+                            <span className="font-bold">{rt.damageDate || rt.date}</span>
+                          ) : (
+                            <span className="text-slate-400 font-sans italic">No Date</span>
+                          )}
                         </td>
                         <td className="py-1.5 px-2 text-orange-800 font-medium">
                           {rt.reason || 'Damaged Packaging'}

@@ -197,6 +197,8 @@ export const CartView = () => {
 
   const [returnCompany, setReturnCompany] = useState('');
   const [returnProductId, setReturnProductId] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [returnNoDate, setReturnNoDate] = useState(false);
   const [returnQty, setReturnQty] = useState(1);
   const [returnReason, setReturnReason] = useState('Damaged Packaging');
   const [customReturnReason, setCustomReturnReason] = useState('');
@@ -231,6 +233,8 @@ export const CartView = () => {
   const resetReturnForm = () => {
     setReturnCompany('');
     setReturnProductId('');
+    setReturnDate('');
+    setReturnNoDate(false);
     setReturnQty(1);
     setReturnReason('Damaged Packaging');
     setCustomReturnReason('');
@@ -248,6 +252,8 @@ export const CartView = () => {
     setReturnCompany(item.company || '');
     setReturnProductId(item.productId || '');
     setReturnQty(item.qty || 1);
+    setReturnDate(item.damageDate || item.date || item.mfdDate || '');
+    setReturnNoDate(Boolean(item.noDateAvailable));
     if (commonDamageReasons.includes(item.reason) && item.reason !== 'Other (Custom Reason)') {
       setReturnReason(item.reason);
       setIsCustomReason(false);
@@ -272,6 +278,10 @@ export const CartView = () => {
     }
     if (selectedReturnProductObj.isNrp) {
       showToast('🚫 This product follows No Return Policy (NRP) and cannot be added to Damage Docket.', 'error');
+      return;
+    }
+    if (!returnNoDate && !returnDate) {
+      showToast('⚠️ Please select a Damage / Return Date or check "No Date Available".', 'warning');
       return;
     }
     const q = parseInt(returnQty, 10);
@@ -300,7 +310,11 @@ export const CartView = () => {
       bundleSize: selectedReturnProductObj.bundleSize || '',
       caseSize: selectedReturnProductObj.caseSize || '',
       qty: q,
-      reason: finalReason
+      reason: finalReason,
+      damageDate: returnNoDate ? '' : returnDate,
+      date: returnNoDate ? '' : returnDate,
+      noDateAvailable: returnNoDate,
+      batchOrNote: returnNoDate ? 'No Date Available' : `Date: ${returnDate}`
     };
 
     if (editingReturnId) {
@@ -309,7 +323,9 @@ export const CartView = () => {
     } else {
       const duplicateIdx = returnItems.findIndex(i => 
         i.productId === payload.productId && 
-        i.reason.toLowerCase() === payload.reason.toLowerCase()
+        i.reason.toLowerCase() === payload.reason.toLowerCase() &&
+        i.noDateAvailable === payload.noDateAvailable &&
+        i.damageDate === payload.damageDate
       );
       if (duplicateIdx >= 0) {
         setReturnItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q } : item));
@@ -1272,8 +1288,44 @@ export const CartView = () => {
                     </div>
                   )}
 
-                  {/* 3. Damage Details: Quantity and Damage Reason */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1 text-xs">
+                  {/* 3. Damage Details: Date / No Date, Quantity and Damage Reason */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+                    {/* Damage / Incident Date */}
+                    <div>
+                      <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
+                        Damage / Incident Date {!returnNoDate && <span className="text-orange-500">*</span>}
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="date"
+                          max={new Date().toISOString().split('T')[0]}
+                          disabled={returnNoDate}
+                          required={!returnNoDate}
+                          value={returnDate}
+                          onChange={(e) => setReturnDate(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* No Date Available Checkbox */}
+                    <div className="flex flex-col justify-end">
+                      <label className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={returnNoDate}
+                          onChange={(e) => {
+                            setReturnNoDate(e.target.checked);
+                            if (e.target.checked) setReturnDate('');
+                          }}
+                          className="w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer"
+                        />
+                        <span className="font-bold text-slate-800 dark:text-slate-200 select-none text-[11px]">
+                          No Date Available
+                        </span>
+                      </label>
+                    </div>
+
                     {/* Quantity of Damaged Items */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
@@ -1290,70 +1342,70 @@ export const CartView = () => {
                         placeholder="1"
                       />
                     </div>
+                  </div>
 
-                    {/* Damage Reason Selector */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300">
-                          Damage Reason <span className="text-orange-500">*</span>
-                        </label>
-                        {!isCustomReason && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCustomReason(true);
-                              setReturnReason('Other (Custom Reason)');
-                            }}
-                            className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-0.5"
-                          >
-                            <Plus className="w-3 h-3" /> Add Custom Reason
-                          </button>
-                        )}
-                      </div>
-
-                      {!isCustomReason ? (
-                        <select
-                          required
-                          value={returnReason}
-                          onChange={(e) => {
-                            setReturnReason(e.target.value);
-                            if (e.target.value === 'Other (Custom Reason)') {
-                              setIsCustomReason(true);
-                            }
+                  {/* Damage Reason Selector */}
+                  <div className="pt-1 text-xs">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300">
+                        Damage Reason <span className="text-orange-500">*</span>
+                      </label>
+                      {!isCustomReason && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomReason(true);
+                            setReturnReason('Other (Custom Reason)');
                           }}
-                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-0.5"
                         >
-                          {commonDamageReasons.map(r => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="relative flex items-center">
-                            <input
-                              type="text"
-                              required
-                              autoFocus
-                              value={customReturnReason}
-                              onChange={(e) => setCustomReturnReason(e.target.value)}
-                              placeholder="Type specific damage reason (e.g. Seal broken during transport)"
-                              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCustomReason(false);
-                              setReturnReason(commonDamageReasons[0]);
-                              setCustomReturnReason('');
-                            }}
-                            className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold block"
-                          >
-                            ← Choose from standard damage list instead
-                          </button>
-                        </div>
+                          <Plus className="w-3 h-3" /> Add Custom Reason
+                        </button>
                       )}
                     </div>
+
+                    {!isCustomReason ? (
+                      <select
+                        required
+                        value={returnReason}
+                        onChange={(e) => {
+                          setReturnReason(e.target.value);
+                          if (e.target.value === 'Other (Custom Reason)') {
+                            setIsCustomReason(true);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        {commonDamageReasons.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            required
+                            autoFocus
+                            value={customReturnReason}
+                            onChange={(e) => setCustomReturnReason(e.target.value)}
+                            placeholder="Type specific damage reason (e.g. Seal broken during transport)"
+                            className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomReason(false);
+                            setReturnReason(commonDamageReasons[0]);
+                            setCustomReturnReason('');
+                          }}
+                          className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold block"
+                        >
+                          ← Choose from standard damage list instead
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -1401,6 +1453,7 @@ export const CartView = () => {
                           <th className="py-2.5 px-3">Company / Brand</th>
                           <th className="py-2.5 px-3">Product Name & SKU</th>
                           <th className="py-2.5 px-3">Pack Details</th>
+                          <th className="py-2.5 px-3">Damage Date</th>
                           <th className="py-2.5 px-3">Damage Reason</th>
                           <th className="py-2.5 px-3 text-center">Damage Qty</th>
                           <th className="py-2.5 px-3 text-center">Actions</th>
@@ -1421,6 +1474,18 @@ export const CartView = () => {
                             </td>
                             <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-[11px]">
                               {item.packInfo || item.packSize || item.caseSize || '-'}
+                            </td>
+                            <td className="py-3 px-3 text-xs">
+                              {item.damageDate || item.date ? (
+                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-mono text-[11px]">
+                                  <Calendar className="w-3 h-3 text-orange-500" />
+                                  {item.damageDate || item.date}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold">
+                                  No Date
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-3">
                               <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 text-[11px] font-bold rounded-lg border border-orange-200 dark:border-orange-900 flex items-center gap-1.5 w-fit">
