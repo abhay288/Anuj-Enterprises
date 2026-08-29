@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, MessageSquare, Truck, Send, Phone, MapPin, Calendar, 
-  Clock, ShieldCheck, CheckCircle2, Copy, AlertCircle, Sparkles,
-  Package, User, FileText, ExternalLink
+  X, Truck, User, Copy, ExternalLink, Clock, Phone, MapPin
 } from 'lucide-react';
 import { 
   cleanWhatsAppPhone, 
   generateDeliveryWhatsAppMessage, 
   sendDeliveryWhatsAppNotification 
 } from '../../utils/deliveryNotificationUtils';
+import { WhatsAppIcon } from '../common/WhatsAppIcon';
 
 export const WhatsAppDeliveryModal = ({ 
   isOpen, 
@@ -24,10 +23,9 @@ export const WhatsAppDeliveryModal = ({
   const rawCustomerMobile = (order.customerMobile || order.customerPhone || order.phone || '').replace('+91', '').trim();
 
   const [customerMobile, setCustomerMobile] = useState(rawCustomerMobile);
-  const [driverName, setDriverName] = useState('Anuj Enterprises Express Fleet');
+  const [driverName, setDriverName] = useState('Anuj Logistics Fleet');
   const [driverPhone, setDriverPhone] = useState('+91 88876 83782');
-  const [vehicleNo, setVehicleNo] = useState('UP-78 Kanpur Central Dispatch');
-  const [estimatedTime, setEstimatedTime] = useState('Within 2 Hours (Today)');
+  const [estimatedTime, setEstimatedTime] = useState('Today (In-Transit)');
   const [customNote, setCustomNote] = useState('');
   const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
 
@@ -43,7 +41,6 @@ export const WhatsAppDeliveryModal = ({
     customerMobile: customerMobile ? (customerMobile.startsWith('+91') ? customerMobile : `+91 ${customerMobile}`) : '',
     driverName,
     driverPhone,
-    vehicleNo,
     estimatedTime,
     customNote
   };
@@ -52,15 +49,11 @@ export const WhatsAppDeliveryModal = ({
   const cleanPhone = cleanWhatsAppPhone(customPayload.customerMobile);
 
   const handleSendWhatsApp = () => {
-    // 1. Optionally update status in database and state to OUT_FOR_DELIVERY
     if (autoUpdateStatus && onStatusUpdate) {
       onStatusUpdate(order.id || order.orderId || order.invoiceNumber, 'OUT_FOR_DELIVERY');
     }
 
-    // 2. Open WhatsApp Web / App
     sendDeliveryWhatsAppNotification(order, customPayload, showToast);
-
-    // 3. Close modal
     onClose();
   };
 
@@ -71,19 +64,19 @@ export const WhatsAppDeliveryModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl w-full overflow-hidden my-6 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto"
         >
           {/* Modal Header */}
-          <div className="px-6 py-4.5 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white flex items-center justify-between shrink-0 shadow-md">
+          <div className="px-6 py-4 bg-gradient-to-r from-[#128C7E] to-[#25D366] text-white flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
-                <Truck className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner shrink-0">
+                <WhatsAppIcon className="w-6 h-6 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -94,22 +87,22 @@ export const WhatsAppDeliveryModal = ({
                     Live Dispatch
                   </span>
                 </div>
-                <p className="text-xs text-emerald-100/90 font-medium">
-                  Direct customer notification for Invoice <span className="font-bold text-white font-mono">{invoiceNumber}</span>
+                <p className="text-xs text-emerald-50/90 font-medium">
+                  Direct customer alert for Invoice <span className="font-bold text-white font-mono">{invoiceNumber}</span>
                 </p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/20 text-emerald-100 hover:text-white transition-colors"
+              className="p-2 rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Modal Body */}
-          <div className="p-6 overflow-y-auto space-y-5 text-xs">
+          <div className="p-6 overflow-y-auto space-y-4 text-xs">
             
             {/* Customer & Order Summary Banner */}
             <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between gap-3">
@@ -122,7 +115,7 @@ export const WhatsAppDeliveryModal = ({
                   📍 {order.customerAddress || 'Kanpur Store'}, {order.customerCity || 'Kanpur'} • {order.totalQuantity || 0} Total Units
                 </p>
               </div>
-              <span className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded-xl text-[10px] shrink-0 shadow-xs">
+              <span className="px-3 py-1 bg-[#25D366] text-slate-950 font-black rounded-xl text-[10px] shrink-0 shadow-xs">
                 {order.items?.length || 0} SKUs
               </span>
             </div>
@@ -136,7 +129,7 @@ export const WhatsAppDeliveryModal = ({
                   Customer Mobile Number <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">+91</span>
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">+91</span>
                   <input
                     type="tel"
                     value={customerMobile}
@@ -145,7 +138,7 @@ export const WhatsAppDeliveryModal = ({
                     className="w-full pl-11 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-mono"
                   />
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                <span className="text-[10px] text-slate-400 mt-1 block">
                   {cleanPhone ? `Target: +${cleanPhone}` : '⚠️ Please enter 10-digit mobile number'}
                 </span>
               </div>
@@ -222,17 +215,17 @@ export const WhatsAppDeliveryModal = ({
                   className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
                 />
                 <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                  Automatically set Order Status to 🚚 <strong className="text-emerald-600 dark:text-emerald-400 font-black">"Out For Delivery"</strong>
+                  Automatically mark order as 🚚 <strong className="text-emerald-600 dark:text-emerald-400 font-black">"Out For Delivery"</strong>
                 </span>
               </label>
               <span className="text-[10px] text-slate-400 font-semibold">Updates Live Database</span>
             </div>
 
             {/* WhatsApp Live Bubble Preview */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-slate-700 dark:text-slate-300 uppercase text-[10px] flex items-center gap-1.5">
-                  <MessageSquare className="w-3 h-3 text-emerald-500" />
+                  <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />
                   Live WhatsApp Message Preview:
                 </span>
                 <button
@@ -244,7 +237,7 @@ export const WhatsAppDeliveryModal = ({
                 </button>
               </div>
 
-              <div className="p-4 bg-[#e5ddd5] dark:bg-slate-950 rounded-2xl border border-slate-300 dark:border-slate-800 font-sans text-slate-900 dark:text-slate-100 text-[11px] whitespace-pre-wrap leading-relaxed shadow-inner max-h-48 overflow-y-auto">
+              <div className="p-3.5 bg-[#e5ddd5] dark:bg-slate-950 rounded-2xl border border-slate-300 dark:border-slate-800 font-sans text-slate-900 dark:text-slate-100 text-[11px] whitespace-pre-wrap leading-relaxed shadow-inner max-h-40 overflow-y-auto">
                 <div className="p-3 bg-white dark:bg-slate-900 rounded-xl rounded-tl-none shadow-sm border border-slate-200 dark:border-slate-800">
                   {previewMessage}
                 </div>
@@ -253,12 +246,12 @@ export const WhatsAppDeliveryModal = ({
 
           </div>
 
-          {/* Modal Footer */}
-          <div className="p-4.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          {/* Modal Footer with generous margins and padding */}
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 rounded-b-3xl">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors"
             >
               Cancel
             </button>
@@ -266,9 +259,9 @@ export const WhatsAppDeliveryModal = ({
             <button
               type="button"
               onClick={handleSendWhatsApp}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all hover:scale-[1.02]"
+              className="px-6 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
             >
-              <MessageSquare className="w-4 h-4 fill-white" />
+              <WhatsAppIcon className="w-4 h-4 text-slate-950" />
               <span>Send WhatsApp & Dispatch</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-80" />
             </button>

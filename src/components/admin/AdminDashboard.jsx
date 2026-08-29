@@ -21,6 +21,7 @@ import { analyticsService } from '../../services/analyticsService';
 import { inventoryService } from '../../services/inventoryService';
 import { AdminPasswordModal } from './AdminPasswordModal';
 import { WhatsAppDeliveryModal } from './WhatsAppDeliveryModal';
+import { WhatsAppIcon } from '../common/WhatsAppIcon';
 import { 
   exportOrdersCSV, 
   exportProductsCSV, 
@@ -1664,21 +1665,21 @@ export const AdminDashboard = () => {
                               </td>
 
                               {/* Actions: View Invoice & WhatsApp Delivery Notification */}
-                              <td className="py-3.5 px-4 text-center">
-                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                <div className="flex flex-col items-center justify-center gap-1.5 min-w-[130px]">
                                   {/* WhatsApp Delivery Notification Button */}
                                   <button
                                     onClick={() => setSelectedOrderForDeliveryModal(order)}
-                                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold text-[11px] inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                    className="w-full px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] border border-emerald-600/20"
                                     title="Notify Customer on WhatsApp for Out For Delivery"
                                   >
-                                    <MessageSquare className="w-3.5 h-3.5 fill-white" />
+                                    <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
                                     <span>Notify WhatsApp</span>
                                   </button>
 
                                   <button
                                     onClick={() => openInvoiceModal(order)}
-                                    className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-[11px] inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                    className="w-full px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
                                     title="View Full B2B Invoice"
                                   >
                                     <Eye className="w-3.5 h-3.5 text-amber-400" />

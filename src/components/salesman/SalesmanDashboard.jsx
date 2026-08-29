@@ -12,6 +12,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { useApp } from '../../context/AppContext';
 import { SalesmanPasswordModal } from './SalesmanPasswordModal';
 import { WhatsAppDeliveryModal } from '../admin/WhatsAppDeliveryModal';
+import { WhatsAppIcon } from '../common/WhatsAppIcon';
 
 export const SalesmanDashboard = () => {
   const { 
@@ -479,16 +480,17 @@ export const SalesmanDashboard = () => {
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               {/* WhatsApp Notify Button */}
                               <button
                                 type="button"
                                 onClick={() => setSelectedOrderForDeliveryModal(order)}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-extrabold text-[11px] inline-flex items-center gap-1 shadow-sm transition-colors"
+                                className="px-3 py-1 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-lg font-black text-[11px] inline-flex items-center gap-1.5 shadow-sm transition-colors"
                                 title="Notify Customer on WhatsApp for Delivery"
                               >
-                                <MessageSquare className="w-3 h-3 fill-white" /> WhatsApp
+                                <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
+                                <span>WhatsApp</span>
                               </button>
 
                               {/* Quick Reorder Action */}

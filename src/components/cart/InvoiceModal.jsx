@@ -9,6 +9,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 import { sendDeliveryWhatsAppNotification } from '../../utils/deliveryNotificationUtils';
+import { WhatsAppIcon } from '../common/WhatsAppIcon';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
@@ -161,18 +162,18 @@ export const InvoiceModal = () => {
 
               <button
                 onClick={() => sendDeliveryWhatsAppNotification(inv, {}, showToast)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow"
+                className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow"
                 title="Send Out For Delivery WhatsApp Alert to Customer"
               >
-                <Truck className="w-4 h-4" /> <span>Notify Delivery</span>
+                <WhatsAppIcon className="w-4 h-4 text-slate-950" /> <span>Notify Delivery</span>
               </button>
 
               <button
                 onClick={handleShareWhatsApp}
-                className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow"
+                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow"
                 title="Share Invoice PDF via WhatsApp"
               >
-                <MessageSquare className="w-4 h-4" /> <span>Share PDF</span>
+                <WhatsAppIcon className="w-4 h-4 text-white" /> <span>Share PDF</span>
               </button>
               
               <button
