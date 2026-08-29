@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 interface EmailAttachment {
   filename: string;
@@ -52,6 +55,20 @@ export const createEmailTransporter = () => {
       rejectUnauthorized: false
     }
   });
+};
+
+/**
+ * Verify SMTP Connection with credentials
+ */
+export const verifyEmailConnection = async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const transporter = createEmailTransporter();
+    await transporter.verify();
+    return { success: true };
+  } catch (error: any) {
+    console.error('Nodemailer SMTP verification error:', error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 const FROM_EMAIL = process.env.EMAIL_FROM || '"Anuj Enterprises FMCG" <anujenterprises.fmcg.006@gmail.com>';
