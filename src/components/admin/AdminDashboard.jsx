@@ -10,7 +10,8 @@ import {
   PackageX, ShieldAlert, ArrowRight, PackagePlus, History, SlidersHorizontal,
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
   BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target,
-  Truck, MessageSquare, Send, ExternalLink
+  Truck, MessageSquare, Send, ExternalLink, LifeBuoy, Headphones, PhoneCall, CheckCircle,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -45,6 +46,13 @@ export const AdminDashboard = () => {
     deleteCustomer,
     refreshCustomers,
     updateOrderStatus,
+    supportTickets,
+    submitSupportTicket,
+    updateTicketStatus,
+    deleteSupportTicket,
+    setBrandTopRank,
+    moveBrandRank,
+    updateBrandRank,
     addProduct, 
     updateProduct, 
     deleteProduct, 
@@ -71,13 +79,136 @@ export const AdminDashboard = () => {
     legalPolicies,
     updateLegalPolicy,
     resetLegalPolicies,
+    deliverySchedules,
+    addCustomerDeliveryDate,
+    removeCustomerDeliveryDate,
+    setCustomerDeliveryDates,
+    bulkSetAreaDeliveryDates,
     navigateTo,
     logout, 
     showToast 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'inventory' | 'products' | 'orders' | 'salesmen' | 'categories' | 'reports' | 'announcement' | 'policies'
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'orders' | 'schedules' | 'tickets' | 'customers' | 'announcement' | 'policies' | 'products' | 'salesmen' | 'categories' | 'reports'
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
+
+  // Delivery Route & Area Schedule Management State
+  const [scheduleSearchQuery, setScheduleSearchQuery] = useState('');
+  const [scheduleCityFilter, setScheduleCityFilter] = useState('ALL');
+  const [scheduleAreaFilter, setScheduleAreaFilter] = useState('ALL');
+  const [scheduleRouteFilter, setScheduleRouteFilter] = useState('ALL');
+  const [scheduleDateFilter, setScheduleDateFilter] = useState(''); // specific date filter
+  
+  // Single Customer Schedule Edit Modal
+  const [selectedCustForSchedule, setSelectedCustForSchedule] = useState(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [custScheduleDateInputs, setCustScheduleDateInputs] = useState([]);
+  const [singleNewDateInput, setSingleNewDateInput] = useState('');
+
+  // Bulk Area Scheduler Modal
+  const [isBulkScheduleModalOpen, setIsBulkScheduleModalOpen] = useState(false);
+  const [bulkTargetArea, setBulkTargetArea] = useState('');
+  const [bulkDatesList, setBulkDatesList] = useState([]);
+  const [bulkNewDateInput, setBulkNewDateInput] = useState('');
+
+  // Helper date functions
+  const formatScheduleDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const getDaysUntilDelivery = (dateStr) => {
+    if (!dateStr) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr + 'T00:00:00');
+    const diffTime = target - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const handleOpenScheduleModal = (cust) => {
+    const cId = cust.id || cust.customerId;
+    const existing = deliverySchedules?.[cId] || [];
+    setSelectedCustForSchedule(cust);
+    setCustScheduleDateInputs([...existing]);
+    setSingleNewDateInput('');
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleSaveCustomerSchedule = (e) => {
+    e.preventDefault();
+    if (!selectedCustForSchedule) return;
+    const cId = selectedCustForSchedule.id || selectedCustForSchedule.customerId;
+    setCustomerDeliveryDates(cId, custScheduleDateInputs);
+    setIsScheduleModalOpen(false);
+    setSelectedCustForSchedule(null);
+  };
+
+  const handleAddDateToCustomer = () => {
+    if (!singleNewDateInput) return;
+    if (custScheduleDateInputs.includes(singleNewDateInput)) {
+      showToast('Date already added in schedule', 'warning');
+      return;
+    }
+    setCustScheduleDateInputs(prev => [...prev, singleNewDateInput].sort());
+    setSingleNewDateInput('');
+  };
+
+  const handleRemoveDateFromCustomer = (dateToRemove) => {
+    setCustScheduleDateInputs(prev => prev.filter(d => d !== dateToRemove));
+  };
+
+  const handleOpenBulkScheduler = () => {
+    setBulkTargetArea('');
+    setBulkDatesList([]);
+    setBulkNewDateInput('');
+    setIsBulkScheduleModalOpen(true);
+  };
+
+  const handleAddBulkDate = () => {
+    if (!bulkNewDateInput) return;
+    if (bulkDatesList.includes(bulkNewDateInput)) {
+      showToast('Date already in list', 'warning');
+      return;
+    }
+    setBulkDatesList(prev => [...prev, bulkNewDateInput].sort());
+    setBulkNewDateInput('');
+  };
+
+  const handleSaveBulkSchedule = (e) => {
+    e.preventDefault();
+    if (!bulkTargetArea.trim()) {
+      showToast('Please select or enter an Area or City', 'warning');
+      return;
+    }
+    if (bulkDatesList.length === 0) {
+      showToast('Please add at least one delivery date', 'warning');
+      return;
+    }
+    bulkSetAreaDeliveryDates(bulkTargetArea.trim(), bulkDatesList);
+    setIsBulkScheduleModalOpen(false);
+  };
+
+  // Priority Support Tickets State
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState('ALL'); // 'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'URGENT'
+  const [ticketCategoryFilter, setTicketCategoryFilter] = useState('ALL');
+  const [selectedTicketForDetails, setSelectedTicketForDetails] = useState(null);
+  const [isAddTicketModalOpen, setIsAddTicketModalOpen] = useState(false);
+  const [newAdminTicketForm, setNewAdminTicketForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    category: 'Order Dispatch & Tracking',
+    priority: 'HIGH',
+    message: ''
+  });
+  const [adminResolutionNote, setAdminResolutionNote] = useState('');
   
   // Legal Policy Editor State
   const [selectedPolicyKey, setSelectedPolicyKey] = useState('privacy'); // 'privacy' | 'terms' | 'returns'
@@ -157,6 +288,7 @@ export const AdminDashboard = () => {
   const [newCategoryInput, setNewCategoryInput] = useState('');
   const [newCompanyInput, setNewCompanyInput] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerClassificationFilter, setCustomerClassificationFilter] = useState('ALL');
 
   // Product Form State
   const [prodForm, setProdForm] = useState({
@@ -596,16 +728,22 @@ export const AdminDashboard = () => {
 
   const handleAddCategory = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    const val = newCategoryInput.trim();
-    if (!val) return;
+    const val = (newCategoryInput || '').trim();
+    if (!val) {
+      showToast('Please enter a category name', 'warning');
+      return;
+    }
     addCategory(val);
     setNewCategoryInput('');
   };
 
   const handleAddCompany = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    const val = newCompanyInput.trim();
-    if (!val) return;
+    const val = (newCompanyInput || '').trim();
+    if (!val) {
+      showToast('Please enter a company / brand name', 'warning');
+      return;
+    }
     addBrand(val);
     setNewCompanyInput('');
   };
@@ -684,6 +822,38 @@ export const AdminDashboard = () => {
     setSalesmanPasswordTarget(null);
   };
 
+  const handleOpenAddCustomer = () => {
+    setEditingCustomer(null);
+    setCustForm({
+      name: '',
+      mobile: '',
+      email: '',
+      address: '',
+      city: 'Kanpur',
+      state: 'Uttar Pradesh',
+      pincode: '208001',
+      classification: 'NORMAL',
+      password: 'Cust@123'
+    });
+    setIsAddCustomerOpen(true);
+  };
+
+  const handleEditCustomer = (customer) => {
+    setEditingCustomer(customer);
+    setCustForm({
+      name: customer.name || customer.shopName || '',
+      mobile: customer.mobile || customer.phone || '',
+      email: customer.email || '',
+      address: customer.address || '',
+      city: customer.city || 'Kanpur',
+      state: customer.state || 'Uttar Pradesh',
+      pincode: customer.pincode || '208001',
+      classification: customer.classification || 'NORMAL',
+      password: customer.password || 'Cust@123'
+    });
+    setIsAddCustomerOpen(true);
+  };
+
   const handleSaveCustomerSubmit = (e) => {
     e.preventDefault();
     if (!custForm.name || !custForm.name.trim()) return;
@@ -757,11 +927,18 @@ export const AdminDashboard = () => {
 
             {[
               { id: 'analytics', label: 'Executive Dashboard', icon: LayoutDashboard },
+              { id: 'orders', label: 'Orders & Invoices', icon: ShoppingBag },
+              { id: 'schedules', label: 'Delivery Routes & Schedules', icon: Truck },
+              { 
+                id: 'tickets', 
+                label: 'Priority Support Tickets', 
+                icon: LifeBuoy, 
+                badge: (supportTickets || []).filter(t => t.status === 'OPEN').length 
+              },
               { id: 'customers', label: 'Registered Customers / Users', icon: UserCheck },
               { id: 'announcement', label: 'Floating Headline Bar', icon: Megaphone },
               { id: 'policies', label: 'Legal Policies Editor', icon: Scale },
               { id: 'products', label: 'Products Master (CRUD)', icon: Package },
-              { id: 'orders', label: 'Orders & Invoices', icon: ShoppingBag },
               { id: 'salesmen', label: 'Sales Force Roster', icon: Users },
               { id: 'categories', label: 'Categories & Brands', icon: Layers },
               { id: 'reports', label: 'Reports & Export Center', icon: FileText }
@@ -775,14 +952,21 @@ export const AdminDashboard = () => {
                     setActiveTab(item.id);
                     window.scrollTo({ top: 100, behavior: 'smooth' });
                   }}
-                  className={`w-full text-left px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition-colors ${
+                  className={`w-full text-left px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between transition-colors ${
                     isActive
                       ? 'bg-brand-900 text-white dark:bg-brand-600 shadow-md'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </div>
+                  {Boolean(item.badge && item.badge > 0) && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] shadow-sm animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1510,18 +1694,18 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
+                <div className="overflow-x-auto pb-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="min-w-[1040px] w-full text-xs text-left">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
                       <tr>
-                        <th className="py-3.5 px-4">Invoice #</th>
-                        <th className="py-3.5 px-4">Date</th>
-                        <th className="py-3.5 px-4">Customer & Flags</th>
-                        <th className="py-3.5 px-4">Representative</th>
-                        <th className="py-3.5 px-4 text-center">Items</th>
-                        <th className="py-3.5 px-4 text-center">Status & Dispatch</th>
-                        <th className="py-3.5 px-4 text-center">Special Dockets</th>
-                        <th className="py-3.5 px-4 text-center">Actions</th>
+                        <th className="py-3.5 px-4 min-w-[130px]">Invoice #</th>
+                        <th className="py-3.5 px-4 min-w-[130px]">Date</th>
+                        <th className="py-3.5 px-4 min-w-[170px]">Customer & Flags</th>
+                        <th className="py-3.5 px-4 min-w-[140px]">Representative</th>
+                        <th className="py-3.5 px-4 text-center min-w-[100px]">Items</th>
+                        <th className="py-3.5 px-4 text-center min-w-[140px]">Status & Dispatch</th>
+                        <th className="py-3.5 px-4 text-center min-w-[110px]">Special Dockets</th>
+                        <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1606,9 +1790,17 @@ export const AdminDashboard = () => {
                               </td>
                               <td className="py-3.5 px-4">
                                 <strong className="text-slate-900 dark:text-white font-bold block">{order.customerName}</strong>
-                                <span className="text-[10px] text-slate-400 font-medium">{order.customerType || 'Normal Customer'}</span>
+                                <span className="text-[10px] text-slate-400 font-medium block">{order.customerType || 'Normal Customer'}</span>
                                 {order.customerMobile && (
-                                  <span className="text-[10px] text-slate-500 font-mono block">📞 {order.customerMobile}</span>
+                                  <a 
+                                    href={`tel:${order.customerMobile.replace(/\s+/g, '')}`}
+                                    className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1 mt-0.5 hover:text-emerald-700 transition-colors"
+                                    title={`Call Customer: ${order.customerMobile}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span>📞</span>
+                                    <span>{order.customerMobile}</span>
+                                  </a>
                                 )}
                               </td>
                               <td className="py-3.5 px-4 font-medium">{order.salesmanName || order.salesmanId}</td>
@@ -1665,12 +1857,12 @@ export const AdminDashboard = () => {
                               </td>
 
                               {/* Actions: View Invoice & WhatsApp Delivery Notification */}
-                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                <div className="flex flex-col items-center justify-center gap-1.5 min-w-[130px]">
+                              <td className="py-3.5 px-6 text-center whitespace-nowrap min-w-[160px]">
+                                <div className="flex flex-col items-center justify-center gap-1.5 w-full max-w-[140px] mx-auto">
                                   {/* WhatsApp Delivery Notification Button */}
                                   <button
                                     onClick={() => setSelectedOrderForDeliveryModal(order)}
-                                    className="w-full px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] border border-emerald-600/20"
+                                    className="w-full px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] border border-emerald-600/20"
                                     title="Notify Customer on WhatsApp for Out For Delivery"
                                   >
                                     <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
@@ -1679,7 +1871,7 @@ export const AdminDashboard = () => {
 
                                   <button
                                     onClick={() => openInvoiceModal(order)}
-                                    className="w-full px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
+                                    className="w-full px-3.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
                                     title="View Full B2B Invoice"
                                   >
                                     <Eye className="w-3.5 h-3.5 text-amber-400" />
@@ -1693,6 +1885,1000 @@ export const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* ================= TAB: DELIVERY ROUTE & AREA SCHEDULE MANAGEMENT ================= */}
+            {activeTab === 'schedules' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+                
+                {/* Header & Quick Action Buttons */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shrink-0">
+                      <Truck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                          Delivery Route & Area Schedule Management
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/20">
+                          Live Logistics Calendar
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Schedule vehicle dispatch visit dates by customer store, city, route, or entire wholesale mandi zone.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleOpenBulkScheduler}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Bulk Area / Route Scheduler</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Metrics Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Stores Routed</span>
+                    <span className="text-xl font-black text-slate-900 dark:text-white mt-0.5 block">
+                      {customers.length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Stores With Active Dates</span>
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                      {customers.filter(c => (deliverySchedules[c.id || c.customerId] || []).length > 0).length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">Unique Mandis / Areas</span>
+                    <span className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 block">
+                      {Array.from(new Set(customers.map(c => c.area || c.city || 'Kanpur'))).length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300 block">Total Visit Dates Set</span>
+                    <span className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 block">
+                      {Object.values(deliverySchedules || {}).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Multi-Filter Bar: Area, City, Route, Delivery Date, Search */}
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-4 h-4 text-amber-500" /> Filter Delivery Routes & Customers
+                    </span>
+                    {(scheduleSearchQuery || scheduleCityFilter !== 'ALL' || scheduleAreaFilter !== 'ALL' || scheduleRouteFilter !== 'ALL' || scheduleDateFilter) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScheduleSearchQuery('');
+                          setScheduleCityFilter('ALL');
+                          setScheduleAreaFilter('ALL');
+                          setScheduleRouteFilter('ALL');
+                          setScheduleDateFilter('');
+                        }}
+                        className="text-[11px] font-bold text-amber-600 hover:text-amber-500 flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Reset Filters
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                    {/* 1. Search Query */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="text"
+                        value={scheduleSearchQuery}
+                        onChange={(e) => setScheduleSearchQuery(e.target.value)}
+                        placeholder="Search Store, Name, Mobile..."
+                        className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    {/* 2. City Filter */}
+                    <div>
+                      <select
+                        value={scheduleCityFilter}
+                        onChange={(e) => setScheduleCityFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="ALL">All Cities (All Mandis)</option>
+                        {Array.from(new Set(customers.map(c => c.city).filter(Boolean))).map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 3. Area Filter */}
+                    <div>
+                      <select
+                        value={scheduleAreaFilter}
+                        onChange={(e) => setScheduleAreaFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="ALL">All Areas / Zones</option>
+                        {Array.from(new Set(customers.map(c => c.area || c.city).filter(Boolean))).map(area => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 4. Route Filter */}
+                    <div>
+                      <select
+                        value={scheduleRouteFilter}
+                        onChange={(e) => setScheduleRouteFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="ALL">All Delivery Routes</option>
+                        <option value="UP-CENTRAL">Kanpur Central Wholesale Hub</option>
+                        <option value="UP-LUCKNOW">Lucknow - Avadh Corridor Route</option>
+                        <option value="UP-EAST">Prayagraj / Varanasi Express Route</option>
+                        <option value="UP-WEST">Agra / Aligarh Western Route</option>
+                        <option value="MH-BHIWANDI">Bhiwandi / Thane Logistics Corridor</option>
+                      </select>
+                    </div>
+
+                    {/* 5. Delivery Date Filter */}
+                    <div>
+                      <input
+                        type="date"
+                        value={scheduleDateFilter}
+                        onChange={(e) => setScheduleDateFilter(e.target.value)}
+                        title="Filter by Scheduled Delivery Date"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Responsive Customers Delivery Schedule Table */}
+                <div className="overflow-x-auto pb-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="min-w-[1100px] w-full text-xs text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="py-3.5 px-4 min-w-[180px]">Customer & Shop Name</th>
+                        <th className="py-3.5 px-4 min-w-[150px]">Contact Details</th>
+                        <th className="py-3.5 px-4 min-w-[190px]">Area, City & Full Address</th>
+                        <th className="py-3.5 px-4 min-w-[280px]">Assigned Delivery Dates (Visit Schedule)</th>
+                        <th className="py-3.5 px-4 text-center min-w-[130px]">Next Visit Status</th>
+                        <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {customers.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="py-12 text-center text-slate-400 text-xs font-semibold">
+                            No registered customers found.
+                          </td>
+                        </tr>
+                      ) : (
+                        customers
+                          .filter(c => {
+                            if (scheduleCityFilter !== 'ALL' && (c.city || '').toLowerCase() !== scheduleCityFilter.toLowerCase()) return false;
+                            if (scheduleAreaFilter !== 'ALL') {
+                              const a = (c.area || c.city || '').toLowerCase();
+                              if (!a.includes(scheduleAreaFilter.toLowerCase())) return false;
+                            }
+                            if (scheduleDateFilter) {
+                              const cDates = deliverySchedules[c.id || c.customerId] || [];
+                              if (!cDates.includes(scheduleDateFilter)) return false;
+                            }
+                            if (scheduleSearchQuery) {
+                              const q = scheduleSearchQuery.toLowerCase();
+                              const name = (c.name || c.shopName || '').toLowerCase();
+                              const owner = (c.ownerName || '').toLowerCase();
+                              const mobile = (c.mobile || c.phone || '').toLowerCase();
+                              const area = (c.area || '').toLowerCase();
+                              const city = (c.city || '').toLowerCase();
+                              const addr = (c.address || '').toLowerCase();
+                              return name.includes(q) || owner.includes(q) || mobile.includes(q) || area.includes(q) || city.includes(q) || addr.includes(q);
+                            }
+                            return true;
+                          })
+                          .map((cust, idx) => {
+                            const cId = cust.id || cust.customerId || `CUST-${1000 + idx}`;
+                            const cName = cust.name || cust.shopName || 'Retail Store';
+                            const cOwner = cust.ownerName || '';
+                            const cMobile = cust.mobile || cust.phone || '';
+                            const cleanMobile = cMobile.replace(/\D/g, '');
+                            const rawClean = cleanMobile.length === 10 ? `91${cleanMobile}` : cleanMobile;
+                            const cArea = cust.area || cust.city || 'Kanpur Central Mandi';
+                            const cCity = cust.city || 'Kanpur';
+                            const cAddress = cust.address || 'Central Market Zone';
+                            const assignedDates = (deliverySchedules[cId] || []).slice().sort();
+
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const futureDates = assignedDates.filter(d => d >= todayStr);
+                            const nextDate = futureDates[0] || null;
+                            const daysUntil = nextDate ? getDaysUntilDelivery(nextDate) : null;
+
+                            const waScheduleMsg = `Namaste *${cName}*,\n\n🚚 *ANUJ ENTERPRISES — DELIVERY SCHEDULE NOTIFICATION*\nOur wholesale logistics vehicle is scheduled to visit your area (*${cArea}, ${cCity}*) on:\n${assignedDates.length > 0 ? assignedDates.map(d => `• 📅 *${formatScheduleDate(d)}*`).join('\n') : '• 📅 *Next Route Under Dispatch*'}\n\n⚠️ *Advisory:* Please place your order at least 1 day before the scheduled delivery date for guaranteed same-day delivery!\n\nOrder Booking: +91 88876 83782`;
+
+                            return (
+                              <tr key={cId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
+                                {/* Customer & Shop Name */}
+                                <td className="py-3.5 px-4">
+                                  <strong className="text-slate-900 dark:text-white font-extrabold block text-xs">
+                                    {cName}
+                                  </strong>
+                                  <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+                                    <span>ID: <span className="font-mono font-bold text-amber-600">{cId}</span></span>
+                                    {cOwner && <span>• Prop: {cOwner}</span>}
+                                  </div>
+                                </td>
+
+                                {/* Contact Details */}
+                                <td className="py-3.5 px-4">
+                                  {cMobile ? (
+                                    <a
+                                      href={`tel:${cMobile.replace(/\s+/g, '')}`}
+                                      className="text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1 text-xs"
+                                      title={`Call: ${cMobile}`}
+                                    >
+                                      <span>📞</span>
+                                      <span>{cMobile}</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400">No phone</span>
+                                  )}
+                                  {cust.email && (
+                                    <span className="text-[10px] text-slate-400 block truncate max-w-[140px] mt-0.5">
+                                      ✉️ {cust.email}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Area, City & Full Address */}
+                                <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] border border-amber-500/20">
+                                      📍 {cArea}
+                                    </span>
+                                    <span className="font-semibold text-slate-900 dark:text-white text-xs">
+                                      {cCity}, {cust.state || 'UP'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 max-w-[200px]" title={cAddress}>
+                                    {cAddress}
+                                  </p>
+                                </td>
+
+                                {/* Assigned Delivery Dates */}
+                                <td className="py-3.5 px-4">
+                                  <div className="space-y-1.5">
+                                    {assignedDates.length === 0 ? (
+                                      <span className="text-[11px] text-slate-400 italic">
+                                        ⚠️ No delivery dates assigned
+                                      </span>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {assignedDates.map(dateStr => {
+                                          const isPast = dateStr < todayStr;
+                                          return (
+                                            <span
+                                              key={dateStr}
+                                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border shadow-2xs ${
+                                                isPast
+                                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 line-through'
+                                                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                              }`}
+                                            >
+                                              <span>📅 {formatScheduleDate(dateStr)}</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => removeCustomerDeliveryDate(cId, dateStr)}
+                                                className="text-slate-400 hover:text-rose-500 ml-0.5 p-0.5 rounded-full hover:bg-rose-500/10 transition-colors"
+                                                title={`Remove ${dateStr}`}
+                                              >
+                                                ✕
+                                              </button>
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenScheduleModal(cust)}
+                                      className="text-[10px] font-bold text-amber-600 hover:text-amber-500 flex items-center gap-1 mt-1 hover:underline"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add / Edit Visit Dates
+                                    </button>
+                                  </div>
+                                </td>
+
+                                {/* Next Visit Status */}
+                                <td className="py-3.5 px-4 text-center">
+                                  {nextDate ? (
+                                    <div className="inline-block">
+                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 border ${
+                                        daysUntil === 0
+                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 animate-pulse'
+                                          : daysUntil === 1
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300'
+                                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300'
+                                      }`}>
+                                        {daysUntil === 0 ? '⚡ TODAY' : daysUntil === 1 ? '🚚 TOMORROW' : `🟢 In ${daysUntil} Days`}
+                                      </span>
+                                      <span className="block text-[9px] text-slate-400 mt-0.5">
+                                        {formatScheduleDate(nextDate)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">
+                                      No Upcoming Date
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="py-3.5 px-6 text-center whitespace-nowrap min-w-[160px]">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {/* WhatsApp Direct Schedule Alert */}
+                                    {rawClean && (
+                                      <a
+                                        href={`https://wa.me/${rawClean}?text=${encodeURIComponent(waScheduleMsg)}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                        title="Send Delivery Schedule Alert on WhatsApp"
+                                      >
+                                        <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
+                                        <span>Notify WA</span>
+                                      </a>
+                                    )}
+
+                                    {/* Edit Schedule Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenScheduleModal(cust)}
+                                      className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                      title="Manage Customer Delivery Schedule"
+                                    >
+                                      <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                                      <span>Schedule</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            )}
+
+            {/* ================= TAB: PRIORITY SUPPORT TICKETS & HELPDESK ================= */}
+            {activeTab === 'tickets' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+                
+                {/* Header & Metrics Banner */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shrink-0">
+                      <LifeBuoy className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                          Priority Support Tickets Desk
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-[10px] uppercase border border-amber-500/30">
+                          Live Helpdesk
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Manage customer trade inquiries, dispatch tracking questions, and damage docket requests.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAddTicketModalOpen(true)}
+                    className="px-4 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 shrink-0 transition-all hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4 text-amber-400" />
+                    <span>Log Priority Ticket</span>
+                  </button>
+                </div>
+
+                {/* KPI Metrics Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Tickets</span>
+                    <span className="text-xl font-black text-slate-900 dark:text-white mt-0.5 block">
+                      {(supportTickets || []).length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">Open / Action Needed</span>
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    </div>
+                    <span className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 block">
+                      {(supportTickets || []).filter(t => t.status === 'OPEN').length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300 block">In Progress</span>
+                    <span className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 block">
+                      {(supportTickets || []).filter(t => t.status === 'IN_PROGRESS').length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Resolved / Closed</span>
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                      {(supportTickets || []).filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Sub-Bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="relative flex-1 max-w-sm w-full">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={ticketSearchQuery}
+                      onChange={(e) => setTicketSearchQuery(e.target.value)}
+                      placeholder="Search Ticket #, Customer, Mobile, Issue..."
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  {/* Filter Chips for Status */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {[
+                      { id: 'ALL', label: 'All Tickets', count: (supportTickets || []).length },
+                      { id: 'OPEN', label: '🔴 Open', count: (supportTickets || []).filter(t => t.status === 'OPEN').length },
+                      { id: 'IN_PROGRESS', label: '🟡 In Progress', count: (supportTickets || []).filter(t => t.status === 'IN_PROGRESS').length },
+                      { id: 'RESOLVED', label: '🟢 Resolved', count: (supportTickets || []).filter(t => t.status === 'RESOLVED').length },
+                      { id: 'URGENT', label: '⚡ Urgent Priority', count: (supportTickets || []).filter(t => t.priority === 'URGENT').length }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setTicketStatusFilter(f.id)}
+                        className={`px-3 py-1.5 rounded-xl font-extrabold text-xs transition-all flex items-center gap-1.5 ${
+                          ticketStatusFilter === f.id
+                            ? 'bg-brand-900 text-white dark:bg-brand-600 shadow-sm'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          ticketStatusFilter === f.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}>
+                          {f.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tickets Table */}
+                <div className="overflow-x-auto pb-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="min-w-[1040px] w-full text-xs text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="py-3.5 px-4 min-w-[130px]">Ticket ID</th>
+                        <th className="py-3.5 px-4 min-w-[120px]">Date</th>
+                        <th className="py-3.5 px-4 min-w-[180px]">Customer Details</th>
+                        <th className="py-3.5 px-4 min-w-[150px]">Category</th>
+                        <th className="py-3.5 px-4 min-w-[220px]">Inquiry / Request</th>
+                        <th className="py-3.5 px-4 text-center min-w-[140px]">Status</th>
+                        <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {(supportTickets || [])
+                        .filter(t => {
+                          if (ticketStatusFilter === 'OPEN') return t.status === 'OPEN';
+                          if (ticketStatusFilter === 'IN_PROGRESS') return t.status === 'IN_PROGRESS';
+                          if (ticketStatusFilter === 'RESOLVED') return t.status === 'RESOLVED';
+                          if (ticketStatusFilter === 'CLOSED') return t.status === 'CLOSED';
+                          if (ticketStatusFilter === 'URGENT') return t.priority === 'URGENT';
+                          return true;
+                        })
+                        .filter(t => {
+                          if (!ticketSearchQuery) return true;
+                          const q = ticketSearchQuery.toLowerCase();
+                          return (
+                            (t.id && t.id.toLowerCase().includes(q)) ||
+                            (t.name && t.name.toLowerCase().includes(q)) ||
+                            (t.phone && t.phone.toLowerCase().includes(q)) ||
+                            (t.category && t.category.toLowerCase().includes(q)) ||
+                            (t.message && t.message.toLowerCase().includes(q))
+                          );
+                        })
+                        .map(ticket => {
+                          const dObj = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
+                          const dateStr = dObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                          const timeStr = dObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                          const isUrgent = ticket.priority === 'URGENT';
+                          const isHigh = ticket.priority === 'HIGH';
+
+                          const cleanPhone = ticket.phone ? String(ticket.phone).replace(/\D/g, '') : '';
+                          const rawClean = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                          const waMessage = `Namaste ${ticket.name || 'Valued Retailer'}, regarding your Priority Support Ticket #${ticket.id} (${ticket.category}) with Anuj Enterprises:\n\n`;
+
+                          return (
+                            <tr 
+                              key={ticket.id}
+                              className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors ${
+                                ticket.status === 'OPEN' ? 'bg-amber-50/15 dark:bg-amber-950/10' : ''
+                              }`}
+                            >
+                              {/* Ticket ID & Priority Badge */}
+                              <td className="py-3.5 px-4">
+                                <span className="font-mono font-bold text-brand-900 dark:text-brand-400 block">
+                                  {ticket.id}
+                                </span>
+                                {isUrgent ? (
+                                  <span className="mt-1 px-2 py-0.5 rounded bg-rose-500 text-white font-black text-[9px] uppercase inline-flex items-center gap-0.5 shadow-sm">
+                                    <Zap className="w-2.5 h-2.5 fill-white" /> URGENT
+                                  </span>
+                                ) : isHigh ? (
+                                  <span className="mt-1 px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase inline-flex items-center gap-0.5">
+                                    HIGH
+                                  </span>
+                                ) : (
+                                  <span className="mt-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] uppercase">
+                                    NORMAL
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Date & Time */}
+                              <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                                <strong className="block text-xs font-extrabold">{dateStr}</strong>
+                                <span className="text-[10px] text-slate-400 block font-semibold">🕒 {timeStr}</span>
+                              </td>
+
+                              {/* Customer Details */}
+                              <td className="py-3.5 px-4">
+                                <strong className="text-slate-900 dark:text-white font-bold block">{ticket.name}</strong>
+                                {ticket.phone && (
+                                  <a 
+                                    href={`tel:${ticket.phone.replace(/\s+/g, '')}`}
+                                    className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1 mt-0.5 hover:text-emerald-700 transition-colors"
+                                    title={`Call: ${ticket.phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span>📞</span>
+                                    <span>{ticket.phone}</span>
+                                  </a>
+                                )}
+                                {ticket.email && (
+                                  <a 
+                                    href={`mailto:${ticket.email}`}
+                                    className="text-[10px] text-slate-500 hover:underline truncate max-w-[160px] block"
+                                    title={ticket.email}
+                                  >
+                                    ✉️ {ticket.email}
+                                  </a>
+                                )}
+                              </td>
+
+                              {/* Category */}
+                              <td className="py-3.5 px-4">
+                                <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold rounded-xl text-[10px] inline-block">
+                                  {ticket.category || 'General Help'}
+                                </span>
+                              </td>
+
+                              {/* Message */}
+                              <td className="py-3.5 px-4">
+                                <p className="text-slate-700 dark:text-slate-300 line-clamp-2 text-xs">
+                                  {ticket.message}
+                                </p>
+                                {ticket.resolutionNote && (
+                                  <div className="mt-1 p-1.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-900/40 text-[10px] text-emerald-800 dark:text-emerald-300 font-medium">
+                                    <strong>Resolution:</strong> {ticket.resolutionNote}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Status Dropdown */}
+                              <td className="py-3.5 px-4 text-center">
+                                <select
+                                  value={ticket.status || 'OPEN'}
+                                  onChange={(e) => updateTicketStatus(ticket.id, e.target.value)}
+                                  className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition-all cursor-pointer focus:outline-none ${
+                                    ticket.status === 'OPEN'
+                                      ? 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse'
+                                      : ticket.status === 'IN_PROGRESS'
+                                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                      : ticket.status === 'RESOLVED'
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      : 'bg-slate-100 text-slate-700 border-slate-300'
+                                  }`}
+                                >
+                                  <option value="OPEN">🔴 Open</option>
+                                  <option value="IN_PROGRESS">🟡 In Progress</option>
+                                  <option value="RESOLVED">🟢 Resolved</option>
+                                  <option value="CLOSED">⚪ Closed</option>
+                                </select>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-6 text-center whitespace-nowrap min-w-[160px]">
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  {/* WhatsApp Direct Reply Button */}
+                                  {rawClean && (
+                                    <a
+                                      href={`https://wa.me/${rawClean}?text=${encodeURIComponent(waMessage)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                      title="Reply to Customer on WhatsApp"
+                                    >
+                                      <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  )}
+
+                                  {/* View / Resolve Details Modal */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedTicketForDetails(ticket);
+                                      setAdminResolutionNote(ticket.resolutionNote || '');
+                                    }}
+                                    className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                    title="View Ticket Details & Add Resolution Note"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Details</span>
+                                  </button>
+
+                                  {/* Delete Ticket */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Delete Support Ticket #${ticket.id}?`)) {
+                                        deleteSupportTicket(ticket.id);
+                                      }
+                                    }}
+                                    className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 dark:bg-slate-800 rounded-xl transition-colors"
+                                    title="Delete Ticket"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            )}
+
+            {/* ================= TAB: REGISTERED CUSTOMERS & B2B USERS ================= */}
+            {activeTab === 'customers' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+                
+                {/* Header & Quick Action Buttons */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-900 text-white dark:bg-brand-600 flex items-center justify-center font-black shadow-md shrink-0">
+                      <UserCheck className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                          Registered Customers & B2B User Directory
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] uppercase border border-emerald-500/20">
+                          {customers.length} Verified Accounts
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Manage retail store partners, wholesale buyers, account classifications, and login credentials.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => exportCustomersCSV(customers)}
+                      className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <Download className="w-4 h-4 text-emerald-500" />
+                      <span>Export Excel (.XLSX)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenAddCustomer}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Register Customer Account</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Metrics Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Customers</span>
+                    <span className="text-xl font-black text-slate-900 dark:text-white mt-0.5 block">
+                      {customers.length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Standard (Normal)</span>
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                      {customers.filter(c => (c.classification || 'NORMAL') === 'NORMAL').length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">Damage Return Accounts</span>
+                    <span className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 block">
+                      {customers.filter(c => c.classification === 'DAMAGE').length}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-rose-50/50 dark:bg-rose-950/20 rounded-2xl border border-rose-200 dark:border-rose-900/60">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">Expiry Replacement Accounts</span>
+                    <span className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 block">
+                      {customers.filter(c => c.classification === 'EXPIRY').length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="relative flex-1 max-w-sm w-full">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      placeholder="Search ID, Store Name, Mobile, City..."
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  {/* Classification Filter Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {[
+                      { id: 'ALL', label: 'All Accounts', count: customers.length },
+                      { id: 'NORMAL', label: '🟢 Standard (Normal)', count: customers.filter(c => (c.classification || 'NORMAL') === 'NORMAL').length },
+                      { id: 'DAMAGE', label: '🟠 Damage Accounts', count: customers.filter(c => c.classification === 'DAMAGE').length },
+                      { id: 'EXPIRY', label: '🔴 Expiry Accounts', count: customers.filter(c => c.classification === 'EXPIRY').length }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setCustomerClassificationFilter(f.id)}
+                        className={`px-3 py-1.5 rounded-xl font-extrabold text-xs transition-all flex items-center gap-1.5 ${
+                          customerClassificationFilter === f.id
+                            ? 'bg-brand-900 text-white dark:bg-brand-600 shadow-sm'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          customerClassificationFilter === f.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}>
+                          {f.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Customers Table */}
+                <div className="overflow-x-auto pb-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="min-w-[1040px] w-full text-xs text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="py-3.5 px-4 min-w-[120px]">Customer ID</th>
+                        <th className="py-3.5 px-4 min-w-[180px]">Store & Business Name</th>
+                        <th className="py-3.5 px-4 min-w-[180px]">Contact & Mobile</th>
+                        <th className="py-3.5 px-4 min-w-[180px]">Location / Territory</th>
+                        <th className="py-3.5 px-4 text-center min-w-[140px]">Classification</th>
+                        <th className="py-3.5 px-4 text-center min-w-[120px]">Account Password</th>
+                        <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {customers.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="py-12 text-center text-slate-400 text-xs font-semibold">
+                            No registered customers found. Click &quot;Register Customer Account&quot; to add one.
+                          </td>
+                        </tr>
+                      ) : (
+                        customers
+                          .filter(c => {
+                            if (customerClassificationFilter === 'NORMAL') return (c.classification || 'NORMAL') === 'NORMAL';
+                            if (customerClassificationFilter === 'DAMAGE') return c.classification === 'DAMAGE';
+                            if (customerClassificationFilter === 'EXPIRY') return c.classification === 'EXPIRY';
+                            return true;
+                          })
+                          .filter(c => {
+                            if (!customerSearch) return true;
+                            const q = customerSearch.toLowerCase();
+                            const name = (c.name || c.shopName || '').toLowerCase();
+                            const owner = (c.ownerName || '').toLowerCase();
+                            const id = (c.id || c.customerId || '').toLowerCase();
+                            const mobile = (c.mobile || c.phone || '').toLowerCase();
+                            const city = (c.city || '').toLowerCase();
+                            const email = (c.email || '').toLowerCase();
+                            return name.includes(q) || owner.includes(q) || id.includes(q) || mobile.includes(q) || city.includes(q) || email.includes(q);
+                          })
+                          .map((cust, idx) => {
+                            const cId = cust.customerId || cust.id || `CUST-${1000 + idx}`;
+                            const cName = cust.name || cust.shopName || 'B2B Retail Partner';
+                            const cMobile = cust.mobile || cust.phone || '';
+                            const cleanMobile = cMobile.replace(/\D/g, '');
+                            const rawClean = cleanMobile.length === 10 ? `91${cleanMobile}` : cleanMobile;
+                            const waGreeting = `Namaste ${cName}, this is Anuj Enterprises B2B Logistics & Supply Desk. How can we assist your store today?`;
+
+                            const classType = cust.classification || 'NORMAL';
+
+                            return (
+                              <tr key={cust.id || cust.customerId || idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
+                                {/* Customer ID */}
+                                <td className="py-3.5 px-4 font-mono font-bold text-brand-900 dark:text-brand-400">
+                                  {cId}
+                                </td>
+
+                                {/* Store & Business Name */}
+                                <td className="py-3.5 px-4">
+                                  <strong className="text-slate-900 dark:text-white font-extrabold block text-xs">
+                                    {cName}
+                                  </strong>
+                                  {cust.ownerName && cust.ownerName !== cName && (
+                                    <span className="text-[10px] text-slate-500 block">
+                                      Prop: {cust.ownerName}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Contact & Mobile */}
+                                <td className="py-3.5 px-4">
+                                  {cMobile ? (
+                                    <a 
+                                      href={`tel:${cMobile.replace(/\s+/g, '')}`}
+                                      className="text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1 text-xs"
+                                      title={`Call: ${cMobile}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <span>📞</span>
+                                      <span>{cMobile}</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 text-xs">No phone</span>
+                                  )}
+                                  {cust.email && (
+                                    <a 
+                                      href={`mailto:${cust.email}`}
+                                      className="text-[10px] text-slate-500 hover:underline block truncate max-w-[160px] mt-0.5"
+                                      title={cust.email}
+                                    >
+                                      ✉️ {cust.email}
+                                    </a>
+                                  )}
+                                </td>
+
+                                {/* Location / Territory */}
+                                <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                                  <span className="font-semibold block text-xs">{cust.city || 'Kanpur'}, {cust.state || 'Uttar Pradesh'}</span>
+                                  {cust.address && (
+                                    <span className="text-[10px] text-slate-400 block truncate max-w-[180px]" title={cust.address}>
+                                      📍 {cust.address}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Classification Badge */}
+                                <td className="py-3.5 px-4 text-center">
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase inline-block shadow-xs ${
+                                    classType === 'DAMAGE'
+                                      ? 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-800'
+                                      : classType === 'EXPIRY'
+                                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                  }`}>
+                                    {classType === 'DAMAGE' ? '⚠️ Damage Account' : classType === 'EXPIRY' ? '🔄 Expiry Account' : '🟢 Standard'}
+                                  </span>
+                                </td>
+
+                                {/* Account Password */}
+                                <td className="py-3.5 px-4 text-center">
+                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 inline-block">
+                                    {cust.password || 'Cust@123'}
+                                  </span>
+                                </td>
+
+                                {/* Actions */}
+                                <td className="py-3.5 px-6 text-center whitespace-nowrap min-w-[160px]">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {/* WhatsApp Direct Chat */}
+                                    {rawClean && (
+                                      <a
+                                        href={`https://wa.me/${rawClean}?text=${encodeURIComponent(waGreeting)}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                        title="Chat with Customer on WhatsApp"
+                                      >
+                                        <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
+                                        <span>WhatsApp</span>
+                                      </a>
+                                    )}
+
+                                    {/* Edit Customer Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditCustomer(cust)}
+                                      className="px-2.5 py-1.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                      title="Edit Customer Details"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 text-amber-400" />
+                                      <span>Edit</span>
+                                    </button>
+
+                                    {/* Delete Customer Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm(`Delete customer record for "${cName}" (${cId})?`)) {
+                                          deleteCustomer(cust.id || cust.customerId);
+                                        }
+                                      }}
+                                      className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 dark:bg-slate-800 rounded-xl transition-colors"
+                                      title="Delete Customer Record"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
             )}
 
@@ -1859,13 +3045,11 @@ export const AdminDashboard = () => {
                       type="text"
                       value={newCategoryInput}
                       onChange={(e) => setNewCategoryInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(e); }}
                       placeholder="New Category Name (e.g. Spices & Masalas)..."
-                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
                     />
                     <button 
-                      type="button"
-                      onClick={handleAddCategory}
+                      type="submit"
                       className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
                     >
                       <Plus className="w-4 h-4" />
@@ -1901,16 +3085,22 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Companies / Brands Master */}
+                {/* Companies / Brands Master & Catalogue Ranking Engine */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                      <Store className="w-4 h-4 text-blue-500" />
-                      Authorized Companies / Brands ({brands.length})
-                    </h3>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                      Live Filterable
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Store className="w-4 h-4 text-blue-500" />
+                        Company Catalogue Ranking & Priority Engine ({brands.length})
+                      </h3>
+                      <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                        <Crown className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        <span>Live Priority Ordering</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      Set which company products rank first in the customer store and product catalogue. Products belonging to the <strong>#1 Ranked Company</strong> will be displayed at the very top of the catalogue.
+                    </p>
                   </div>
 
                   <form onSubmit={handleAddCompany} className="flex gap-2">
@@ -1918,13 +3108,11 @@ export const AdminDashboard = () => {
                       type="text"
                       value={newCompanyInput}
                       onChange={(e) => setNewCompanyInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddCompany(e); }}
-                      placeholder="New Company / Brand Name (e.g. Dabur, ITC)..."
-                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      placeholder="Add New Company (e.g. Dabur, ITC, Tata, Haldiram)..."
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
                     />
                     <button 
-                      type="button"
-                      onClick={handleAddCompany}
+                      type="submit"
                       className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
                     >
                       <Plus className="w-4 h-4" />
@@ -1932,27 +3120,120 @@ export const AdminDashboard = () => {
                     </button>
                   </form>
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs">
+                  <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1 text-xs">
                     {brands.length === 0 ? (
-                      <div className="p-4 text-center text-slate-400 text-xs">No brands added yet</div>
+                      <div className="p-6 text-center text-slate-400 text-xs">No brands added yet</div>
                     ) : (
                       brands.map((b, idx) => {
                         const brandName = typeof b === 'string' ? b : (b.name || `Brand ${idx + 1}`);
                         const brandId = (typeof b === 'object' && (b.id || b._id)) || brandName;
+                        const rankNum = idx + 1;
+                        const productCount = products.filter(p => p.brand?.toLowerCase() === brandName.toLowerCase()).length;
+                        const isTop = rankNum === 1;
+                        const isSecond = rankNum === 2;
+                        const isThird = rankNum === 3;
+
                         return (
-                          <div key={brandId || idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-blue-500/30 transition-all">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                              <span className="font-extrabold text-slate-900 dark:text-white truncate">{brandName}</span>
+                          <div 
+                            key={brandId || idx} 
+                            className={`p-3.5 border rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all ${
+                              isTop 
+                                ? 'bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border-amber-400/80 dark:border-amber-500/50 shadow-md ring-1 ring-amber-400/30' 
+                                : isSecond
+                                ? 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700'
+                                : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800/80 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Rank Badge */}
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs ${
+                                isTop 
+                                  ? 'bg-amber-500 text-slate-950 shadow-amber-500/30' 
+                                  : isSecond 
+                                  ? 'bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-white' 
+                                  : isThird 
+                                  ? 'bg-amber-700/30 text-amber-800 dark:text-amber-300' 
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {isTop ? '👑 1' : `#${rankNum}`}
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <strong className="text-slate-900 dark:text-white font-extrabold truncate text-xs">
+                                    {brandName}
+                                  </strong>
+                                  {isTop && (
+                                    <span className="px-2 py-0.2 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-xs animate-pulse">
+                                      RANKS FIRST IN STORE
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                                  {productCount} Products in Catalogue {typeof b === 'object' && b.country ? `• Origin: ${b.country}` : ''}
+                                </span>
+                              </div>
                             </div>
-                            <button 
-                              type="button"
-                              onClick={() => deleteBrand(brandId)} 
-                              className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
-                              title={`Delete ${brandName}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+
+                            {/* Ranking Controls */}
+                            <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                              {/* 1-Click Set Rank #1 */}
+                              {!isTop && (
+                                <button
+                                  type="button"
+                                  onClick={() => setBrandTopRank(brandId || brandName)}
+                                  className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-800 hover:text-slate-950 dark:text-amber-400 dark:hover:text-slate-950 border border-amber-400/40 rounded-xl font-black text-[11px] inline-flex items-center gap-1 transition-all shadow-xs"
+                                  title={`Promote ${brandName} to Rank #1 (Shows First in Catalogue)`}
+                                >
+                                  <Crown className="w-3 h-3 fill-current" />
+                                  <span>Rank #1 (Show First)</span>
+                                </button>
+                              )}
+
+                              {/* Move Up Button */}
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => moveBrandRank(brandId || brandName, 'UP')}
+                                className={`p-1.5 rounded-xl border transition-all ${
+                                  idx === 0 
+                                    ? 'opacity-30 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-800' 
+                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
+                                title="Move Rank Up (Higher Priority)"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Move Down Button */}
+                              <button
+                                type="button"
+                                disabled={idx === brands.length - 1}
+                                onClick={() => moveBrandRank(brandId || brandName, 'DOWN')}
+                                className={`p-1.5 rounded-xl border transition-all ${
+                                  idx === brands.length - 1 
+                                    ? 'opacity-30 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-800' 
+                                    : 'bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                }`}
+                                title="Move Rank Down (Lower Priority)"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Delete Brand */}
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Remove "${brandName}" from company directory?`)) {
+                                    deleteBrand(brandId);
+                                  }
+                                }} 
+                                className="text-slate-400 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                title={`Delete ${brandName}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })
@@ -3628,6 +4909,631 @@ export const AdminDashboard = () => {
         onStatusUpdate={updateOrderStatus}
         showToast={showToast}
       />
+
+      {/* Manual Priority Support Ticket Creation Modal */}
+      <AnimatePresence>
+        {isAddTicketModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl max-w-lg w-full space-y-4 my-auto"
+            >
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+                    <LifeBuoy className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                      Log Priority Support Ticket
+                    </h3>
+                    <p className="text-[11px] text-slate-500">Record customer trade or dispatch phone inquiry</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsAddTicketModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newAdminTicketForm.name.trim() || !newAdminTicketForm.phone.trim()) {
+                    showToast('Please enter customer name and phone number.', 'error');
+                    return;
+                  }
+                  submitSupportTicket(newAdminTicketForm);
+                  setIsAddTicketModalOpen(false);
+                  setNewAdminTicketForm({
+                    name: '',
+                    phone: '',
+                    email: '',
+                    category: 'Order Dispatch & Tracking',
+                    priority: 'HIGH',
+                    message: ''
+                  });
+                }}
+                className="space-y-3 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Customer / Retail Store Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newAdminTicketForm.name}
+                    onChange={(e) => setNewAdminTicketForm({ ...newAdminTicketForm, name: e.target.value })}
+                    placeholder="e.g. Agarwal Wholesalers"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Customer Phone <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newAdminTicketForm.phone}
+                      onChange={(e) => setNewAdminTicketForm({ ...newAdminTicketForm, phone: e.target.value })}
+                      placeholder="9876543210"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Priority Level
+                    </label>
+                    <select
+                      value={newAdminTicketForm.priority}
+                      onChange={(e) => setNewAdminTicketForm({ ...newAdminTicketForm, priority: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    >
+                      <option value="URGENT">⚡ URGENT (Critical)</option>
+                      <option value="HIGH">HIGH (Standard Priority)</option>
+                      <option value="NORMAL">NORMAL (General)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Inquiry Category
+                  </label>
+                  <select
+                    value={newAdminTicketForm.category}
+                    onChange={(e) => setNewAdminTicketForm({ ...newAdminTicketForm, category: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
+                  >
+                    <option value="Order Dispatch & Tracking">Order Dispatch & Tracking</option>
+                    <option value="Invoice Copy">Invoice Copy</option>
+                    <option value="Damage / Expiry Replacement">Damage / Expiry Replacement</option>
+                    <option value="Bulk Procurement Quote">Bulk Procurement Quote</option>
+                    <option value="Salesman Assignment">Salesman Assignment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Inquiry Details / Customer Notes <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={newAdminTicketForm.message}
+                    onChange={(e) => setNewAdminTicketForm({ ...newAdminTicketForm, message: e.target.value })}
+                    placeholder="Describe issue or request reported by customer..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-medium"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddTicketModalOpen(false)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow transition-colors"
+                  >
+                    Save & Create Ticket
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Ticket Details & Resolution Modal */}
+      <AnimatePresence>
+        {selectedTicketForDetails && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl max-w-xl w-full space-y-4 my-auto"
+            >
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+                    <LifeBuoy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white font-mono">
+                        {selectedTicketForDetails.id}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-[9px] uppercase">
+                        {selectedTicketForDetails.priority || 'HIGH'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">{selectedTicketForDetails.category}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedTicketForDetails(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Customer Info Card */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <strong className="text-slate-900 dark:text-white font-black text-sm">
+                    {selectedTicketForDetails.name}
+                  </strong>
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(selectedTicketForDetails.createdAt).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  {selectedTicketForDetails.phone && (
+                    <a
+                      href={`tel:${selectedTicketForDetails.phone.replace(/\s+/g, '')}`}
+                      className="text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>📞</span>
+                      <span>{selectedTicketForDetails.phone}</span>
+                    </a>
+                  )}
+                  {selectedTicketForDetails.email && (
+                    <a
+                      href={`mailto:${selectedTicketForDetails.email}`}
+                      className="text-slate-500 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>✉️</span>
+                      <span>{selectedTicketForDetails.email}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer Message */}
+              <div className="space-y-1 text-xs">
+                <label className="font-extrabold uppercase text-[10px] text-slate-500 block">
+                  Customer Inquiry Description:
+                </label>
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+                  {selectedTicketForDetails.message}
+                </div>
+              </div>
+
+              {/* Resolution Notes */}
+              <div className="space-y-1 text-xs">
+                <label className="font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 block">
+                  Admin Helpdesk Resolution Notes:
+                </label>
+                <textarea
+                  rows={2}
+                  value={adminResolutionNote}
+                  onChange={(e) => setAdminResolutionNote(e.target.value)}
+                  placeholder="Record resolution actions taken, dispatched replacement details, or internal notes..."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-medium"
+                />
+              </div>
+
+              {/* Status Update Options & WhatsApp Action */}
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div>
+                  <label className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Update Status:</label>
+                  <select
+                    value={selectedTicketForDetails.status}
+                    onChange={(e) => {
+                      const newSt = e.target.value;
+                      updateTicketStatus(selectedTicketForDetails.id, newSt, adminResolutionNote);
+                      setSelectedTicketForDetails({ ...selectedTicketForDetails, status: newSt, resolutionNote: adminResolutionNote });
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-black"
+                  >
+                    <option value="OPEN">🔴 Open</option>
+                    <option value="IN_PROGRESS">🟡 In Progress</option>
+                    <option value="RESOLVED">🟢 Resolved</option>
+                    <option value="CLOSED">⚪ Closed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Direct Chat:</label>
+                  {selectedTicketForDetails.phone ? (
+                    <a
+                      href={`https://wa.me/${String(selectedTicketForDetails.phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste ${selectedTicketForDetails.name}, regarding your Priority Support Ticket #${selectedTicketForDetails.id} with Anuj Enterprises:\n\n`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-black rounded-xl inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5 text-slate-950" />
+                      <span>WhatsApp Customer</span>
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 text-xs">No phone recorded</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateTicketStatus(selectedTicketForDetails.id, selectedTicketForDetails.status, adminResolutionNote);
+                    setSelectedTicketForDetails(null);
+                  }}
+                  className="w-full py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow transition-colors"
+                >
+                  Save Resolution & Close Details
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 1. Customer Delivery Schedule Modal */}
+      <AnimatePresence>
+        {isScheduleModalOpen && selectedCustForSchedule && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              <div className="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm">Customer Delivery Route Calendar</h3>
+                    <p className="text-[11px] text-slate-400">
+                      {selectedCustForSchedule.name || selectedCustForSchedule.shopName} ({selectedCustForSchedule.id || selectedCustForSchedule.customerId})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsScheduleModalOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5 text-xs">
+                {/* Store Area & Address Info */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-slate-500">Store / Mandi Location:</span>
+                    <span className="font-black text-amber-600">
+                      📍 {selectedCustForSchedule.area || selectedCustForSchedule.city || 'Kanpur Central Mandi'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-slate-500">Full Address:</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[240px]">
+                      {selectedCustForSchedule.address || 'Central Market Zone'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Date Picker Input */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                    Add Vehicle Delivery Visit Date
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={singleNewDateInput}
+                      onChange={(e) => setSingleNewDateInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddDateToCustomer}
+                      disabled={!singleNewDateInput}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black rounded-xl shadow transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" /> Add Date
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick 1-Click Date Presets */}
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    ⚡ Quick 1-Click Route Presets
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '+ Tomorrow', days: 1 },
+                      { label: '+ In 2 Days', days: 2 },
+                      { label: '+ In 4 Days', days: 4 },
+                      { label: '+ In 7 Days', days: 7 },
+                      { label: '+ In 14 Days', days: 14 }
+                    ].map(p => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + p.days);
+                      const dStr = d.toISOString().split('T')[0];
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            if (!custScheduleDateInputs.includes(dStr)) {
+                              setCustScheduleDateInputs(prev => [...prev, dStr].sort());
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 hover:text-amber-500 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-colors"
+                        >
+                          {p.label} ({dStr.slice(5)})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Assigned Dates List */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Scheduled Delivery Dates ({custScheduleDateInputs.length})
+                    </span>
+                    {custScheduleDateInputs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCustScheduleDateInputs([])}
+                        className="text-[10px] font-bold text-rose-500 hover:underline"
+                      >
+                        Clear All Dates
+                      </button>
+                    )}
+                  </div>
+
+                  {custScheduleDateInputs.length === 0 ? (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-slate-400 text-xs">
+                      No delivery dates assigned. Select a date above to add.
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                      {custScheduleDateInputs.map(dateStr => (
+                        <div
+                          key={dateStr}
+                          className="flex items-center justify-between p-2.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/60 text-xs"
+                        >
+                          <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{formatScheduleDate(dateStr)}</span>
+                            <span className="font-mono text-[10px] text-slate-400">({dateStr})</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDateFromCustomer(dateStr)}
+                            className="text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-500/10 transition-colors"
+                            title="Remove date"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Save / Cancel Buttons */}
+                <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleModalOpen(false)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomerSchedule}
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow text-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" /> Save Route Schedule
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. Bulk Area Scheduler Modal */}
+      <AnimatePresence>
+        {isBulkScheduleModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              <div className="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm">Bulk Area & Route Scheduler</h3>
+                    <p className="text-[11px] text-slate-400">Assign delivery visit schedule to all stores in an Area or City</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsBulkScheduleModalOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveBulkSchedule} className="p-6 space-y-4 text-xs">
+                {/* 1. Target Area or City Selection */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Select Target Wholesale Mandi / Area / City *
+                  </label>
+                  <select
+                    value={bulkTargetArea}
+                    onChange={(e) => setBulkTargetArea(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">-- Choose Mandi / Area / City --</option>
+                    {Array.from(new Set(customers.map(c => c.area || c.city).filter(Boolean))).map(a => (
+                      <option key={a} value={a}>
+                        📍 {a} ({customers.filter(c => (c.area || c.city) === a).length} Stores)
+                      </option>
+                    ))}
+                    {Array.from(new Set(customers.map(c => c.city).filter(Boolean))).map(city => (
+                      <option key={`city-${city}`} value={city}>
+                        🏙️ Entire City: {city} ({customers.filter(c => c.city === city).length} Stores)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Add Delivery Dates */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                    Add Delivery Visit Dates
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={bulkNewDateInput}
+                      onChange={(e) => setBulkNewDateInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddBulkDate}
+                      disabled={!bulkNewDateInput}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black rounded-xl shadow flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" /> Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '+ Tomorrow', days: 1 },
+                    { label: '+ In 3 Days', days: 3 },
+                    { label: '+ In 5 Days', days: 5 },
+                    { label: '+ In 7 Days', days: 7 }
+                  ].map(p => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + p.days);
+                    const dStr = d.toISOString().split('T')[0];
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          if (!bulkDatesList.includes(dStr)) {
+                            setBulkDatesList(prev => [...prev, dStr].sort());
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700"
+                      >
+                        {p.label} ({dStr.slice(5)})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dates List */}
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                    Dates to Apply ({bulkDatesList.length})
+                  </span>
+                  {bulkDatesList.length === 0 ? (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-slate-400 text-xs">
+                      No dates selected yet.
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {bulkDatesList.map(dStr => (
+                        <span
+                          key={dStr}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold border border-emerald-200 dark:border-emerald-800"
+                        >
+                          <span>📅 {formatScheduleDate(dStr)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setBulkDatesList(prev => prev.filter(d => d !== dStr))}
+                            className="text-slate-400 hover:text-rose-500 ml-1"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkScheduleModalOpen(false)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!bulkTargetArea || bulkDatesList.length === 0}
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black rounded-xl shadow transition-colors"
+                  >
+                    Apply to All Stores in Area
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

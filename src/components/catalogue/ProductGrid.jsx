@@ -165,6 +165,17 @@ export const ProductGrid = () => {
     setSortBy('featured');
   };
 
+  // Build brand rank priority lookup map
+  const brandRankMap = useMemo(() => {
+    const map = {};
+    (brands || []).forEach((b, index) => {
+      const name = typeof b === 'string' ? b : b.name;
+      const rank = (typeof b === 'object' && b.rank !== undefined) ? b.rank : index + 1;
+      if (name) map[name.toLowerCase().trim()] = rank;
+    });
+    return map;
+  }, [brands]);
+
   // Smart Search & Multi-criteria Filtering Algorithm
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -210,9 +221,17 @@ export const ProductGrid = () => {
       if (sortBy === 'new') return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
+
+      // Default & Featured Sort: Prioritize products from higher-ranked brands / companies
+      const aBrandRank = brandRankMap[a.brand?.toLowerCase()?.trim()] ?? 999;
+      const bBrandRank = brandRankMap[b.brand?.toLowerCase()?.trim()] ?? 999;
+      if (aBrandRank !== bBrandRank) {
+        return aBrandRank - bBrandRank;
+      }
+
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
-  }, [products, selectedCategories, selectedBrands, featuredOnly, newOnly, bulkOnly, searchQuery, sortBy]);
+  }, [products, selectedCategories, selectedBrands, featuredOnly, newOnly, bulkOnly, searchQuery, sortBy, brandRankMap]);
 
   return (
     <div className="py-8 bg-slate-50 dark:bg-slate-950 min-h-screen">

@@ -8,13 +8,14 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const SupportView = () => {
-  const { showToast } = useApp();
+  const { showToast, submitSupportTicket } = useApp();
   const [openFaq, setOpenFaq] = useState(0);
   const [ticketForm, setTicketForm] = useState({
     name: '',
     phone: '',
     email: '',
     category: 'Order Dispatch & Tracking',
+    priority: 'HIGH',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,10 +51,17 @@ export const SupportView = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setTimeout(() => {
+      submitSupportTicket({
+        name: ticketForm.name,
+        phone: ticketForm.phone,
+        email: ticketForm.email,
+        category: ticketForm.category,
+        priority: ticketForm.priority || 'HIGH',
+        message: ticketForm.message
+      });
       setIsSubmitting(false);
-      showToast(`Support Ticket #AE-HELP-${Math.floor(1000 + Math.random() * 9000)} generated. Our helpdesk will contact you within 2 hours.`, 'success');
-      setTicketForm({ name: '', phone: '', email: '', category: 'Order Dispatch & Tracking', message: '' });
-    }, 600);
+      setTicketForm({ name: '', phone: '', email: '', category: 'Order Dispatch & Tracking', priority: 'HIGH', message: '' });
+    }, 400);
   };
 
   return (

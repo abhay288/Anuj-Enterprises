@@ -360,6 +360,228 @@ export const AppProvider = ({ children }) => {
     setToast({ show: true, message: 'Default statutory B2B policies restored successfully!', type: 'info' });
   }, [broadcastSync]);
 
+  // Support & Helpdesk Priority Tickets Management
+  const INITIAL_SUPPORT_TICKETS = [
+    {
+      id: "TKT-2026-1001",
+      name: "Gupta Kirana & General Store",
+      phone: "+91 98200 11223",
+      email: "gupta.kirana@gmail.com",
+      category: "Order Dispatch & Tracking",
+      priority: "HIGH",
+      message: "Need urgent dispatch confirmation for Invoice AE-2026-000003. Store opening tomorrow morning in South Kanpur.",
+      status: "OPEN",
+      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      resolutionNote: ""
+    },
+    {
+      id: "TKT-2026-1002",
+      name: "Reliance Retail Supermarket",
+      phone: "+91 98200 11224",
+      email: "procurement@relianceretail.com",
+      category: "Damage / Expiry Replacement",
+      priority: "URGENT",
+      message: "Please process Docket for 4 units of Maggi Pack damaged during transit.",
+      status: "IN_PROGRESS",
+      createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+      resolutionNote: "Logistics fleet assigned for physical verification & credit note issuance."
+    },
+    {
+      id: "TKT-2026-1003",
+      name: "DMart Wholesale Marts Pvt Ltd",
+      phone: "+91 98900 44556",
+      email: "kanpur.dmart@dmartindia.com",
+      category: "Invoice Copy",
+      priority: "NORMAL",
+      message: "Please email signed GST B2B invoice copy for monthly audit.",
+      status: "RESOLVED",
+      createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+      resolutionNote: "Signed invoice PDF delivered to registered email."
+    }
+  ];
+
+  const [supportTickets, setSupportTickets] = useState(() => {
+    const saved = localStorage.getItem('anuj_support_tickets_v1');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return INITIAL_SUPPORT_TICKETS;
+  });
+
+  const submitSupportTicket = useCallback((ticketData) => {
+    const randomId = `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newTicket = {
+      id: randomId,
+      name: ticketData.name || 'Valued Retailer',
+      phone: ticketData.phone ? (ticketData.phone.startsWith('+91') ? ticketData.phone : `+91 ${ticketData.phone}`) : '+91 98765 43210',
+      email: ticketData.email || '',
+      category: ticketData.category || 'Order Dispatch & Tracking',
+      priority: ticketData.priority || 'HIGH',
+      message: ticketData.message || 'Support inquiry submitted.',
+      status: 'OPEN',
+      createdAt: new Date().toISOString(),
+      resolutionNote: ''
+    };
+
+    setSupportTickets(prev => {
+      const updated = [newTicket, ...prev];
+      try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
+      broadcastSync('SYNC_SUPPORT_TICKETS', updated);
+      return updated;
+    });
+
+    addNotification({
+      type: 'SUPPORT_TICKET',
+      title: 'New Priority Support Ticket',
+      message: `Ticket #${randomId} received from ${newTicket.name} (${newTicket.category}).`,
+      targetRole: 'ALL'
+    });
+
+    setToast({
+      show: true,
+      message: `Priority Support Ticket #${randomId} generated successfully! Helpdesk notified.`,
+      type: 'success'
+    });
+
+    return newTicket;
+  }, [broadcastSync, addNotification]);
+
+  const updateTicketStatus = useCallback((ticketId, newStatus, resolutionNote = '') => {
+    setSupportTickets(prev => {
+      const updated = prev.map(t => {
+        if (t.id === ticketId) {
+          return {
+            ...t,
+            status: newStatus,
+            ...(resolutionNote !== undefined ? { resolutionNote } : {})
+          };
+        }
+        return t;
+      });
+      try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
+      broadcastSync('SYNC_SUPPORT_TICKETS', updated);
+      return updated;
+    });
+
+    const statusReadable = 
+      newStatus === 'IN_PROGRESS' ? 'In Progress 🟡' :
+      newStatus === 'RESOLVED' ? 'Resolved 🟢' :
+      newStatus === 'CLOSED' ? 'Closed ⚪' : 'Open 🔴';
+
+    setToast({
+      show: true,
+      message: `Ticket #${ticketId} status updated to ${statusReadable}`,
+      type: 'success'
+    });
+  }, [broadcastSync]);
+
+  const deleteSupportTicket = useCallback((ticketId) => {
+    setSupportTickets(prev => {
+      const updated = prev.filter(t => t.id !== ticketId);
+      try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
+      broadcastSync('SYNC_SUPPORT_TICKETS', updated);
+      return updated;
+    });
+    setToast({ show: true, message: `Ticket #${ticketId} removed.`, type: 'info' });
+  }, [broadcastSync]);
+
+  // Delivery Route & Area Schedule Management
+  const [deliverySchedules, setDeliverySchedules] = useState(() => {
+    const getUpcomingDateStr = (daysAhead) => {
+      const d = new Date();
+      d.setDate(d.getDate() + daysAhead);
+      return d.toISOString().split('T')[0];
+    };
+
+    const INITIAL_DELIVERY_SCHEDULES = {
+      'CUST-1001': [getUpcomingDateStr(2), getUpcomingDateStr(6), getUpcomingDateStr(12)],
+      'CUST-1002': [getUpcomingDateStr(3), getUpcomingDateStr(7)],
+      'CUST-1003': [getUpcomingDateStr(1), getUpcomingDateStr(5), getUpcomingDateStr(10)]
+    };
+
+    const saved = localStorage.getItem('anuj_delivery_schedules_v1');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_DELIVERY_SCHEDULES;
+  });
+
+  const addCustomerDeliveryDate = useCallback((customerId, dateStr) => {
+    if (!customerId || !dateStr) return;
+    setDeliverySchedules(prev => {
+      const currentDates = Array.isArray(prev[customerId]) ? [...prev[customerId]] : [];
+      if (!currentDates.includes(dateStr)) {
+        currentDates.push(dateStr);
+        currentDates.sort();
+      }
+      const updated = { ...prev, [customerId]: currentDates };
+      try {
+        localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      return updated;
+    });
+    setToast({ show: true, message: `🚚 Delivery date ${dateStr} scheduled successfully`, type: 'success' });
+  }, [broadcastSync]);
+
+  const removeCustomerDeliveryDate = useCallback((customerId, dateStr) => {
+    if (!customerId || !dateStr) return;
+    setDeliverySchedules(prev => {
+      const currentDates = Array.isArray(prev[customerId]) ? prev[customerId].filter(d => d !== dateStr) : [];
+      const updated = { ...prev, [customerId]: currentDates };
+      try {
+        localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      return updated;
+    });
+    setToast({ show: true, message: `Delivery date ${dateStr} removed from schedule`, type: 'info' });
+  }, [broadcastSync]);
+
+  const setCustomerDeliveryDates = useCallback((customerId, datesArray) => {
+    if (!customerId) return;
+    const cleanDates = Array.from(new Set((datesArray || []).filter(Boolean))).sort();
+    setDeliverySchedules(prev => {
+      const updated = { ...prev, [customerId]: cleanDates };
+      try {
+        localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      return updated;
+    });
+    setToast({ show: true, message: `✅ Route schedule updated (${cleanDates.length} delivery dates)`, type: 'success' });
+  }, [broadcastSync]);
+
+  const bulkSetAreaDeliveryDates = useCallback((areaOrCity, datesArray) => {
+    if (!areaOrCity) return;
+    const cleanDates = Array.from(new Set((datesArray || []).filter(Boolean))).sort();
+    const targetQ = areaOrCity.toLowerCase().trim();
+
+    setDeliverySchedules(prev => {
+      const updated = { ...prev };
+      let matchCount = 0;
+      (customers || []).forEach(c => {
+        const cArea = (c.area || '').toLowerCase();
+        const cCity = (c.city || '').toLowerCase();
+        const cAddress = (c.address || '').toLowerCase();
+        const cId = c.id || c.customerId;
+        if (cArea.includes(targetQ) || cCity.includes(targetQ) || cAddress.includes(targetQ) || targetQ.includes(cCity) || targetQ.includes(cArea)) {
+          updated[cId] = cleanDates;
+          matchCount++;
+        }
+      });
+      try {
+        localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      setToast({ show: true, message: `🚚 Route schedule applied to ${matchCount} store(s) in "${areaOrCity}"!`, type: 'success' });
+      return updated;
+    });
+  }, [customers, broadcastSync]);
+
   // Initial Fetch From API (Progressive Backend Integration)
   useEffect(() => {
     const loadBackendData = async () => {
@@ -1580,6 +1802,122 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
+  // Company / Brand Catalogue Ranking Functions
+  const setBrandTopRank = useCallback((brandIdOrName) => {
+    setBrands(prev => {
+      const targetIndex = prev.findIndex(b => {
+        const name = typeof b === 'object' ? b.name : b;
+        const id = typeof b === 'object' ? (b.id || b._id) : b;
+        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+      });
+
+      if (targetIndex === -1) return prev;
+      const targetBrand = prev[targetIndex];
+      const brandDisplayName = typeof targetBrand === 'object' ? targetBrand.name : targetBrand;
+
+      const rest = prev.filter((_, idx) => idx !== targetIndex);
+      const updated = [targetBrand, ...rest].map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
+      });
+
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', updated);
+
+      setToast({
+        show: true,
+        message: `👑 "${brandDisplayName}" is now Ranked #1! Its products will appear first in the customer catalogue.`,
+        type: 'success'
+      });
+
+      return updated;
+    });
+  }, [broadcastSync]);
+
+  const moveBrandRank = useCallback((brandIdOrName, direction) => {
+    setBrands(prev => {
+      const targetIndex = prev.findIndex(b => {
+        const name = typeof b === 'object' ? b.name : b;
+        const id = typeof b === 'object' ? (b.id || b._id) : b;
+        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = direction === 'UP' ? targetIndex - 1 : targetIndex + 1;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
+      });
+
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', rankedUpdated);
+
+      const brandDisplayName = typeof movedItem === 'object' ? movedItem.name : movedItem;
+      setToast({
+        show: true,
+        message: `Updated "${brandDisplayName}" catalogue priority to Rank #${newIndex + 1}`,
+        type: 'success'
+      });
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
+  const updateBrandRank = useCallback((brandIdOrName, targetRank) => {
+    const rankNum = parseInt(targetRank, 10);
+    if (isNaN(rankNum) || rankNum < 1) return;
+
+    setBrands(prev => {
+      const targetIndex = prev.findIndex(b => {
+        const name = typeof b === 'object' ? b.name : b;
+        const id = typeof b === 'object' ? (b.id || b._id) : b;
+        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = Math.min(Math.max(0, rankNum - 1), prev.length - 1);
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
+      });
+
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', rankedUpdated);
+
+      const brandDisplayName = typeof movedItem === 'object' ? movedItem.name : movedItem;
+      setToast({
+        show: true,
+        message: `Set "${brandDisplayName}" to Rank #${newIndex + 1} in product catalogue`,
+        type: 'success'
+      });
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
   // Inventory Management Functions
   const restockProduct = async (productId, quantity, reason = 'Warehouse Procurement Restock') => {
     const qty = parseInt(quantity, 10);
@@ -1756,6 +2094,41 @@ export const AppProvider = ({ children }) => {
     showToast('✅ Profile & Store details updated successfully!', 'success');
     return true;
   }, []);
+
+  const updateNormalUserPassword = useCallback((oldPassword, newPassword) => {
+    const currentPassword = user?.password || 'Cust@123';
+    
+    if (oldPassword !== currentPassword) {
+      setToast({ show: true, message: '❌ Incorrect old password. Please enter your current valid password.', type: 'error' });
+      return { success: false, message: 'Incorrect old password' };
+    }
+
+    if (!newPassword || newPassword.trim().length < 6) {
+      setToast({ show: true, message: 'New password must be at least 6 characters.', type: 'error' });
+      return { success: false, message: 'Password too short' };
+    }
+
+    if (newPassword === oldPassword) {
+      setToast({ show: true, message: 'New password cannot be the same as old password.', type: 'warning' });
+      return { success: false, message: 'Same password' };
+    }
+
+    // Update user state and customers roster
+    updateCustomerProfile({ password: newPassword });
+
+    // Update in localStorage anuj_user
+    try {
+      const savedUser = localStorage.getItem('anuj_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        parsed.password = newPassword;
+        localStorage.setItem('anuj_user', JSON.stringify(parsed));
+      }
+    } catch (e) {}
+
+    setToast({ show: true, message: '🔒 Password changed successfully! Your new password is now active.', type: 'success' });
+    return { success: true };
+  }, [user, updateCustomerProfile]);
 
   const deleteCustomer = useCallback((custId) => {
     setCustomers(prev => {
@@ -2066,7 +2439,20 @@ export const AppProvider = ({ children }) => {
       updateHeadlineConfig,
       legalPolicies,
       updateLegalPolicy,
-      resetLegalPolicies
+      resetLegalPolicies,
+      supportTickets,
+      submitSupportTicket,
+      updateTicketStatus,
+      deleteSupportTicket,
+      setBrandTopRank,
+      moveBrandRank,
+      updateBrandRank,
+      updateNormalUserPassword,
+      deliverySchedules,
+      addCustomerDeliveryDate,
+      removeCustomerDeliveryDate,
+      setCustomerDeliveryDates,
+      bulkSetAreaDeliveryDates
     }}>
       {children}
     </AppContext.Provider>

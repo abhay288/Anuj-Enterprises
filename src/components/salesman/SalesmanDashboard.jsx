@@ -407,17 +407,17 @@ export const SalesmanDashboard = () => {
             </div>
 
             {/* Orders Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
+            <div className="overflow-x-auto pb-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <table className="min-w-[1000px] w-full text-xs text-left">
                 <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 uppercase font-extrabold border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="py-3.5 px-4">Invoice / Order ID</th>
-                    <th className="py-3.5 px-4">Date</th>
-                    <th className="py-3.5 px-4">Customer</th>
-                    <th className="py-3.5 px-4 text-center">Items</th>
-                    <th className="py-3.5 px-4 text-center">Total Quantity</th>
-                    <th className="py-3.5 px-4 text-center">Collection Mode</th>
-                    <th className="py-3.5 px-4 text-center">Actions</th>
+                    <th className="py-3.5 px-4 min-w-[130px]">Invoice / Order ID</th>
+                    <th className="py-3.5 px-4 min-w-[110px]">Date</th>
+                    <th className="py-3.5 px-4 min-w-[160px]">Customer</th>
+                    <th className="py-3.5 px-4 text-center min-w-[90px]">Items</th>
+                    <th className="py-3.5 px-4 text-center min-w-[110px]">Total Quantity</th>
+                    <th className="py-3.5 px-4 text-center min-w-[130px]">Status & Dispatch</th>
+                    <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -450,7 +450,19 @@ export const SalesmanDashboard = () => {
                           <td className="py-3.5 px-4">
                             <strong className="text-slate-900 dark:text-white block">{order.customerName}</strong>
                             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-slate-400">{order.customerMobile || 'Direct Wholesale'}</span>
+                              {order.customerMobile ? (
+                                <a 
+                                  href={`tel:${order.customerMobile.replace(/\s+/g, '')}`}
+                                  className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold hover:underline inline-flex items-center gap-1"
+                                  title={`Call: ${order.customerMobile}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span>📞</span>
+                                  <span>{order.customerMobile}</span>
+                                </a>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">Direct Wholesale</span>
+                              )}
                               {expCount > 0 && (
                                 <span className="px-1.5 py-0.2 rounded bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 font-extrabold text-[9px]">
                                   ⚠️ {expCount} Expired
