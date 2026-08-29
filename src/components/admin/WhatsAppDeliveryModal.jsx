@@ -128,15 +128,15 @@ export const WhatsAppDeliveryModal = ({
             </div>
 
             {/* Config Form Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               
               {/* Customer WhatsApp Number */}
               <div>
                 <label className="block font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                  Customer WhatsApp Number <span className="text-rose-500">*</span>
+                  Customer Mobile Number <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">+91</span>
+                  <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">+91</span>
                   <input
                     type="tel"
                     value={customerMobile}
@@ -160,25 +160,25 @@ export const WhatsAppDeliveryModal = ({
                   onChange={(e) => setEstimatedTime(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
                 >
-                  <option value="Within 1 Hour (Today)">⚡ Within 1 Hour (Urgent)</option>
-                  <option value="Within 2 Hours (Today)">🕒 Within 2 Hours (Standard)</option>
-                  <option value="By 2:00 PM Today">☀️ By 2:00 PM Today (Afternoon)</option>
-                  <option value="By 6:00 PM Today">🌆 By 6:00 PM Today (Evening)</option>
-                  <option value="Tomorrow Morning (First Dispatch)">🌅 Tomorrow Morning (First Dispatch)</option>
-                  <option value="Today (In-Transit)">🚛 Today (In-Transit Dispatch)</option>
+                  <option value="Today (In-Transit)">🚚 Today (In-Transit)</option>
+                  <option value="Within 1 Hour (Urgent)">⚡ Within 1 Hour (Urgent)</option>
+                  <option value="Within 2 Hours (Standard)">🕒 Within 2 Hours (Standard)</option>
+                  <option value="By 2:00 PM Today">☀️ By 2:00 PM Today</option>
+                  <option value="By 6:00 PM Today">🌆 By 6:00 PM Today</option>
+                  <option value="Tomorrow Morning">🌅 Tomorrow Morning</option>
                 </select>
               </div>
 
               {/* Delivery Executive / Driver */}
               <div>
                 <label className="block font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                  Delivery Executive / Field Rep
+                  Delivery Representative
                 </label>
                 <input
                   type="text"
                   value={driverName}
                   onChange={(e) => setDriverName(e.target.value)}
-                  placeholder="e.g. Ramesh Kumar (Logistics)"
+                  placeholder="e.g. Rajesh Kumar"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
                 />
               </div>
@@ -186,7 +186,7 @@ export const WhatsAppDeliveryModal = ({
               {/* Executive Contact / Helpline */}
               <div>
                 <label className="block font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                  Executive / Helpline Phone
+                  Rep Contact / Phone
                 </label>
                 <input
                   type="text"
@@ -197,30 +197,16 @@ export const WhatsAppDeliveryModal = ({
                 />
               </div>
 
-              {/* Vehicle / Dispatch Route Reference */}
-              <div className="sm:col-span-2">
-                <label className="block font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                  Vehicle No / Route Reference
-                </label>
-                <input
-                  type="text"
-                  value={vehicleNo}
-                  onChange={(e) => setVehicleNo(e.target.value)}
-                  placeholder="e.g. UP-78 Dispatch Fleet / South Kanpur Central Route"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
-                />
-              </div>
-
               {/* Special Instructions (Optional) */}
               <div className="sm:col-span-2">
                 <label className="block font-extrabold uppercase text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                  Custom Dispatch Note / Delivery Advisory (Optional)
+                  Custom Dispatch Note (Optional)
                 </label>
                 <input
                   type="text"
                   value={customNote}
                   onChange={(e) => setCustomNote(e.target.value)}
-                  placeholder="e.g. Please keep cash payment / cheque ready for invoice settlement."
+                  placeholder="e.g. Keep store receiving seal ready"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
                 />
               </div>
