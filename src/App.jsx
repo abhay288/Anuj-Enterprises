@@ -37,6 +37,54 @@ const RouteLoadingFallback = () => (
   </div>
 );
 
+// Global Resilient Error Boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Anuj Enterprises App Render Error caught by Boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
+          <div className="max-w-lg w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-2xl font-black">
+              ⚠️
+            </div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+              Anuj Enterprises Portal Recovered
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {this.state.error?.message || 'A temporary display issue occurred while rendering this page.'}
+            </p>
+            <div className="pt-2 flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all"
+              >
+                🔄 Refresh Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const MainContent = () => {
   const { view, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
   const hasHeadline = headlineConfig?.isVisible;
@@ -47,21 +95,23 @@ const MainContent = () => {
       <HeadlineBar />
       
       <main className="flex-grow">
-        <Suspense fallback={<RouteLoadingFallback />}>
-          {view === 'home' && <HomeDashboard />}
-          {view === 'catalogue' && <ProductGrid />}
-          {view === 'product-detail' && <ProductDetailView />}
-          {view === 'cart' && <CartView />}
-          {(view === 'customer-dash' || view === 'customer' || view === 'user-dash' || view === 'profile') && <CustomerDashboard />}
-          {(view === 'salesman-dash' || view === 'salesman') && <SalesmanDashboard />}
-          {(view === 'admin-dash' || view === 'admin') && <AdminDashboard />}
-          {view === 'about' && <AboutView />}
-          {(view === 'contact' || view === 'support') && <SupportView />}
-          {view === 'privacy-policy' && <LegalView initialTab="privacy" />}
-          {view === 'terms-of-supply' && <LegalView initialTab="terms" />}
-          {view === 'return-policy' && <LegalView initialTab="returns" />}
-          {view === 'legal' && <LegalView initialTab="privacy" />}
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<RouteLoadingFallback />}>
+            {view === 'home' && <HomeDashboard />}
+            {view === 'catalogue' && <ProductGrid />}
+            {view === 'product-detail' && <ProductDetailView />}
+            {view === 'cart' && <CartView />}
+            {(view === 'customer-dash' || view === 'customer' || view === 'user-dash' || view === 'profile') && <CustomerDashboard />}
+            {(view === 'salesman-dash' || view === 'salesman') && <SalesmanDashboard />}
+            {(view === 'admin-dash' || view === 'admin') && <AdminDashboard />}
+            {view === 'about' && <AboutView />}
+            {(view === 'contact' || view === 'support') && <SupportView />}
+            {view === 'privacy-policy' && <LegalView initialTab="privacy" />}
+            {view === 'terms-of-supply' && <LegalView initialTab="terms" />}
+            {view === 'return-policy' && <LegalView initialTab="returns" />}
+            {view === 'legal' && <LegalView initialTab="privacy" />}
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       <Footer />
