@@ -116,6 +116,7 @@ const ProductListItem = ({ product }) => {
 export const ProductGrid = () => {
   const { 
     products, 
+    brands,
     searchQuery, 
     setSearchQuery, 
     selectedCategoryFilter, 

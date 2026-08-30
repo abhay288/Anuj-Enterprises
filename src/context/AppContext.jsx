@@ -75,28 +75,48 @@ export const AppProvider = ({ children }) => {
   }, [language]);
 
   const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('anuj_products_v3');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    try {
+      const saved = localStorage.getItem('anuj_products_v3');
+      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    } catch (e) {
+      return INITIAL_PRODUCTS;
+    }
   });
 
   const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('anuj_categories_v3');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
+    try {
+      const saved = localStorage.getItem('anuj_categories_v3');
+      return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
+    } catch (e) {
+      return INITIAL_CATEGORIES;
+    }
   });
 
   const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('anuj_brands_v3');
-    return saved ? JSON.parse(saved) : INITIAL_BRANDS;
+    try {
+      const saved = localStorage.getItem('anuj_brands_v3');
+      return saved ? JSON.parse(saved) : INITIAL_BRANDS;
+    } catch (e) {
+      return INITIAL_BRANDS;
+    }
   });
 
   const [salesmen, setSalesmen] = useState(() => {
-    const saved = localStorage.getItem('anuj_salesmen_v3');
-    return saved ? JSON.parse(saved) : INITIAL_SALESMEN;
+    try {
+      const saved = localStorage.getItem('anuj_salesmen_v3');
+      return saved ? JSON.parse(saved) : INITIAL_SALESMEN;
+    } catch (e) {
+      return INITIAL_SALESMEN;
+    }
   });
 
   const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('anuj_orders_v3');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    try {
+      const saved = localStorage.getItem('anuj_orders_v3');
+      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    } catch (e) {
+      return INITIAL_ORDERS;
+    }
   });
 
   const [customers, setCustomers] = useState(() => {
@@ -313,6 +333,122 @@ export const AppProvider = ({ children }) => {
         ch.close();
       }
     } catch (e) {}
+  }, []);
+
+  // In-App Notification Methods with FIFO Queue & 10-Day History Storage
+  const addNotification = useCallback((notif) => {
+    const now = Date.now();
+    const newNotif = {
+      id: `notif-${now}-${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: now,
+      createdAt: new Date().toISOString(),
+      time: 'Just now',
+      isRead: false,
+      ...notif
+    };
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev];
+      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      return updated;
+    });
+  }, [broadcastSync]);
+
+  const markNotificationAsRead = useCallback((id) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
+      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      return updated;
+    });
+  }, [broadcastSync]);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
+      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      return updated;
+    });
+    setToast({ show: true, message: 'All notifications marked as read', type: 'info' });
+  }, [broadcastSync]);
+
+  // Single Item Clear -> Moves notification from Active Queue into 10-Day History Queue
+  const clearNotification = useCallback((id) => {
+    const now = Date.now();
+    let archivedItem = null;
+
+    setNotifications(prevActive => {
+      const target = prevActive.find(n => n.id === id);
+      if (target) {
+        archivedItem = {
+          ...target,
+          isRead: true,
+          archivedAt: now,
+          archiveReason: 'MANUAL_CLEAR'
+        };
+      }
+      const nextActive = prevActive.filter(n => n.id !== id);
+      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(nextActive));
+      return nextActive;
+    });
+
+    if (archivedItem) {
+      setNotificationHistory(prevHist => {
+        const combined = [archivedItem, ...prevHist.filter(h => h.id !== id)];
+        const pruned = combined.filter(h => {
+          const hTime = h.timestamp || (h.date ? new Date(h.date).getTime() : now);
+          return (now - hTime) < TEN_DAYS_MS;
+        });
+        localStorage.setItem('anuj_notification_history_v2', JSON.stringify(pruned));
+        return pruned;
+      });
+    }
+
+    setToast({ show: true, message: 'Notification moved to History log', type: 'info' });
+  }, [TEN_DAYS_MS]);
+
+  // Clear All Notifications -> Moves all active notifications to 10-Day History Queue
+  const clearAllNotifications = useCallback(() => {
+    const now = Date.now();
+    setNotifications(prevActive => {
+      if (!prevActive.length) return [];
+      const itemsToArchive = prevActive.map(n => ({
+        ...n,
+        isRead: true,
+        archivedAt: now,
+        archiveReason: 'MANUAL_CLEAR_ALL'
+      }));
+
+      setNotificationHistory(prevHist => {
+        const combinedMap = new Map();
+        [...itemsToArchive, ...prevHist].forEach(item => {
+          if (item && item.id && !combinedMap.has(item.id)) {
+            combinedMap.set(item.id, item);
+          }
+        });
+
+        const pruned = Array.from(combinedMap.values()).filter(h => {
+          const hTime = h.timestamp || (h.date ? new Date(h.date).getTime() : now);
+          return (now - hTime) < TEN_DAYS_MS;
+        });
+
+        localStorage.setItem('anuj_notification_history_v2', JSON.stringify(pruned));
+        return pruned;
+      });
+
+      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify([]));
+      return [];
+    });
+
+    setToast({ show: true, message: 'All active notifications moved to Notification History', type: 'info' });
+  }, [TEN_DAYS_MS]);
+
+  // Clear History Queue
+  const clearNotificationHistory = useCallback(() => {
+    setNotificationHistory([]);
+    localStorage.setItem('anuj_notification_history_v2', JSON.stringify([]));
+    setToast({ show: true, message: 'Notification history purged', type: 'info' });
   }, []);
 
   const updateHeadlineConfig = useCallback((newConfig) => {
@@ -2208,121 +2344,7 @@ export const AppProvider = ({ children }) => {
     navigateTo('cart');
   };
 
-  // In-App Notification Methods with FIFO Queue & 10-Day History Storage
-  const addNotification = useCallback((notif) => {
-    const now = Date.now();
-    const newNotif = {
-      id: `notif-${now}-${Math.random().toString(36).substr(2, 5)}`,
-      timestamp: now,
-      createdAt: new Date().toISOString(),
-      time: 'Just now',
-      isRead: false,
-      ...notif
-    };
-    setNotifications(prev => {
-      const updated = [newNotif, ...prev];
-      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
-      return updated;
-    });
-  }, [broadcastSync]);
 
-  const markNotificationAsRead = useCallback((id) => {
-    setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
-      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
-      return updated;
-    });
-  }, [broadcastSync]);
-
-  const markAllNotificationsAsRead = useCallback(() => {
-    setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, isRead: true }));
-      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
-      return updated;
-    });
-    setToast({ show: true, message: 'All notifications marked as read', type: 'info' });
-  }, [broadcastSync]);
-
-  // Single Item Clear -> Moves notification from Active Queue into 10-Day History Queue
-  const clearNotification = useCallback((id) => {
-    const now = Date.now();
-    let archivedItem = null;
-
-    setNotifications(prevActive => {
-      const target = prevActive.find(n => n.id === id);
-      if (target) {
-        archivedItem = {
-          ...target,
-          isRead: true,
-          archivedAt: now,
-          archiveReason: 'MANUAL_CLEAR'
-        };
-      }
-      const nextActive = prevActive.filter(n => n.id !== id);
-      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(nextActive));
-      return nextActive;
-    });
-
-    if (archivedItem) {
-      setNotificationHistory(prevHist => {
-        const combined = [archivedItem, ...prevHist.filter(h => h.id !== id)];
-        const pruned = combined.filter(h => {
-          const hTime = h.timestamp || (h.date ? new Date(h.date).getTime() : now);
-          return (now - hTime) < TEN_DAYS_MS;
-        });
-        localStorage.setItem('anuj_notification_history_v2', JSON.stringify(pruned));
-        return pruned;
-      });
-    }
-
-    setToast({ show: true, message: 'Notification moved to History log', type: 'info' });
-  }, [TEN_DAYS_MS]);
-
-  // Clear All Notifications -> Moves all active notifications to 10-Day History Queue
-  const clearAllNotifications = useCallback(() => {
-    const now = Date.now();
-    setNotifications(prevActive => {
-      if (!prevActive.length) return [];
-      const itemsToArchive = prevActive.map(n => ({
-        ...n,
-        isRead: true,
-        archivedAt: now,
-        archiveReason: 'MANUAL_CLEAR_ALL'
-      }));
-
-      setNotificationHistory(prevHist => {
-        const combinedMap = new Map();
-        [...itemsToArchive, ...prevHist].forEach(item => {
-          if (item && item.id && !combinedMap.has(item.id)) {
-            combinedMap.set(item.id, item);
-          }
-        });
-
-        const pruned = Array.from(combinedMap.values()).filter(h => {
-          const hTime = h.timestamp || (h.date ? new Date(h.date).getTime() : now);
-          return (now - hTime) < TEN_DAYS_MS;
-        });
-
-        localStorage.setItem('anuj_notification_history_v2', JSON.stringify(pruned));
-        return pruned;
-      });
-
-      localStorage.setItem('anuj_active_notifications_v2', JSON.stringify([]));
-      return [];
-    });
-
-    setToast({ show: true, message: 'All active notifications moved to Notification History', type: 'info' });
-  }, [TEN_DAYS_MS]);
-
-  // Clear History Queue
-  const clearNotificationHistory = useCallback(() => {
-    setNotificationHistory([]);
-    localStorage.setItem('anuj_notification_history_v2', JSON.stringify([]));
-    setToast({ show: true, message: 'Notification history purged', type: 'info' });
-  }, []);
 
   const closeOrderSuccessModal = () => {
     setIsOrderSuccessModalOpen(false);
