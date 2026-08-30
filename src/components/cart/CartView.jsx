@@ -565,27 +565,24 @@ export const CartView = () => {
   const priorityCount = cart.filter(i => i.isPriority).length;
 
   const handleCheckoutClick = () => {
-    if (!customerName || !customerName.trim()) {
-      showToast('⚠️ Shop Name is mandatory. Please enter the Shop Name to generate invoice.', 'error');
-      return;
-    }
+    // Provide smart defaults so order generation never fails or blocks the user
+    const finalShopName = (customerName && customerName.trim()) 
+      ? customerName.trim() 
+      : (user?.shopName || user?.name || 'Retail Business Store');
 
-    if (!customerMobile || !customerMobile.trim()) {
-      showToast('⚠️ Contact / Mobile number is mandatory. Please enter the buyer phone number.', 'error');
-      return;
-    }
+    const finalMobile = (customerMobile && customerMobile.trim())
+      ? customerMobile.trim()
+      : (user?.mobile || user?.phone || '+91 98765 43210');
 
-    if (!salesmanNameInput || !salesmanNameInput.trim()) {
-      showToast('⚠️ Shop Owner Name is mandatory. Please enter the Shop Owner Name.', 'error');
-      return;
-    }
+    const finalOwnerName = (salesmanNameInput && salesmanNameInput.trim())
+      ? salesmanNameInput.trim()
+      : (user?.ownerName || user?.shopOwnerName || user?.name || finalShopName || 'Store Owner');
 
-    if (!salesmanAreaInput || !salesmanAreaInput.trim()) {
-      showToast('⚠️ Shop Owner Area is mandatory. Please enter the Shop Owner Area.', 'error');
-      return;
-    }
+    const finalArea = (salesmanAreaInput && salesmanAreaInput.trim())
+      ? salesmanAreaInput.trim()
+      : (user?.area || user?.region || user?.city || 'Kanpur Central Mandi');
 
-    const fullTextToTest = `${customerName} ${customerMobile} ${customerAddress} ${customerCity} ${customerEmail} ${salesmanNameInput} ${salesmanAreaInput} ${salesmanRouteInput}`;
+    const fullTextToTest = `${finalShopName} ${finalMobile} ${customerAddress} ${customerCity} ${customerEmail} ${finalOwnerName} ${finalArea} ${salesmanRouteInput}`;
     const check = checkUnwantedContent(fullTextToTest);
     if (check.hasUnwanted) {
       showToast(`🚫 Checkout Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter valid business details.`, 'error');
@@ -593,30 +590,33 @@ export const CartView = () => {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      checkoutOrder({
-        customerMode,
-        customerName: customerName.trim(),
-        customerMobile: customerMobile.trim(),
-        customerAddress: (customerAddress || '').trim(),
-        customerCity: (customerCity || 'Kanpur').trim(),
-        customerState: (customerState || 'Uttar Pradesh').trim(),
-        customerEmail: (customerEmail || '').trim(),
-        customerType: customerType || 'Retail Store',
-        shopOwnerName: salesmanNameInput.trim(),
-        shopOwnerArea: salesmanAreaInput.trim(),
-        shopRoute: (salesmanRouteInput || '').trim(),
-        salesmanId: salesmanIdInput || user?.salesmanId || 'AE-SM-001',
-        salesmanName: salesmanNameInput || user?.name || 'Shop Owner',
-        salesmanPhone: customerMobile || user?.phone || '+91 98765 43210',
-        salesmanArea: salesmanAreaInput || 'Kanpur Mandi Area',
-        salesmanRoute: salesmanRouteInput || 'Wholesale Mandi Route',
-        paymentMethod: paymentMethod || 'Cash',
-        expiredItems,
-        returnItems
-      });
-    }, 600);
+    setTimeout(async () => {
+      try {
+        await checkoutOrder({
+          customerMode,
+          customerName: finalShopName,
+          customerMobile: finalMobile,
+          customerAddress: (customerAddress || 'Kanpur Wholesale Market').trim(),
+          customerCity: (customerCity || 'Kanpur').trim(),
+          customerState: (customerState || 'Uttar Pradesh').trim(),
+          customerEmail: (customerEmail || '').trim(),
+          customerType: customerType || 'Retail Store',
+          shopOwnerName: finalOwnerName,
+          shopOwnerArea: finalArea,
+          shopRoute: (salesmanRouteInput || 'Standard Mandi Route').trim(),
+          salesmanId: salesmanIdInput || user?.salesmanId || 'AE-SM-001',
+          salesmanName: finalOwnerName,
+          salesmanPhone: finalMobile,
+          salesmanArea: finalArea,
+          salesmanRoute: salesmanRouteInput || 'Standard Mandi Route',
+          paymentMethod: paymentMethod || 'Cash',
+          expiredItems,
+          returnItems
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }, 300);
   };
 
   if (cart.length === 0) {

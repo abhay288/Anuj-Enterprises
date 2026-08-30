@@ -1394,95 +1394,97 @@ export const AppProvider = ({ children }) => {
   const closeInvoiceModal = () => { setIsInvoiceModalOpen(false); };
 
   // Salesman Checkout Flow with Real API + Stock Decrement & Unique Invoice Number
-  const checkoutOrder = async (customerDetails) => {
-    if (cart.length === 0) {
-      showToast('Cart is empty', 'warning');
+  const checkoutOrder = async (customerDetails = {}) => {
+    if (!cart || cart.length === 0) {
+      showToast('⚠️ Cart is empty. Please add products to cart first.', 'warning');
       return;
     }
 
+    const safeUser = user || { role: 'guest', name: 'Guest Visitor' };
+    const safeCustomerDetails = customerDetails || {};
+
     const payload = {
-      customerMode: customerDetails.customerMode,
-      customerName: customerDetails.customerName || "Reliance Retail Wholesale Chains",
-      customerMobile: customerDetails.customerMobile || "+91 98200 11223",
-      customerAddress: customerDetails.customerAddress || "Bhiwandi Central B2B Hub",
-      customerCity: customerDetails.customerCity || "Thane",
-      customerState: customerDetails.customerState || "Maharashtra",
-      customerEmail: customerDetails.customerEmail || "purchase@relianceretail.demo",
-      customerType: customerDetails.customerType || "Normal Customer",
-      salesmanId: customerDetails.salesmanId || user.salesmanId || "AE-SM-001",
-      salesmanName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
-      salesmanPhone: customerDetails.salesmanPhone || user.phone || "+91 98765 43210",
-      salesmanArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
-      shopOwnerName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
-      shopOwnerArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
-      shopRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "",
-      paymentMethod: customerDetails.paymentMethod || "Cash",
+      customerMode: safeCustomerDetails.customerMode || 'quick',
+      customerName: safeCustomerDetails.customerName || safeUser.shopName || safeUser.name || "Retail Business Store",
+      customerMobile: safeCustomerDetails.customerMobile || safeUser.mobile || safeUser.phone || "+91 98765 43210",
+      customerAddress: safeCustomerDetails.customerAddress || safeUser.address || "Kanpur Wholesale Market",
+      customerCity: safeCustomerDetails.customerCity || safeUser.city || "Kanpur",
+      customerState: safeCustomerDetails.customerState || safeUser.state || "Uttar Pradesh",
+      customerEmail: safeCustomerDetails.customerEmail || safeUser.email || "",
+      customerType: safeCustomerDetails.customerType || "Normal Customer",
+      salesmanId: safeCustomerDetails.salesmanId || safeUser.salesmanId || "AE-SM-001",
+      salesmanName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
+      salesmanPhone: safeCustomerDetails.salesmanPhone || safeUser.phone || "+91 98765 43210",
+      salesmanArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
+      salesmanRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      shopOwnerName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
+      shopOwnerArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
+      shopRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "",
+      paymentMethod: safeCustomerDetails.paymentMethod || "Cash",
       items: cart.map(item => ({
-        id: item.product.id,
-        productId: item.product.id,
-        sku: item.product.sku,
-        name: item.product.name,
-        brand: item.product.brand,
-        category: item.product.category,
-        qty: item.qty,
-        quantity: item.qty,
-        unitPrice: item.unitPrice,
-        price: item.unitPrice,
-        packSize: item.product.packSize,
-        bundleSize: item.product.bundleSize,
-        caseSize: item.product.caseSize,
+        id: item.product?.id || item.productId || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        productId: item.product?.id || item.productId || `prod-${Date.now()}`,
+        sku: item.product?.sku || item.sku || 'SKU-FMCG',
+        name: item.product?.name || item.name || 'FMCG Product',
+        brand: item.product?.brand || item.brand || 'Brand',
+        category: item.product?.category || item.category || 'General',
+        qty: parseInt(item.qty || item.quantity || 1, 10),
+        quantity: parseInt(item.qty || item.quantity || 1, 10),
+        unitPrice: item.unitPrice || item.price || 0,
+        price: item.unitPrice || item.price || 0,
+        packSize: item.product?.packSize || item.packSize || '1 Pack',
+        bundleSize: item.product?.bundleSize || item.bundleSize || '5 Packs',
+        caseSize: item.product?.caseSize || item.caseSize || '10 Bundles',
         isPriority: Boolean(item.isPriority)
       })),
-      // Strip heavy base64 images from network payload to keep MongoDB database fast & lightweight
-      expiredItems: (customerDetails.expiredItems || []).map(({ image, ...rest }) => rest),
-      returnItems: (customerDetails.returnItems || []).map(({ image, ...rest }) => rest),
+      expiredItems: (safeCustomerDetails.expiredItems || []).map(({ image, ...rest }) => rest),
+      returnItems: (safeCustomerDetails.returnItems || []).map(({ image, ...rest }) => rest),
       hasUrgentItems: cart.some(item => item.isPriority),
-      hasExpiredItems: Boolean(customerDetails.expiredItems && customerDetails.expiredItems.length > 0),
-      hasReturnItems: Boolean(customerDetails.returnItems && customerDetails.returnItems.length > 0)
+      hasExpiredItems: Boolean(safeCustomerDetails.expiredItems && safeCustomerDetails.expiredItems.length > 0),
+      hasReturnItems: Boolean(safeCustomerDetails.returnItems && safeCustomerDetails.returnItems.length > 0)
     };
 
     try {
       const res = await orderService.createOrder(payload);
-      if (res.data?.order) {
+      if (res?.data?.order || res?.order) {
+        const orderData = res.data?.order || res.order;
         const fullOrderWithProof = {
-          ...res.data.order,
-          expiredItems: customerDetails.expiredItems || [],
-          returnItems: customerDetails.returnItems || []
+          ...orderData,
+          expiredItems: safeCustomerDetails.expiredItems || [],
+          returnItems: safeCustomerDetails.returnItems || []
         };
-        setOrders(prev => [fullOrderWithProof, ...prev]);
+        setOrders(prev => [fullOrderWithProof, ...(Array.isArray(prev) ? prev : [])]);
         clearCart();
         setLastCompletedOrder(fullOrderWithProof);
         setIsOrderSuccessModalOpen(true);
 
-        // Add In-App Notifications
         addNotification({
           type: 'NEW_ORDER',
           title: 'New Order Received',
-          message: `Order #${res.data.order.orderId || res.data.order.id} booked for ${res.data.order.customerName} (${res.data.order.totalQuantity} units).`,
-          orderId: res.data.order.orderId || res.data.order.id,
-          invoiceNumber: res.data.order.invoiceNumber,
+          message: `Order #${orderData.orderId || orderData.id} booked for ${orderData.customerName} (${orderData.totalQuantity || payload.items.reduce((a, b) => a + b.qty, 0)} units).`,
+          orderId: orderData.orderId || orderData.id,
+          invoiceNumber: orderData.invoiceNumber || orderData.id,
           targetRole: 'ALL'
         });
 
         try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } catch (e) {}
-        showToast(res.message || `Order #${res.data.order.invoiceNumber} booked successfully! Collection pending.`, 'success');
+        showToast(res.message || `Order #${orderData.invoiceNumber || orderData.id} placed! Invoice generated.`, 'success');
         return;
       }
     } catch (err) {
-      console.log('Order API error fallback:', err.message);
-      if (err.message && err.message.includes('stock')) {
+      console.log('Order API error fallback:', err?.message);
+      if (err?.message && err.message.includes('stock')) {
         showToast(err.message, 'error');
         return;
       }
     }
 
-    // Local Fallback
-    const subtotal = cart.reduce((acc, item) => acc + (item.unitPrice * item.qty), 0);
+    // Local Fallback (Guaranteed to always succeed and generate the invoice)
+    const subtotal = cart.reduce((acc, item) => acc + ((item.unitPrice || item.price || 0) * (item.qty || item.quantity || 1)), 0);
     const grandTotal = subtotal;
-    const totalQuantity = cart.reduce((acc, item) => acc + item.qty, 0);
+    const totalQuantity = cart.reduce((acc, item) => acc + (item.qty || item.quantity || 1), 0);
 
-    const countInvoices = orders.length + 1;
+    const countInvoices = (Array.isArray(orders) ? orders.length : 0) + 1;
     const newInvoiceId = `AE-2026-${String(countInvoices).padStart(6, '0')}`;
     const newOrderId = `ORD-2026-${String(countInvoices).padStart(6, '0')}`;
 
@@ -1498,47 +1500,38 @@ export const AppProvider = ({ children }) => {
       day: dayName,
       time: timeStr,
       timestamp: now.toISOString(),
-      customerName: (customerDetails.customerName && customerDetails.customerName.trim()) || user?.name || selectedCustomerForOrder?.name || "General Retail Store",
-      customerMobile: customerDetails.customerMobile || "+91 98200 11223",
-      customerAddress: customerDetails.customerAddress || "Bhiwandi Central B2B Hub, Thane",
-      customerCity: customerDetails.customerCity || "Thane",
-      customerState: customerDetails.customerState || "Maharashtra",
-      customerType: customerDetails.customerType || "Normal Customer",
-      salesmanId: customerDetails.salesmanId || user.salesmanId || "AE-SM-001",
-      salesmanName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
-      salesmanPhone: customerDetails.salesmanPhone || user.phone || "+91 98765 43210",
-      salesmanArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
-      shopOwnerName: customerDetails.shopOwnerName || customerDetails.salesmanName || user.name || "Shop Owner",
-      shopOwnerArea: customerDetails.shopOwnerArea || customerDetails.salesmanArea || "South Kanpur Central",
-      shopRoute: customerDetails.shopRoute || customerDetails.salesmanRoute || "",
-      paymentMethod: customerDetails.paymentMethod || "Cash",
+      customerName: payload.customerName,
+      customerMobile: payload.customerMobile,
+      customerAddress: payload.customerAddress,
+      customerCity: payload.customerCity,
+      customerState: payload.customerState,
+      customerEmail: payload.customerEmail,
+      customerType: payload.customerType,
+      salesmanId: payload.salesmanId,
+      salesmanName: payload.salesmanName,
+      salesmanPhone: payload.salesmanPhone,
+      salesmanArea: payload.salesmanArea,
+      salesmanRoute: payload.salesmanRoute,
+      shopOwnerName: payload.shopOwnerName,
+      shopOwnerArea: payload.shopOwnerArea,
+      shopRoute: payload.shopRoute,
+      paymentMethod: payload.paymentMethod,
       orderType: "Offline Collection",
-      paymentMode: customerDetails.paymentMethod || "Cash",
+      paymentMode: payload.paymentMethod,
       collectionStatus: "Pending",
-      items: cart.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        sku: item.product.sku,
-        qty: item.qty,
-        packSize: item.product.packSize || "1 Pack",
-        bundleSize: item.product.bundleSize || "5 Packs",
-        caseSize: item.product.caseSize || "10 Bundles",
-        price: item.unitPrice,
-        isPriority: Boolean(item.isPriority)
-      })),
-      expiredItems: customerDetails.expiredItems || [],
-      returnItems: customerDetails.returnItems || [],
-      hasUrgentItems: cart.some(item => item.isPriority),
-      hasExpiredItems: Boolean(customerDetails.expiredItems && customerDetails.expiredItems.length > 0),
-      hasReturnItems: Boolean(customerDetails.returnItems && customerDetails.returnItems.length > 0),
+      items: payload.items,
+      expiredItems: safeCustomerDetails.expiredItems || [],
+      returnItems: safeCustomerDetails.returnItems || [],
+      hasUrgentItems: payload.hasUrgentItems,
+      hasExpiredItems: payload.hasExpiredItems,
+      hasReturnItems: payload.hasReturnItems,
       totalQuantity,
       subtotal,
       grandTotal,
       status: "Invoiced"
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => [newOrder, ...(Array.isArray(prev) ? prev : [])]);
     clearCart();
     setLastCompletedOrder(newOrder);
     setIsOrderSuccessModalOpen(true);
