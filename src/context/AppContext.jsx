@@ -612,13 +612,18 @@ export const AppProvider = ({ children }) => {
   }, [broadcastSync]);
 
   const deleteSupportTicket = useCallback((ticketId) => {
+    const target = String(ticketId || '').toLowerCase().trim();
     setSupportTickets(prev => {
-      const updated = prev.filter(t => t.id !== ticketId);
+      const updated = prev.filter(t => {
+        if (!t) return false;
+        const tId = String(t.id || t._id || '').toLowerCase().trim();
+        return tId !== target;
+      });
       try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_SUPPORT_TICKETS', updated);
       return updated;
     });
-    setToast({ show: true, message: `Ticket #${ticketId} removed.`, type: 'info' });
+    setToast({ show: true, message: `Support Ticket #${ticketId} removed successfully.`, type: 'info' });
   }, [broadcastSync]);
 
   // Delivery Route & Area Schedule Management
@@ -1920,21 +1925,31 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  const deleteBrand = async (brandId) => {
+  const deleteBrand = async (brandIdOrName) => {
+    const target = String(brandIdOrName || '').toLowerCase().trim();
     setBrands(prev => {
       const updated = prev.filter(b => {
         if (typeof b === 'object') {
-          return b.id !== brandId && b._id !== brandId && b.name !== brandId;
+          const bId = String(b.id || b._id || '').toLowerCase().trim();
+          const bName = String(b.name || '').toLowerCase().trim();
+          return bId !== target && bName !== target;
         }
-        return b !== brandId;
+        return String(b).toLowerCase().trim() !== target;
+      }).map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return b;
       });
-      localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      } catch (e) {}
       broadcastSync('SYNC_BRANDS', updated);
       return updated;
     });
     showToast('Company removed from catalog filters', 'info');
     try {
-      await companyService.deleteCompany(brandId);
+      await companyService.deleteCompany(brandIdOrName);
     } catch (e) {}
   };
 
