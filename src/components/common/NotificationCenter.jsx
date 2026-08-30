@@ -32,14 +32,17 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
   }
 
   // Filter active notifications for active role
-  const roleNotifications = (notifications || []).filter(n => {
+  const safeNotifs = Array.isArray(notifications) ? notifications : (Array.isArray(notifications?.active) ? notifications.active : []);
+  const safeHist = Array.isArray(notificationHistory) ? notificationHistory : [];
+
+  const roleNotifications = safeNotifs.filter(n => {
     if (!n) return false;
     if (!n.targetRole) return true;
     return n.targetRole === role || n.targetRole === 'ALL';
   });
 
   // Filter history notifications for active role
-  const roleHistory = (notificationHistory || []).filter(n => {
+  const roleHistory = safeHist.filter(n => {
     if (!n) return false;
     if (!n.targetRole) return true;
     return n.targetRole === role || n.targetRole === 'ALL';

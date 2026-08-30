@@ -153,23 +153,31 @@ export const AppProvider = ({ children }) => {
 
   // Active Notifications Queue (Stored in localStorage: anuj_active_notifications_v2)
   const [notifications, setNotifications] = useState(() => {
-    const savedActive = localStorage.getItem('anuj_active_notifications_v2');
-    const legacy = localStorage.getItem('anuj_notifications_v1');
-    if (savedActive) {
-      try { return JSON.parse(savedActive); } catch (e) {}
-    }
-    if (legacy) {
-      try { return JSON.parse(legacy); } catch (e) {}
-    }
+    try {
+      const savedActive = localStorage.getItem('anuj_active_notifications_v2');
+      const legacy = localStorage.getItem('anuj_notifications_v1');
+      if (savedActive) {
+        const parsed = JSON.parse(savedActive);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.active)) return parsed.active;
+      }
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
     return INITIAL_NOTIFICATION_SEED;
   });
 
   // Notification History Queue (Last 10 Days FIFO - Stored in localStorage: anuj_notification_history_v2)
   const [notificationHistory, setNotificationHistory] = useState(() => {
-    const savedHistory = localStorage.getItem('anuj_notification_history_v2');
-    if (savedHistory) {
-      try { return JSON.parse(savedHistory); } catch (e) {}
-    }
+    try {
+      const savedHistory = localStorage.getItem('anuj_notification_history_v2');
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
     return [];
   });
 
@@ -180,8 +188,10 @@ export const AppProvider = ({ children }) => {
     const now = Date.now();
     const activeToKeep = [];
     const activeToArchive = [];
+    const safeNotifications = Array.isArray(notifications) ? notifications : [];
+    const safeNotificationHistory = Array.isArray(notificationHistory) ? notificationHistory : [];
 
-    notifications.forEach(item => {
+    safeNotifications.forEach(item => {
       if (!item) return;
       const itemTime = item.timestamp || (item.date ? new Date(item.date).getTime() : now);
       if (now - itemTime >= SEVEN_DAYS_MS) {
@@ -192,7 +202,7 @@ export const AppProvider = ({ children }) => {
     });
 
     const combinedHistoryMap = new Map();
-    [...activeToArchive, ...notificationHistory].forEach(item => {
+    [...activeToArchive, ...safeNotificationHistory].forEach(item => {
       if (item && item.id && !combinedHistoryMap.has(item.id)) {
         combinedHistoryMap.set(item.id, item);
       }
@@ -204,11 +214,11 @@ export const AppProvider = ({ children }) => {
       return (now - itemTime) < TEN_DAYS_MS;
     });
 
-    if (activeToKeep.length !== notifications.length) {
+    if (activeToKeep.length !== safeNotifications.length) {
       setNotifications(activeToKeep);
       localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(activeToKeep));
     }
-    if (prunedHistory.length !== notificationHistory.length) {
+    if (prunedHistory.length !== safeNotificationHistory.length) {
       setNotificationHistory(prunedHistory);
       localStorage.setItem('anuj_notification_history_v2', JSON.stringify(prunedHistory));
     }
@@ -347,27 +357,30 @@ export const AppProvider = ({ children }) => {
       ...notif
     };
     setNotifications(prev => {
-      const updated = [newNotif, ...prev];
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const updated = [newNotif, ...prevArr];
       localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
       return updated;
     });
   }, [broadcastSync]);
 
   const markNotificationAsRead = useCallback((id) => {
     setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const updated = prevArr.map(n => (n && n.id === id ? { ...n, isRead: true } : n));
       localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
       return updated;
     });
   }, [broadcastSync]);
 
   const markAllNotificationsAsRead = useCallback(() => {
     setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, isRead: true }));
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const updated = prevArr.map(n => (n ? { ...n, isRead: true } : n));
       localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(updated));
-      broadcastSync('SYNC_NOTIFICATIONS', { active: updated });
+      broadcastSync('SYNC_NOTIFICATIONS', updated);
       return updated;
     });
     setToast({ show: true, message: 'All notifications marked as read', type: 'info' });
@@ -379,7 +392,8 @@ export const AppProvider = ({ children }) => {
     let archivedItem = null;
 
     setNotifications(prevActive => {
-      const target = prevActive.find(n => n.id === id);
+      const prevArr = Array.isArray(prevActive) ? prevActive : [];
+      const target = prevArr.find(n => n && n.id === id);
       if (target) {
         archivedItem = {
           ...target,
@@ -388,8 +402,9 @@ export const AppProvider = ({ children }) => {
           archiveReason: 'MANUAL_CLEAR'
         };
       }
-      const nextActive = prevActive.filter(n => n.id !== id);
+      const nextActive = prevArr.filter(n => n && n.id !== id);
       localStorage.setItem('anuj_active_notifications_v2', JSON.stringify(nextActive));
+      broadcastSync('SYNC_NOTIFICATIONS', nextActive);
       return nextActive;
     });
 
@@ -916,7 +931,10 @@ export const AppProvider = ({ children }) => {
           if (type === 'SYNC_SALESMEN' && payload) setSalesmen(payload);
           if (type === 'SYNC_CUSTOMERS' && payload) setCustomers(payload);
           if (type === 'SYNC_ORDERS' && payload) setOrders(payload);
-          if (type === 'SYNC_NOTIFICATIONS' && payload) setNotifications(payload);
+          if (type === 'SYNC_NOTIFICATIONS' && payload) {
+            const notifList = Array.isArray(payload) ? payload : (Array.isArray(payload?.active) ? payload.active : []);
+            setNotifications(notifList);
+          }
           if (type === 'SYNC_CART' && payload && payload.key === activeCartKeyRef.current) setCart(payload.cart);
         };
       }
@@ -933,7 +951,10 @@ export const AppProvider = ({ children }) => {
         if (e.key === 'anuj_salesmen_v3') setSalesmen(JSON.parse(e.newValue));
         if (e.key === 'anuj_customers_v3') setCustomers(JSON.parse(e.newValue));
         if (e.key === 'anuj_orders_v3') setOrders(JSON.parse(e.newValue));
-        if (e.key === 'anuj_notifications_v1') setNotifications(JSON.parse(e.newValue));
+        if (e.key === 'anuj_active_notifications_v2' || e.key === 'anuj_notifications_v1') {
+          const parsed = JSON.parse(e.newValue);
+          setNotifications(Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.active) ? parsed.active : []));
+        }
         if (e.key === activeCartKeyRef.current) setCart(JSON.parse(e.newValue));
       } catch (err) {}
     };
