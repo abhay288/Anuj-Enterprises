@@ -565,14 +565,13 @@ export const CartView = () => {
   const priorityCount = cart.filter(i => i.isPriority).length;
 
   const handleCheckoutClick = () => {
-    if (user?.role === 'guest') {
-      showToast('⚠️ First need to login to place your order. Please sign in or register as customer.', 'warning');
-      setIsSalesmanModalOpen(true);
+    if (!customerName || !customerName.trim()) {
+      showToast('⚠️ Shop Name is mandatory. Please enter the Shop Name to generate invoice.', 'error');
       return;
     }
 
-    if (!customerName || !customerName.trim()) {
-      showToast('⚠️ Shop Name is mandatory. Please enter the Shop Name to generate invoice.', 'error');
+    if (!customerMobile || !customerMobile.trim()) {
+      showToast('⚠️ Contact / Mobile number is mandatory. Please enter the buyer phone number.', 'error');
       return;
     }
 
@@ -586,7 +585,7 @@ export const CartView = () => {
       return;
     }
 
-    const fullTextToTest = `${customerName} ${customerAddress} ${customerCity} ${customerEmail} ${salesmanNameInput} ${salesmanAreaInput} ${salesmanRouteInput}`;
+    const fullTextToTest = `${customerName} ${customerMobile} ${customerAddress} ${customerCity} ${customerEmail} ${salesmanNameInput} ${salesmanAreaInput} ${salesmanRouteInput}`;
     const check = checkUnwantedContent(fullTextToTest);
     if (check.hasUnwanted) {
       showToast(`🚫 Checkout Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter valid business details.`, 'error');
@@ -598,19 +597,19 @@ export const CartView = () => {
       setIsSubmitting(false);
       checkoutOrder({
         customerMode,
-        customerName,
-        customerMobile,
-        customerAddress,
-        customerCity,
-        customerState,
-        customerEmail,
-        customerType,
+        customerName: customerName.trim(),
+        customerMobile: customerMobile.trim(),
+        customerAddress: (customerAddress || '').trim(),
+        customerCity: (customerCity || 'Kanpur').trim(),
+        customerState: (customerState || 'Uttar Pradesh').trim(),
+        customerEmail: (customerEmail || '').trim(),
+        customerType: customerType || 'Retail Store',
         shopOwnerName: salesmanNameInput.trim(),
         shopOwnerArea: salesmanAreaInput.trim(),
         shopRoute: (salesmanRouteInput || '').trim(),
-        salesmanId: salesmanIdInput || user.salesmanId || 'AE-SM-001',
-        salesmanName: salesmanNameInput || user.name || 'Shop Owner',
-        salesmanPhone: user.phone || '+91 98765 43210',
+        salesmanId: salesmanIdInput || user?.salesmanId || 'AE-SM-001',
+        salesmanName: salesmanNameInput || user?.name || 'Shop Owner',
+        salesmanPhone: customerMobile || user?.phone || '+91 98765 43210',
         salesmanArea: salesmanAreaInput || 'Kanpur Mandi Area',
         salesmanRoute: salesmanRouteInput || 'Wholesale Mandi Route',
         paymentMethod: paymentMethod || 'Cash',
@@ -882,18 +881,56 @@ export const CartView = () => {
 
               {/* Form Input Fields */}
               <div className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                    {t('shop_name', 'Shop Name')} <span className="text-rose-500 font-black text-sm">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={t('enter_shop_name', 'Enter Shop / Store Name (e.g. Shree Ganesh Kirana)...')}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      {t('shop_name', 'Shop Name')} <span className="text-rose-500 font-black text-sm">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder={t('enter_shop_name', 'e.g. Shree Ganesh Kirana')}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      {t('contact_number', 'Contact Number (Mobile)')} <span className="text-rose-500 font-black text-sm">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="tel"
+                        required
+                        value={customerMobile}
+                        onChange={(e) => setCustomerMobile(e.target.value)}
+                        placeholder={t('enter_contact_number', 'e.g. +91 98765 43210')}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      {t('email_address', 'Email Address')} <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional for invoice')})</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder={t('enter_email', 'e.g. shop.billing@gmail.com')}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Shop Owner & Territory Details Section */}
@@ -2051,13 +2088,9 @@ export const CartView = () => {
               <button
                 onClick={handleCheckoutClick}
                 disabled={isSubmitting}
-                className={`w-full py-3.5 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.01] ${
-                  user?.role === 'guest'
-                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20'
-                    : 'bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-brand-900/30'
-                }`}
+                className="w-full py-3.5 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.01] bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-brand-900/30"
               >
-                <span>{user?.role === 'guest' ? 'First Need to Login to Place Order' : 'Confirm Order & Generate Invoice'}</span>
+                <span>{isSubmitting ? 'Generating Invoice...' : 'Confirm Order & Generate Invoice'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

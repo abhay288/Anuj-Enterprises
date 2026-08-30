@@ -249,3 +249,29 @@ export const shareInvoicePDFToWhatsApp = async (order, showToast = null) => {
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   }
 };
+
+/**
+ * Trigger immediate client-side download of the invoice PDF
+ * @param {Object} order
+ * @param {Function} [showToast]
+ */
+export const downloadInvoicePDF = (order, showToast = null) => {
+  try {
+    if (!order) {
+      if (showToast) showToast('Order data missing for invoice generation', 'error');
+      return;
+    }
+    const { doc, filename } = generateInvoicePDF(order);
+    doc.save(filename);
+    if (showToast) {
+      showToast(`Downloaded Invoice PDF "${filename}"`, 'success');
+    }
+    return { doc, filename };
+  } catch (error) {
+    console.error('Download Invoice PDF error:', error);
+    if (showToast) {
+      showToast('Error generating PDF download. Please try printing.', 'warning');
+    }
+  }
+};
+

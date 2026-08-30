@@ -8,7 +8,7 @@ import {
   Layers, Package, Check, HelpCircle, ArrowUpRight, Truck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { generateInvoicePDF } from '../../utils/pdfGenerator';
+import { generateInvoicePDF, downloadInvoicePDF } from '../../utils/pdfGenerator';
 import { ALL_INDIAN_STATES } from '../../data/indiaStatesAndDistricts';
 import { checkUnwantedContent } from '../../utils/securityUtils';
 
@@ -632,8 +632,9 @@ export const CustomerDashboard = () => {
                         </button>
 
                         <button
-                          onClick={() => generateInvoicePDF(order)}
+                          onClick={() => downloadInvoicePDF(order, showToast)}
                           className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-sm"
+                          title="Download Official Sales Invoice PDF"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>PDF</span>
