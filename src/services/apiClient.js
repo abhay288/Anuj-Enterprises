@@ -1,16 +1,5 @@
 const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    // Always use same-origin relative /api/v1 on live production domain to prevent CORS/www redirects
-    if (host.includes('anujfmcg.com') || host.includes('vercel.app')) {
-      return '/api/v1';
-    }
-  }
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl && !envUrl.includes('localhost')) {
-    return envUrl;
-  }
-  return import.meta.env.DEV ? 'http://localhost:5000/api/v1' : '/api/v1';
+  return import.meta.env.VITE_API_BASE_URL || '/api/v1';
 };
 
 export const apiClient = async (endpoint, options = {}) => {
