@@ -1,8 +1,10 @@
 # Environment Variables
 .env
+.env.production
 .env.local
 .env.*.local
 server/.env
+server/.env.production
 server/.env.local
 
 # Logs
