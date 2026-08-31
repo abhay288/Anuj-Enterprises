@@ -1,7 +1,7 @@
 export const companyConfig = {
   name: import.meta.env.VITE_COMPANY_NAME || 'Anuj Enterprises',
   tagline: import.meta.env.VITE_COMPANY_TAGLINE || 'Your Trusted B2B Supply Partner',
-  address: import.meta.env.VITE_COMPANY_ADDRESS || 'Kanpur, Uttar Pradesh',
+  address: import.meta.env.VITE_COMPANY_ADDRESS || 'Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021',
   phone: import.meta.env.VITE_COMPANY_PHONE || '+91 88876 83782',
   mobile: import.meta.env.VITE_COMPANY_MOBILE || '+91 70719 79894',
   supportPhones: ['+91 88876 83782', '+91 70719 79894'],
