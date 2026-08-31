@@ -90,6 +90,7 @@ export const AdminDashboard = () => {
     removeCustomerDeliveryDate,
     setCustomerDeliveryDates,
     bulkSetAreaDeliveryDates,
+    createAdminInvoice,
     navigateTo,
     logout, 
     showToast 
@@ -97,6 +98,155 @@ export const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'orders' | 'schedules' | 'tickets' | 'customers' | 'announcement' | 'policies' | 'products' | 'salesmen' | 'categories' | 'reports'
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
+
+  // Admin Direct Invoice Generation State
+  const [isAdminCreateInvoiceOpen, setIsAdminCreateInvoiceOpen] = useState(false);
+  const [adminInvoiceForm, setAdminInvoiceForm] = useState({
+    selectedCustId: '',
+    customerName: '',
+    customerEmail: '',
+    customerMobile: '',
+    customerAddress: '',
+    customerCity: 'Kanpur',
+    customerState: 'Uttar Pradesh',
+    salesmanId: '',
+    isPriority: false,
+    items: []
+  });
+
+  const [invoiceSelectedProdId, setInvoiceSelectedProdId] = useState('');
+  const [invoiceItemQty, setInvoiceItemQty] = useState(1);
+  const [invoiceItemPack, setInvoiceItemPack] = useState('Piece');
+  const [invoiceItemPrice, setInvoiceItemPrice] = useState(0);
+
+  const resetAdminInvoiceForm = () => {
+    setAdminInvoiceForm({
+      selectedCustId: '',
+      customerName: '',
+      customerEmail: '',
+      customerMobile: '',
+      customerAddress: '',
+      customerCity: 'Kanpur',
+      customerState: 'Uttar Pradesh',
+      salesmanId: salesmen[0]?.id || 'AE-SM-001',
+      isPriority: false,
+      items: []
+    });
+    setInvoiceSelectedProdId('');
+    setInvoiceItemQty(1);
+    setInvoiceItemPack('Piece');
+    setInvoiceItemPrice(0);
+  };
+
+  const handleAdminInvoiceCustSelect = (custId) => {
+    const selectedCust = (customers || []).find(c => (c.id === custId || c.customerId === custId));
+    if (selectedCust) {
+      setAdminInvoiceForm(prev => ({
+        ...prev,
+        selectedCustId: custId,
+        customerName: selectedCust.name || selectedCust.shopName || '',
+        customerEmail: selectedCust.email || '',
+        customerMobile: (selectedCust.mobile || selectedCust.phone || '').replace('+91', '').trim(),
+        customerAddress: selectedCust.address || '',
+        customerCity: selectedCust.city || 'Kanpur',
+        customerState: selectedCust.state || 'Uttar Pradesh'
+      }));
+    } else {
+      setAdminInvoiceForm(prev => ({
+        ...prev,
+        selectedCustId: ''
+      }));
+    }
+  };
+
+  const handleAddInvoiceLineItem = () => {
+    if (!invoiceSelectedProdId) {
+      showToast('Please select a product item from catalog', 'warning');
+      return;
+    }
+    const targetProd = (products || []).find(p => p.id === invoiceSelectedProdId);
+    if (!targetProd) return;
+
+    const itemPrice = Number(invoiceItemPrice) || Number(targetProd.price) || 0;
+    const itemQty = Math.max(1, Number(invoiceItemQty) || 1);
+
+    const newLineItem = {
+      id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      productId: targetProd.id,
+      sku: targetProd.sku || `SKU-${targetProd.id}`,
+      name: targetProd.name,
+      productName: targetProd.name,
+      qty: itemQty,
+      quantity: itemQty,
+      price: itemPrice,
+      unitPrice: itemPrice,
+      packSize: invoiceItemPack || targetProd.packSize || 'Piece',
+      total: itemPrice * itemQty
+    };
+
+    setAdminInvoiceForm(prev => ({
+      ...prev,
+      items: [...prev.items, newLineItem]
+    }));
+
+    setInvoiceSelectedProdId('');
+    setInvoiceItemQty(1);
+    setInvoiceItemPack('Piece');
+    setInvoiceItemPrice(0);
+  };
+
+  const handleRemoveInvoiceLineItem = (lineId) => {
+    setAdminInvoiceForm(prev => ({
+      ...prev,
+      items: prev.items.filter(item => item.id !== lineId)
+    }));
+  };
+
+  const handleAdminCreateInvoiceSubmit = async (e) => {
+    e.preventDefault();
+    if (!adminInvoiceForm.customerName.trim()) {
+      showToast('Please enter or select a customer / store name', 'warning');
+      return;
+    }
+    if (!adminInvoiceForm.items || adminInvoiceForm.items.length === 0) {
+      showToast('Please add at least one product line item to the invoice', 'warning');
+      return;
+    }
+
+    const selectedSalesmanObj = (salesmen || []).find(s => s.id === adminInvoiceForm.salesmanId);
+    const selectedCustObj = (customers || []).find(c => c.id === adminInvoiceForm.selectedCustId || c.customerId === adminInvoiceForm.selectedCustId);
+    const safeCustId = adminInvoiceForm.selectedCustId || selectedCustObj?.customerId || selectedCustObj?.id || `CUST-${Date.now()}`;
+
+    const payload = {
+      items: adminInvoiceForm.items.map(item => ({
+        productId: item.productId,
+        sku: item.sku,
+        productName: item.name,
+        name: item.name,
+        quantity: Number(item.qty),
+        qty: Number(item.qty),
+        price: Number(item.price),
+        unitPrice: Number(item.price),
+        packSize: item.packSize,
+        isPriority: Boolean(adminInvoiceForm.isPriority)
+      })),
+      customerMode: 'REGISTERED',
+      customerId: safeCustId,
+      customerName: adminInvoiceForm.customerName.trim(),
+      customerEmail: adminInvoiceForm.customerEmail.trim(),
+      customerMobile: adminInvoiceForm.customerMobile.trim(),
+      customerAddress: adminInvoiceForm.customerAddress.trim(),
+      customerCity: adminInvoiceForm.customerCity.trim() || 'Kanpur',
+      customerState: adminInvoiceForm.customerState.trim() || 'Uttar Pradesh',
+      salesmanId: adminInvoiceForm.salesmanId || 'AE-SM-001',
+      salesmanName: selectedSalesmanObj ? selectedSalesmanObj.name : 'Central Kanpur HQ',
+      isPriority: Boolean(adminInvoiceForm.isPriority)
+    };
+
+    await createAdminInvoice(payload);
+    setIsAdminCreateInvoiceOpen(false);
+    resetAdminInvoiceForm();
+  };
 
   // Delivery Route & Area Schedule Management State
   const [scheduleSearchQuery, setScheduleSearchQuery] = useState('');
@@ -1404,12 +1554,24 @@ export const AdminDashboard = () => {
                     ))}
                   </div>
 
-                  <button
-                    onClick={() => exportOrdersCSV(orders)}
-                    className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 shrink-0 transition-colors"
-                  >
-                    <Download className="w-4 h-4 text-emerald-400" /> Export Orders Excel (.XLSX)
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetAdminInvoiceForm();
+                        setIsAdminCreateInvoiceOpen(true);
+                      }}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition-all hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4 text-slate-950" /> Generate B2B Invoice
+                    </button>
+                    <button
+                      onClick={() => exportOrdersCSV(orders)}
+                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                    >
+                      <Download className="w-4 h-4 text-emerald-400" /> Export Orders Excel (.XLSX)
+                    </button>
+                  </div>
                 </div>
 
                 {/* Interactive Date Range & Timeframe Filter Sub-Bar */}
@@ -2612,6 +2774,21 @@ export const AdminDashboard = () => {
                                         <span>WhatsApp</span>
                                       </a>
                                     )}
+
+                                    {/* Issue B2B Invoice Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        resetAdminInvoiceForm();
+                                        handleAdminInvoiceCustSelect(cust.id || cust.customerId);
+                                        setIsAdminCreateInvoiceOpen(true);
+                                      }}
+                                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-extrabold text-xs inline-flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                                      title="Generate & Issue B2B Tax Invoice for this Customer"
+                                    >
+                                      <FileText className="w-3.5 h-3.5" />
+                                      <span>Invoice</span>
+                                    </button>
 
                                     {/* Edit Customer Button */}
                                     <button
@@ -5408,6 +5585,292 @@ export const AdminDashboard = () => {
                     Apply to All Stores in Area
                   </button>
                 </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= ADMIN GENERATE B2B INVOICE MODAL ================= */}
+      <AnimatePresence>
+        {isAdminCreateInvoiceOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-6"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-amber-500 text-slate-950 shadow-lg">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base tracking-tight">Generate B2B Tax Invoice & Order</h3>
+                    <p className="text-xs text-slate-300">Assign registered user account & dispatch invoice email directly</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminCreateInvoiceOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAdminCreateInvoiceSubmit} className="p-6 space-y-5 text-xs">
+                
+                {/* 1. Registered Customer Selector */}
+                <div className="p-4 bg-amber-500/10 dark:bg-amber-500/5 rounded-2xl border border-amber-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4" /> 1. Select Registered B2B Customer / User *
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-bold">Auto-fills store details & email target</span>
+                  </div>
+
+                  <select
+                    value={adminInvoiceForm.selectedCustId}
+                    onChange={(e) => handleAdminInvoiceCustSelect(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-amber-500/40 rounded-xl font-bold text-xs text-slate-900 dark:text-amber-300 focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">-- Choose Registered B2B Store / User Account --</option>
+                    {(customers || []).map(c => (
+                      <option key={c.id || c.customerId} value={c.id || c.customerId}>
+                        🏪 {c.name} ({c.customerId || c.id}) — 📧 {c.email || 'No Email'} | 📞 {c.mobile || c.phone || 'No Phone'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Customer & Delivery Information */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      Store / Customer Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={adminInvoiceForm.customerName}
+                      onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, customerName: e.target.value })}
+                      placeholder="e.g. Mahavir Kirana Wholesale"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      Registered Email (Invoice Target) *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={adminInvoiceForm.customerEmail}
+                      onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, customerEmail: e.target.value })}
+                      placeholder="retailer@example.com"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      Contact Mobile Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={adminInvoiceForm.customerMobile}
+                      onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, customerMobile: e.target.value })}
+                      placeholder="98XXXXXXXX"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                      Assigned Salesman / Territory
+                    </label>
+                    <select
+                      value={adminInvoiceForm.salesmanId}
+                      onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, salesmanId: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs text-slate-900 dark:text-white"
+                    >
+                      {(salesmen || []).map(s => (
+                        <option key={s.id} value={s.id}>
+                          👤 {s.name} ({s.id}) — {s.region}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                    Delivery Address
+                  </label>
+                  <input
+                    type="text"
+                    value={adminInvoiceForm.customerAddress}
+                    onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, customerAddress: e.target.value })}
+                    placeholder="Kanpur Mandi Address / Street details"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-xs text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* 3. Item Selection Builder */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-amber-500" /> 2. Add FMCG Product Line Items
+                    </span>
+                    <span className="text-[11px] font-bold text-amber-600">
+                      Total Added: {adminInvoiceForm.items.length} items
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Select Product Item
+                      </label>
+                      <select
+                        value={invoiceSelectedProdId}
+                        onChange={(e) => {
+                          const pid = e.target.value;
+                          setInvoiceSelectedProdId(pid);
+                          const p = (products || []).find(x => x.id === pid);
+                          if (p) {
+                            setInvoiceItemPrice(p.price || 0);
+                            setInvoiceItemPack(p.packSize || 'Piece');
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      >
+                        <option value="">-- Choose FMCG Product --</option>
+                        {(products || []).map(p => (
+                          <option key={p.id} value={p.id}>
+                            📦 {p.name} (SKU: {p.sku}) — ₹{p.price}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={invoiceItemQty}
+                        onChange={(e) => setInvoiceItemQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleAddInvoiceLineItem}
+                        disabled={!invoiceSelectedProdId}
+                        className="w-full py-2 bg-brand-900 hover:bg-brand-800 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow flex items-center justify-center gap-1"
+                      >
+                        <Plus className="w-4 h-4 text-amber-400" /> Add Line
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Added Items Table */}
+                  {adminInvoiceForm.items.length > 0 && (
+                    <div className="overflow-x-auto pt-2">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase">
+                          <tr>
+                            <th className="py-2 px-3">Item Name</th>
+                            <th className="py-2 px-3 text-center">Pack Size</th>
+                            <th className="py-2 px-3 text-center">Qty</th>
+                            <th className="py-2 px-3 text-right">Price</th>
+                            <th className="py-2 px-3 text-right">Subtotal</th>
+                            <th className="py-2 px-2 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                          {adminInvoiceForm.items.map(item => (
+                            <tr key={item.id}>
+                              <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white">{item.name}</td>
+                              <td className="py-2 px-3 text-center text-slate-500">{item.packSize}</td>
+                              <td className="py-2 px-3 text-center font-bold">{item.qty}</td>
+                              <td className="py-2 px-3 text-right">₹{item.price}</td>
+                              <td className="py-2 px-3 text-right font-bold text-amber-600">₹{item.total}</td>
+                              <td className="py-2 px-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveInvoiceLineItem(item.id)}
+                                  className="text-slate-400 hover:text-rose-500 p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Priority Dispatch Toggle */}
+                <div className="flex items-center justify-between p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <div>
+                      <strong className="block text-xs font-bold text-slate-900 dark:text-white">Urgent Priority Dispatch Flag</strong>
+                      <span className="text-[10px] text-slate-500">Marks invoice for instant warehouse priority processing</span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={adminInvoiceForm.isPriority}
+                    onChange={(e) => setAdminInvoiceForm({ ...adminInvoiceForm, isPriority: e.target.checked })}
+                    className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Invoice Totals Summary */}
+                <div className="p-4 bg-slate-900 text-white rounded-2xl flex justify-between items-center">
+                  <div>
+                    <span className="text-slate-400 text-xs block">Invoice Grand Total</span>
+                    <span className="text-xl font-black text-amber-400">
+                      ₹{adminInvoiceForm.items.reduce((sum, i) => sum + i.total, 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="text-right text-xs text-slate-300">
+                    <div>Total Quantity: <strong>{adminInvoiceForm.items.reduce((sum, i) => sum + i.qty, 0)} Units</strong></div>
+                    <div>Target Email: <strong className="text-amber-300">{adminInvoiceForm.customerEmail || 'No Email Set'}</strong></div>
+                  </div>
+                </div>
+
+                {/* Form Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminCreateInvoiceOpen(false)}
+                    className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!adminInvoiceForm.customerName || adminInvoiceForm.items.length === 0}
+                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all"
+                  >
+                    Generate & Send Invoice
+                  </button>
+                </div>
+
               </form>
             </motion.div>
           </div>
