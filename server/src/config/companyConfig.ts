@@ -10,7 +10,7 @@ export const companyConfig = {
   mobile: process.env.COMPANY_MOBILE || '+91 70719 79894',
   supportPhones: ['+91 88876 83782', '+91 70719 79894'],
   email: process.env.COMPANY_EMAIL || 'anujenterprises.fmcg.006@gmail.com',
-  website: process.env.COMPANY_WEBSITE || 'https://anujenterprises.com',
+  website: process.env.COMPANY_WEBSITE || 'https://anujfmcg.com',
   signatory: process.env.COMPANY_SIGNATORY || 'ANUJ',
   resendApiKey: process.env.RESEND_API_KEY || ''
 };

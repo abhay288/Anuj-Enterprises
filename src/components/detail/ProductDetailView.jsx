@@ -9,6 +9,7 @@ import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
 import { updatePageSEO } from '../../utils/seoUtils';
 import { generateProductSlug } from '../../utils/slugUtils';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const ProductDetailView = () => {
   const { 
@@ -40,10 +41,16 @@ export const ProductDetailView = () => {
     if (product) {
       updatePageSEO({
         title: `${product.name} (Wholesale B2B) - ${product.brand}`,
-        description: `Source ${product.name} from Anuj Enterprises. SKU: ${product.sku}. Tiered wholesale pricing, pack/case discounts, and official B2B supply.`,
+        description: `Source ${product.name} from Anuj Enterprises Kanpur. SKU: ${product.sku}. Authentic FMCG packaging, flexible volume tiers, and official B2B invoicing.`,
         image: product.image,
         url: window.location.href,
-        product
+        product,
+        breadcrumbs: [
+          { name: 'Home', url: 'https://anujfmcg.com/' },
+          { name: 'Products Catalogue', url: 'https://anujfmcg.com/#/catalogue' },
+          { name: product.category, url: `https://anujfmcg.com/#/catalogue` },
+          { name: product.name, url: window.location.href }
+        ]
       });
     }
   }, [product]);
@@ -249,33 +256,51 @@ export const ProductDetailView = () => {
                 </h1>
               </div>
 
-              {/* Structured Pack / Bundle / Case Breakdown Section */}
-              <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 rounded-2xl border border-amber-200/60 dark:border-slate-800 space-y-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
-                  B2B Packaging Specifications
-                </span>
+              {/* Packaging & Quantity (Kirana/FMCG Dynamic Multi-Level Specifications) */}
+              {getPackagingLevels(product).length > 0 && (
+                <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 rounded-2xl border border-amber-200/60 dark:border-slate-800 space-y-2.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                    📦 {t('packaging_and_quantity', 'Packaging & Quantity')}
+                  </span>
 
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center sm:text-left">
-                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
-                    <span className="text-[9px] sm:text-[10px] text-slate-400 block font-semibold">Unit Pack</span>
-                    <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">{product.packSize || '1 Pack'}</strong>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-left">
+                    {getPackagingLevels(product).map((lvl) => (
+                      <div 
+                        key={lvl.key}
+                        className={`p-2.5 rounded-xl border shadow-sm ${
+                          lvl.key === 'case' || lvl.key === 'bori'
+                            ? 'bg-white dark:bg-slate-900 border-amber-400/80 dark:border-amber-900/80 bg-amber-500/5'
+                            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
+                        }`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block font-semibold">
+                          {t(lvl.label, lvl.label)}
+                        </span>
+                        <strong className={`text-xs block truncate ${
+                          lvl.key === 'case' || lvl.key === 'bori' 
+                            ? 'font-black text-brand-950 dark:text-amber-300' 
+                            : 'font-bold text-slate-900 dark:text-white'
+                        }`}>
+                          {lvl.value}
+                        </strong>
+                      </div>
+                    ))}
                   </div>
-                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-200/60 dark:border-slate-800 shadow-sm">
-                    <span className="text-[9px] sm:text-[10px] text-slate-400 block font-semibold">Inner Bundle</span>
-                    <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">{product.bundleSize || '5 Packs'}</strong>
-                  </div>
-                  <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-amber-400/80 dark:border-amber-900/80 shadow-sm bg-amber-500/5">
-                    <span className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 block font-bold">Master Case</span>
-                    <strong className="text-xs font-black text-brand-950 dark:text-amber-300 block truncate">{product.caseSize || '10 Bundles'}</strong>
-                  </div>
+
+                  {product.customPackaging && (
+                    <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-white/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-amber-200/40 dark:border-slate-800">
+                      <span className="font-bold text-amber-800 dark:text-amber-300">{t('packaging_breakdown', 'Breakdown')}: </span>
+                      {product.customPackaging}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Supply & Dispatch Banner */}
               <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Supply & Dispatch</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Direct Manufacturer Warehouse Dispatch</span>
+                  <span className="text-[10px] text-slate-400 block font-semibold">{t('supply_and_dispatch', 'Supply & Dispatch')}</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t('warehouse_dispatch_note', 'Direct Manufacturer Warehouse Dispatch')}</span>
                 </div>
               </div>
 
@@ -284,7 +309,7 @@ export const ProductDetailView = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Order Quantity:
+                      {t('order_quantity', 'Order Quantity')}:
                     </span>
                     <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-sm">
                       <button
@@ -315,15 +340,17 @@ export const ProductDetailView = () => {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Packaging Unit</span>
-                    <span className="text-xs font-black text-brand-900 dark:text-amber-400">{product.packSize || 'Standard Packaging'}</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">{t('pack_size', 'Packaging Unit')}</span>
+                    <span className="text-xs font-black text-brand-900 dark:text-amber-400">
+                      {product.packSize || product.unitQuantity || product.unitType || 'Standard Packaging'}
+                    </span>
                   </div>
                 </div>
 
                 {/* B2B Custom Wholesale Quantity Presets */}
                 <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    Quick B2B Wholesale Quantity Presets:
+                    {t('quick_presets', 'Quick B2B Wholesale Quantity Presets')}:
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {[

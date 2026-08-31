@@ -6,10 +6,10 @@ export const companyConfig = {
   mobile: import.meta.env.VITE_COMPANY_MOBILE || '+91 70719 79894',
   supportPhones: ['+91 88876 83782', '+91 70719 79894'],
   email: import.meta.env.VITE_COMPANY_EMAIL || 'anujenterprises.fmcg.006@gmail.com',
-  website: import.meta.env.VITE_COMPANY_WEBSITE || 'https://anujenterprises.com',
+  website: import.meta.env.VITE_COMPANY_WEBSITE || 'https://anujfmcg.com',
   signatory: import.meta.env.VITE_COMPANY_SIGNATORY || 'ANUJ',
   terms: [
-    'Collection is offline and marked as Pending upon invoice creation.',
+    'Collection is direct and marked as Pending upon invoice creation.',
     'Customer Classification (Normal / Damage / Expiry) determines inspection rules.',
     'Disputes subject to Kanpur Jurisdiction only.'
   ]

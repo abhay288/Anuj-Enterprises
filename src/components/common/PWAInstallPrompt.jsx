@@ -113,7 +113,7 @@ export const PWAInstallPrompt = () => {
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 font-medium mt-0.5">
-                    Install official app for 1-tap ordering & offline access
+                    Install official app for 1-tap ordering & fast access
                   </p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export const PWAInstallPrompt = () => {
               </div>
               <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50 flex flex-col items-center gap-1">
                 <Smartphone className="w-4 h-4 text-emerald-400" />
-                <span>Offline Work</span>
+                <span>Fast & Fluid</span>
               </div>
               <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50 flex flex-col items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-blue-400" />

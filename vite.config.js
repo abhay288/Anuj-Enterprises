@@ -16,10 +16,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-three': ['three'],
           'vendor-charts': ['recharts'],
           'vendor-xlsx': ['xlsx'],
-          'vendor-jszip': ['jszip'],
           'vendor-motion': ['framer-motion'],
           'vendor-icons': ['lucide-react']
         }

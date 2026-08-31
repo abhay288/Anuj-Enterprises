@@ -14,7 +14,8 @@ export const SalesmanLoginModal = () => {
     saveCustomer,
     bypassLoginAsGuest,
     loginAdmin,
-    showToast
+    showToast,
+    t
   } = useApp();
 
   const [authMode, setAuthMode] = useState(salesmanModalMode || 'user');
@@ -27,9 +28,9 @@ export const SalesmanLoginModal = () => {
   
   // Normal User State (Sign In & Self-Registration)
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
-  const [userName, setUserName] = useState('Reliance Retail Supermarket Chains');
-  const [userEmail, setUserEmail] = useState('purchase@relianceretail.demo');
-  const [userPassword, setUserPassword] = useState('Cust@123');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
   const [showUserPassword, setShowUserPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [isCustomCity, setIsCustomCity] = useState(false);
@@ -45,12 +46,12 @@ export const SalesmanLoginModal = () => {
   });
 
   // Salesman State
-  const [salesmanId, setSalesmanId] = useState('AE-SM-001');
-  const [salesmanPassword, setSalesmanPassword] = useState('Sales@123');
+  const [salesmanId, setSalesmanId] = useState('');
+  const [salesmanPassword, setSalesmanPassword] = useState('');
 
   // Admin State
-  const [adminEmail, setAdminEmail] = useState('anujenterprises.fmcg.006@gmail.com');
-  const [adminPassword, setAdminPassword] = useState('Anuj@2026');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -140,22 +141,6 @@ export const SalesmanLoginModal = () => {
     }
   };
 
-  const fillDemoUser = () => {
-    setUserEmail('purchase@relianceretail.demo');
-    setUserPassword('Cust@123');
-    setUserName('Reliance Retail Supermarket Chains');
-  };
-
-  const fillDemoSalesman = () => {
-    setSalesmanId('AE-SM-001');
-    setSalesmanPassword('Sales@123');
-  };
-
-  const fillDemoAdmin = () => {
-    setAdminEmail('anujenterprises.fmcg.006@gmail.com');
-    setAdminPassword('Anuj@2026');
-  };
-
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-md">
@@ -193,7 +178,7 @@ export const SalesmanLoginModal = () => {
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <User className="w-3.5 h-3.5" /> User
+                <User className="w-3.5 h-3.5" /> {t('customer_details', 'User')}
               </button>
 
               <button
@@ -205,7 +190,7 @@ export const SalesmanLoginModal = () => {
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" /> Salesman
+                <ShieldCheck className="w-3.5 h-3.5" /> {t('salesman_dashboard', 'Salesman')}
               </button>
 
               <button
@@ -213,11 +198,11 @@ export const SalesmanLoginModal = () => {
                 onClick={() => setAuthMode('admin')}
                 className={`py-2 rounded-xl text-[11px] font-extrabold transition-all flex items-center justify-center gap-1 ${
                   authMode === 'admin'
-                    ? 'bg-emerald-500 text-slate-950 shadow'
+                    ? 'bg-red-600 text-white shadow'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" /> Admin
+                <Lock className="w-3.5 h-3.5" /> {t('nav_admin', 'Admin')}
               </button>
             </div>
           </div>
@@ -302,20 +287,6 @@ export const SalesmanLoginModal = () => {
                           {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                    </div>
-
-                    <div className="p-3 bg-amber-50 dark:bg-slate-950 rounded-xl border border-amber-200 dark:border-slate-800 text-[11px] text-amber-800 dark:text-amber-300">
-                      <div className="flex justify-between items-center mb-1">
-                        <strong>Demo Customer Credentials:</strong>
-                        <button
-                          type="button"
-                          onClick={fillDemoUser}
-                          className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
-                        >
-                          Autofill
-                        </button>
-                      </div>
-                      <strong>Email:</strong> purchase@relianceretail.demo | <strong>Password:</strong> Cust@123
                     </div>
 
                     <button
@@ -584,15 +555,10 @@ export const SalesmanLoginModal = () => {
                       value={salesmanPassword}
                       onChange={(e) => setSalesmanPassword(e.target.value)}
                       required
-                      placeholder="Sales@123"
+                      placeholder="Enter Salesman password..."
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>
-                </div>
-
-                <div className="p-3 bg-amber-50 dark:bg-slate-950 rounded-xl border border-amber-200 dark:border-slate-800 text-[11px] text-amber-800 dark:text-amber-300">
-                  Demo Salesman Credentials:<br />
-                  <strong>ID:</strong> AE-SM-001 | <strong>Password:</strong> Sales@123
                 </div>
 
                 <button
@@ -616,18 +582,9 @@ export const SalesmanLoginModal = () => {
               /* Option 3: Admin Login */
               <form onSubmit={handleAdminSubmit} className="space-y-4">
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      Admin Email *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={fillDemoAdmin}
-                      className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
-                    >
-                      Fill Demo Admin
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                    Admin Email *
+                  </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                     <input
@@ -635,7 +592,7 @@ export const SalesmanLoginModal = () => {
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       required
-                      placeholder="anujenterprises.fmcg.006@gmail.com"
+                      placeholder="admin@anujfmcg.com"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>
@@ -652,15 +609,10 @@ export const SalesmanLoginModal = () => {
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required
-                      placeholder="Anuj@2026"
+                      placeholder="Enter Admin password..."
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>
-                </div>
-
-                <div className="p-3 bg-emerald-50 dark:bg-slate-950 rounded-xl border border-emerald-200 dark:border-slate-800 text-[11px] text-emerald-800 dark:text-emerald-300">
-                  Registered Admin Credentials:<br />
-                  <strong>Email:</strong> anujenterprises.fmcg.006@gmail.com | <strong>Password:</strong> Anuj@2026
                 </div>
 
                 <button

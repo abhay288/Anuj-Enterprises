@@ -5,6 +5,7 @@ import { ProductCard } from './ProductCard';
 import { FilterSidebar } from './FilterSidebar';
 import { FilterBottomSheet } from './FilterBottomSheet';
 import { updatePageSEO } from '../../utils/seoUtils';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const ProductCardSkeleton = () => (
   <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm animate-pulse space-y-4">
@@ -66,12 +67,23 @@ const ProductListItem = ({ product }) => {
           {product.description}
         </p>
         
-        {/* Pack Info Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-600 dark:text-slate-300">
-          {product.packSize && <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Pack: <strong>{product.packSize}</strong></span>}
-          {product.bundleSize && <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Bundle: <strong>{product.bundleSize}</strong></span>}
-          {product.caseSize && <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">Case: {product.caseSize}</span>}
-        </div>
+        {/* Packaging & Unit Info Pills (Only shown if configured by Admin) */}
+        {getPackagingLevels(product).length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-600 dark:text-slate-300">
+            {getPackagingLevels(product).map((lvl) => (
+              <span 
+                key={lvl.key}
+                className={`px-2 py-0.5 rounded font-medium ${
+                  lvl.key === 'case' || lvl.key === 'bori'
+                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold'
+                    : 'bg-slate-100 dark:bg-slate-800'
+                }`}
+              >
+                {t(lvl.label, lvl.label)}: <strong>{lvl.value}</strong>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="text-right sm:border-l sm:border-slate-100 sm:dark:border-slate-800 sm:pl-6 space-y-3 shrink-0 w-full sm:w-auto">
@@ -140,8 +152,13 @@ export const ProductGrid = () => {
   // Update SEO for Catalogue View
   useEffect(() => {
     updatePageSEO({
-      title: 'B2B Product Catalogue & Sourcing Directory',
-      description: 'Explore verified FMCG wholesale catalog at Anuj Enterprises. Direct manufacturer supplies for Amul, Nestle, Britannia, Dabur, ITC, and more with official invoices.'
+      title: 'B2B Product Catalogue & FMCG Wholesale Sourcing Directory',
+      description: 'Explore verified FMCG wholesale catalog at Anuj Enterprises Kanpur. Direct manufacturer supplies for Amul, Nestlé, Britannia, Cadbury, Colgate, Fortune, and HUL with official B2B invoices.',
+      url: 'https://anujfmcg.com/#/catalogue',
+      breadcrumbs: [
+        { name: 'Home', url: 'https://anujfmcg.com/' },
+        { name: 'Products Catalogue', url: 'https://anujfmcg.com/#/catalogue' }
+      ]
     });
   }, []);
 

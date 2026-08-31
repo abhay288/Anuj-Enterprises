@@ -2,6 +2,7 @@ import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Sparkles, ShieldAlert } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const ProductCard = memo(({ product }) => {
   const { addToCart, openQuickView, navigateTo, t } = useApp();
@@ -113,24 +114,23 @@ export const ProductCard = memo(({ product }) => {
             {product.name}
           </h3>
 
-          {/* Pack / Bundle / Case Information Badges */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[10px] text-slate-600 dark:text-slate-300">
-            {product.packSize && (
-              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 font-medium">
-                {t('pack_size', 'Pack')}: <strong className="text-slate-900 dark:text-white">{product.packSize}</strong>
-              </span>
-            )}
-            {product.bundleSize && (
-              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 font-medium">
-                {t('bundle_size', 'Bundle')}: <strong className="text-slate-900 dark:text-white">{product.bundleSize}</strong>
-              </span>
-            )}
-            {product.caseSize && (
-              <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/60 rounded-md border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-bold">
-                {t('case_size', 'Case')}: {product.caseSize}
-              </span>
-            )}
-          </div>
+          {/* Configured Packaging & Unit Badges (Only shown if defined by Admin) */}
+          {getPackagingLevels(product).length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[10px] text-slate-600 dark:text-slate-300">
+              {getPackagingLevels(product).map((lvl) => (
+                <span 
+                  key={lvl.key}
+                  className={`px-2 py-0.5 rounded-md border font-medium ${
+                    lvl.key === 'case' || lvl.key === 'bori'
+                      ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-bold'
+                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {t(lvl.label, lvl.label)}: <strong className="text-slate-900 dark:text-white">{lvl.value}</strong>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Action Trigger */}

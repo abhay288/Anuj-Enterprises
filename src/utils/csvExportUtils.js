@@ -69,9 +69,15 @@ export const exportProductsCSV = (products) => {
     name: 'Product Name / Title',
     brand: 'Manufacturer / Brand',
     category: 'Category',
-    packSize: 'Consumer Unit Pack Size',
-    bundleSize: 'Inner Bundle Size',
-    caseSize: 'Master Case Packaging Size',
+    unitType: 'Unit Type',
+    unitQuantity: 'Unit Measure / Quantity',
+    packSize: 'Pack Size',
+    bundleSize: 'Bundle Size',
+    malaSize: 'Mala Size',
+    boriSize: 'Bori Size',
+    caseSize: 'Case Size',
+    cartonSize: 'Carton Size',
+    customPackaging: 'Packaging Breakdown',
     hsn: 'HSN Code',
     status: 'Catalog Status'
   };
@@ -100,9 +106,15 @@ export const exportInventoryReportCSV = (products) => {
     category: 'Category',
     stock: 'Current Stock Count (Units)',
     lowStockThreshold: 'Low Stock Threshold',
-    packSize: 'Unit Pack Specification',
-    bundleSize: 'Inner Bundle Size',
-    caseSize: 'Master Case Size',
+    unitType: 'Unit Type',
+    unitQuantity: 'Unit Measure',
+    packSize: 'Pack Size',
+    bundleSize: 'Bundle Size',
+    malaSize: 'Mala Size',
+    boriSize: 'Bori Size',
+    caseSize: 'Case Size',
+    cartonSize: 'Carton Size',
+    customPackaging: 'Packaging Breakdown',
     status: 'Warehouse Status'
   };
   downloadExcel('Anuj_Enterprises_Warehouse_Stock_Report', products, headers, 'Inventory Stock');

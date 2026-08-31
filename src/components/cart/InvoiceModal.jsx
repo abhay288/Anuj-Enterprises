@@ -10,6 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 import { sendDeliveryWhatsAppNotification } from '../../utils/deliveryNotificationUtils';
 import { WhatsAppIcon } from '../common/WhatsAppIcon';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
@@ -203,8 +204,8 @@ export const InvoiceModal = () => {
                     </span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-600 max-w-sm pt-1">
-                  Kanpur, Uttar Pradesh
+                <p className="text-[11px] text-slate-600 max-w-sm pt-1 font-medium">
+                  Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021
                 </p>
                 <p className="text-[11px] text-slate-700 font-semibold">
                   Phone: +91 88876 83782 / +91 70719 79894 | Email: anujenterprises.fmcg.006@gmail.com
@@ -302,9 +303,17 @@ export const InvoiceModal = () => {
                         </span>
                       </td>
                       <td className="py-3 px-3 text-[10px] text-slate-600 space-y-0.5">
-                        {item.packSize && <div>Pack: <strong>{item.packSize}</strong></div>}
-                        {item.bundleSize && <div>Bundle: <strong>{item.bundleSize}</strong></div>}
-                        {item.caseSize && <div className="text-amber-800 font-bold">Case: {item.caseSize}</div>}
+                        {getPackagingLevels(item).length > 0 ? (
+                          <div className="space-y-0.5">
+                            {getPackagingLevels(item).map((lvl) => (
+                              <div key={lvl.key}>
+                                {lvl.label}: <strong className={lvl.key === 'case' || lvl.key === 'bori' ? 'text-amber-800 font-bold' : 'text-slate-800'}>{lvl.value}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-mono">-</span>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-center font-bold text-sm">
                         {item.qty} Units {item.isPriority && <span className="text-[10px] font-black text-amber-700 block">⚡ Urgent</span>}
@@ -321,17 +330,17 @@ export const InvoiceModal = () => {
               <div className="space-y-2 p-3.5 rounded-xl border border-red-200 bg-red-50/40 text-xs">
                 <div className="flex items-center gap-2 font-black text-red-800 uppercase tracking-wide text-[11px]">
                   <AlertOctagon className="w-3.5 h-3.5 text-red-600" />
-                  <span>EXPIRED PRODUCTS REPLACEMENT / CREDIT ADJUSTMENT DOCKET ({inv.expiredItems.length} ITEMS)</span>
+                  <span>EXPIRED PRODUCTS REPLACEMENT DOCKET / एक्सपायर्ड माल क्लेम एवं रिप्लेसमेंट डॉकेट ({inv.expiredItems.length} ITEMS)</span>
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-red-100/80 text-red-900 uppercase font-extrabold text-[9px]">
                     <tr>
                       <th className="py-1.5 px-2">#</th>
-                      <th className="py-1.5 px-2">Company / Brand</th>
-                      <th className="py-1.5 px-2">Product & SKU</th>
-                      <th className="py-1.5 px-2">MFD Date</th>
-                      <th className="py-1.5 px-2 text-center">Photo Proof</th>
-                      <th className="py-1.5 px-2 text-center">Expired Qty</th>
+                      <th className="py-1.5 px-2">Company / कंपनी</th>
+                      <th className="py-1.5 px-2">Product & SKU / प्रोडक्ट</th>
+                      <th className="py-1.5 px-2">MFD Date / तारीख</th>
+                      <th className="py-1.5 px-2 text-center">Photo / फोटो</th>
+                      <th className="py-1.5 px-2 text-center">Expired Qty / मात्रा</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-200/60 font-semibold text-[11px]">
@@ -393,18 +402,18 @@ export const InvoiceModal = () => {
               <div className="space-y-2 p-3.5 rounded-xl border border-orange-200 bg-orange-50/40 text-xs">
                 <div className="flex items-center gap-2 font-black text-orange-800 uppercase tracking-wide text-[11px]">
                   <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
-                  <span>GOODS RETURN & DAMAGE REPLACEMENT DOCKET ({inv.returnItems.length} ITEMS)</span>
+                  <span>GOODS RETURN & DAMAGE DOCKET / डैमेज एवं रिटर्न माल डॉकेट ({inv.returnItems.length} ITEMS)</span>
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-orange-100/80 text-orange-900 uppercase font-extrabold text-[9px]">
                     <tr>
                       <th className="py-1.5 px-2">#</th>
-                      <th className="py-1.5 px-2">Company / Brand</th>
-                      <th className="py-1.5 px-2">Product & SKU</th>
-                      <th className="py-1.5 px-2">Damage Date</th>
-                      <th className="py-1.5 px-2 text-center">Photo Proof</th>
-                      <th className="py-1.5 px-2">Damage Reason</th>
-                      <th className="py-1.5 px-2 text-center">Damage Qty</th>
+                      <th className="py-1.5 px-2">Company / कंपनी</th>
+                      <th className="py-1.5 px-2">Product & SKU / प्रोडक्ट</th>
+                      <th className="py-1.5 px-2">Damage Date / तारीख</th>
+                      <th className="py-1.5 px-2 text-center">Photo / फोटो</th>
+                      <th className="py-1.5 px-2">Damage Reason / कारण</th>
+                      <th className="py-1.5 px-2 text-center">Damage Qty / मात्रा</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-orange-200/60 font-semibold text-[11px]">
@@ -599,7 +608,7 @@ export const InvoiceModal = () => {
                   </div>
                 )}
                 <p className="text-center text-[11px] text-slate-500 font-medium">
-                  Direct client attachment for invoice verification & offline claim settlement.
+                  Direct client attachment for invoice verification & claim settlement.
                 </p>
               </div>
             </div>

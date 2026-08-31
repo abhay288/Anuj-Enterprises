@@ -5,7 +5,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const FlipkartCategoryBar = () => {
-  const { categories, selectedCategoryFilter, filterByCategory } = useApp();
+  const { categories, selectedCategoryFilter, filterByCategory, t } = useApp();
 
   const getCategoryIcon = (name) => {
     if (name.includes('Personal')) return <Smile className="w-5 h-5 text-amber-500" />;
@@ -32,7 +32,7 @@ export const FlipkartCategoryBar = () => {
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
             <Grid className="w-5 h-5 text-brand-900 dark:text-brand-400" />
           </div>
-          <span className="text-xs font-semibold">All Items</span>
+          <span className="text-xs font-semibold">{t('all_categories', 'All Items')}</span>
         </button>
 
         {/* Categories */}
@@ -49,7 +49,7 @@ export const FlipkartCategoryBar = () => {
             <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
               {getCategoryIcon(cat.name)}
             </div>
-            <span className="text-xs font-semibold">{cat.name}</span>
+            <span className="text-xs font-semibold">{t(cat.name, cat.name)}</span>
           </button>
         ))}
 

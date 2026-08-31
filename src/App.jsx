@@ -61,10 +61,10 @@ class ErrorBoundary extends React.Component {
               ⚠️
             </div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
-              Anuj Enterprises Portal Recovered
+              Anuj Enterprises B2B Portal
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {this.state.error?.message || 'A temporary display issue occurred while rendering this page.'}
+              A temporary display or network event occurred. Your session and data remain fully secure and protected.
             </p>
             <div className="pt-2 flex gap-3 justify-center">
               <button
@@ -138,10 +138,10 @@ const MainContent = () => {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AppProvider>
+    <AppProvider>
+      <ErrorBoundary>
         <MainContent />
-      </AppProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </AppProvider>
   );
 }

@@ -1083,7 +1083,7 @@ export const CustomerDashboard = () => {
                       required
                       value={profileForm.area}
                       onChange={(e) => setProfileForm({ ...profileForm, area: e.target.value })}
-                      placeholder="e.g. Collectorganj Wholesale Mandi"
+                      placeholder="e.g. Koyla Nagar / Anand Vihar"
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>

@@ -2,9 +2,96 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { Customer } from '../models/Customer.js';
 import { Salesman } from '../models/Salesman.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest, getJwtSecret } from '../middleware/authMiddleware.js';
+
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, mobile, email, password, address, city, state } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists',
+        code: 'EMAIL_EXISTS'
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const customerId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const userObj = await User.create({
+      name: String(name).trim(),
+      email: cleanEmail,
+      passwordHash,
+      role: 'CUSTOMER',
+      status: 'Active'
+    });
+
+    let customerDoc = await Customer.findOne({ email: cleanEmail });
+    if (!customerDoc) {
+      customerDoc = await Customer.create({
+        customerId,
+        name: String(name).trim(),
+        mobile: mobile ? String(mobile).trim() : '',
+        phone: mobile ? String(mobile).trim() : '',
+        email: cleanEmail,
+        address: address ? String(address).trim() : '',
+        city: city ? String(city).trim() : 'Kanpur',
+        state: state ? String(state).trim() : 'Uttar Pradesh',
+        classification: 'NORMAL',
+        customerMode: 'QUICK',
+        createdBy: 'SELF_REGISTERED'
+      });
+    }
+
+    const JWT_SECRET = getJwtSecret();
+    const token = jwt.sign(
+      { 
+        id: String(userObj._id), 
+        email: userObj.email, 
+        role: 'customer', 
+        name: userObj.name,
+        customerId: customerDoc.customerId,
+        status: userObj.status
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Retailer account created successfully',
+      data: {
+        token,
+        user: {
+          id: userObj._id,
+          name: userObj.name,
+          email: userObj.email,
+          role: 'customer',
+          customerId: customerDoc.customerId,
+          mobile: customerDoc.mobile || customerDoc.phone,
+          address: customerDoc.address,
+          city: customerDoc.city,
+          state: customerDoc.state
+        }
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const login = async (req: Request, res: Response) => {
   try {

@@ -22,9 +22,15 @@ export interface IProduct extends Document {
   mrp?: number;
   stock: number;
   lowStockThreshold?: number;
-  packSize: string;
+  unitType?: string;
+  unitQuantity?: string;
+  packSize?: string;
   bundleSize?: string;
+  malaSize?: string;
+  boriSize?: string;
   caseSize?: string;
+  cartonSize?: string;
+  customPackaging?: string;
   featured: boolean;
   newProduct: boolean;
   status: 'Published' | 'Draft';
@@ -57,9 +63,15 @@ const ProductSchema: Schema = new Schema(
     mrp: { type: Number, default: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
     lowStockThreshold: { type: Number, default: 20, min: 1 },
-    packSize: { type: String, default: '1 Unit' },
-    bundleSize: { type: String, default: '5 Units' },
-    caseSize: { type: String, default: '10 Units' },
+    unitType: { type: String, default: 'Piece' },
+    unitQuantity: { type: String, default: '' },
+    packSize: { type: String, default: '' },
+    bundleSize: { type: String, default: '' },
+    malaSize: { type: String, default: '' },
+    boriSize: { type: String, default: '' },
+    caseSize: { type: String, default: '' },
+    cartonSize: { type: String, default: '' },
+    customPackaging: { type: String, default: '' },
     featured: { type: Boolean, default: false, index: true },
     newProduct: { type: Boolean, default: false, index: true },
     status: { type: String, enum: ['Published', 'Draft'], default: 'Published', index: true },

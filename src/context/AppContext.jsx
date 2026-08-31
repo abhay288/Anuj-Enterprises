@@ -22,7 +22,71 @@ import { checkUnwantedContent } from '../utils/securityUtils';
 import { updatePageSEO } from '../utils/seoUtils';
 import { translations } from '../utils/translations';
 
-const AppContext = createContext();
+const defaultAppContext = {
+  products: INITIAL_PRODUCTS,
+  categories: INITIAL_CATEGORIES,
+  brands: INITIAL_BRANDS,
+  salesmen: INITIAL_SALESMEN,
+  orders: INITIAL_ORDERS,
+  customers: INITIAL_CUSTOMERS || [],
+  cart: [],
+  wishlist: [],
+  user: { role: 'guest', name: 'Guest Visitor' },
+  view: 'home',
+  language: 'en',
+  t: (k, d) => d !== undefined ? d : (k || ''),
+  showToast: () => {},
+  navigateTo: () => {},
+  addToCart: () => {},
+  updateCartQty: () => {},
+  removeFromCart: () => {},
+  clearCart: () => {},
+  toggleCartItemPriority: () => {},
+  toggleWishlist: () => {},
+  loginSalesman: async () => false,
+  loginNormalUser: async () => false,
+  bypassLoginAsGuest: () => {},
+  loginAdmin: async () => false,
+  logout: () => {},
+  saveCustomer: async () => {},
+  updateCustomer: () => {},
+  updateCustomerProfile: () => {},
+  deleteCustomer: () => {},
+  refreshCustomers: async () => [],
+  cartSubtotal: 0,
+  cartGrandTotal: 0,
+  cartTotalQty: 0,
+  isSalesmanModalOpen: false,
+  setIsSalesmanModalOpen: () => {},
+  isQuickViewOpen: false,
+  quickViewProduct: null,
+  openQuickView: () => {},
+  closeQuickView: () => {},
+  isInvoiceModalOpen: false,
+  selectedInvoice: null,
+  openInvoiceModal: () => {},
+  closeInvoiceModal: () => {},
+  isOrderSuccessModalOpen: false,
+  setIsOrderSuccessModalOpen: () => {},
+  closeOrderSuccessModal: () => {},
+  lastCompletedOrder: null,
+  headlineConfig: { isVisible: false, text: '' },
+  updateHeadlineConfig: () => {},
+  legalPolicies: DEFAULT_LEGAL_POLICIES,
+  updateLegalPolicy: () => {},
+  resetLegalPolicies: () => {},
+  supportTickets: [],
+  submitSupportTicket: () => {},
+  updateTicketStatus: () => {},
+  deleteSupportTicket: () => {},
+  deliverySchedules: {},
+  addCustomerDeliveryDate: () => {},
+  removeCustomerDeliveryDate: () => {},
+  setCustomerDeliveryDates: () => {},
+  bulkSetAreaDeliveryDates: () => {}
+};
+
+const AppContext = createContext(defaultAppContext);
 
 export const getCartStorageKey = (userObj) => {
   if (!userObj || !userObj.role || userObj.role === 'guest') {
@@ -1206,8 +1270,8 @@ export const AppProvider = ({ children }) => {
         showToast(`Salesman ID ${found.id} (${found.name}) is currently PAUSED by Admin. Please contact anujenterprises.fmcg.006@gmail.com`, 'error');
         return false;
       }
-      const expectedPassword = found.password || 'Sales@123';
-      if (sPwd && sPwd !== expectedPassword && sPwd !== 'Sales@123' && sPwd !== 'Anuj@2026' && sPwd !== 'Admin@123') {
+      const expectedPassword = found.password;
+      if (sPwd && expectedPassword && sPwd !== expectedPassword) {
         recordFailedAuth('salesman', 3);
         return false;
       }
@@ -1222,26 +1286,6 @@ export const AppProvider = ({ children }) => {
       });
       setIsSalesmanModalOpen(false);
       showToast(`Welcome, ${found.name}! Salesman Session Activated.`, 'success');
-      return true;
-    }
-
-    if (sId === 'AE-SM-001' || sId === 'SLS-101' || sId === 'SLS-DEMO') {
-      const sUser = salesmen[0] || { name: 'Rajesh Kumar', email: 'rajesh@anujenterprises.demo', phone: '+91 88876 83782', region: 'Central UP (Kanpur HQ)', status: 'Active' };
-      if (sUser.status === 'Paused' || sUser.status === 'Disabled') {
-        showToast(`Salesman ID ${sId} is currently PAUSED by Admin. Contact anujenterprises.fmcg.006@gmail.com`, 'error');
-        return false;
-      }
-      recordSuccessfulAuth('salesman');
-      setUser({
-        role: 'salesman',
-        name: sUser.name,
-        salesmanId: 'AE-SM-001',
-        email: sUser.email,
-        phone: sUser.phone,
-        region: sUser.region || 'Central UP (Kanpur HQ)'
-      });
-      setIsSalesmanModalOpen(false);
-      showToast(`Welcome, ${sUser.name}! Salesman Session Activated.`, 'success');
       return true;
     }
 
@@ -1285,8 +1329,8 @@ export const AppProvider = ({ children }) => {
     );
 
     if (foundCust) {
-      const expectedPwd = foundCust.password || 'Cust@123';
-      if (pwd && pwd !== expectedPwd && pwd !== 'Anuj@2026' && pwd !== 'Admin@123') {
+      const expectedPwd = foundCust.password;
+      if (pwd && expectedPwd && pwd !== expectedPwd) {
         recordFailedAuth('user', 3);
         return false;
       }
@@ -1311,7 +1355,7 @@ export const AppProvider = ({ children }) => {
       return true;
     }
 
-    // 3. Fallback sign in
+    // 3. Fallback sign in for newly registering customers
     const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
     recordSuccessfulAuth('user');
     setUser({ 
@@ -1342,8 +1386,13 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    const targetEmail = (email || 'anujenterprises.fmcg.006@gmail.com').trim();
+    const targetEmail = (email || '').trim();
     const targetPassword = (password || '').trim();
+
+    if (!targetPassword) {
+      showToast('Please enter your Admin Password.', 'error');
+      return false;
+    }
 
     try {
       const res = await authService.login(targetEmail, targetPassword, 'admin');
@@ -1432,9 +1481,15 @@ export const AppProvider = ({ children }) => {
         quantity: parseInt(item.qty || item.quantity || 1, 10),
         unitPrice: item.unitPrice || item.price || 0,
         price: item.unitPrice || item.price || 0,
-        packSize: item.product?.packSize || item.packSize || '1 Pack',
-        bundleSize: item.product?.bundleSize || item.bundleSize || '5 Packs',
-        caseSize: item.product?.caseSize || item.caseSize || '10 Bundles',
+        unitType: item.product?.unitType || item.unitType || '',
+        unitQuantity: item.product?.unitQuantity || item.unitQuantity || item.product?.unitDetail || item.unitDetail || '',
+        packSize: item.product?.packSize || item.packSize || '',
+        bundleSize: item.product?.bundleSize || item.bundleSize || '',
+        malaSize: item.product?.malaSize || item.malaSize || '',
+        boriSize: item.product?.boriSize || item.boriSize || '',
+        caseSize: item.product?.caseSize || item.caseSize || '',
+        cartonSize: item.product?.cartonSize || item.cartonSize || '',
+        customPackaging: item.product?.customPackaging || item.customPackaging || '',
         isPriority: Boolean(item.isPriority)
       })),
       expiredItems: (safeCustomerDetails.expiredItems || []).map(({ image, ...rest }) => rest),
@@ -1516,7 +1571,7 @@ export const AppProvider = ({ children }) => {
       shopOwnerArea: payload.shopOwnerArea,
       shopRoute: payload.shopRoute,
       paymentMethod: payload.paymentMethod,
-      orderType: "Offline Collection",
+      orderType: "Direct Collection",
       paymentMode: payload.paymentMethod,
       collectionStatus: "Pending",
       items: payload.items,
@@ -1613,11 +1668,17 @@ export const AppProvider = ({ children }) => {
 
     const finalGallery = imagesList.length === 1 ? [imagesList[0], imagesList[0]] : imagesList;
 
-    const packSize = prod.packSize || "1 Unit Consumer Pack";
-    const bundleSize = prod.bundleSize || "5 Units Inner Bundle";
-    const caseSize = prod.caseSize || "10 Units / Master Case";
+    const unitType = prod.unitType || 'Piece';
+    const unitQuantity = (prod.unitQuantity !== undefined && prod.unitQuantity !== null) ? String(prod.unitQuantity).trim() : (prod.unitDetail ? String(prod.unitDetail).trim() : '');
+    const packSize = (prod.packSize !== undefined && prod.packSize !== null) ? String(prod.packSize).trim() : '';
+    const bundleSize = (prod.bundleSize !== undefined && prod.bundleSize !== null) ? String(prod.bundleSize).trim() : '';
+    const malaSize = (prod.malaSize !== undefined && prod.malaSize !== null) ? String(prod.malaSize).trim() : '';
+    const boriSize = (prod.boriSize !== undefined && prod.boriSize !== null) ? String(prod.boriSize).trim() : '';
+    const caseSize = (prod.caseSize !== undefined && prod.caseSize !== null) ? String(prod.caseSize).trim() : '';
+    const cartonSize = (prod.cartonSize !== undefined && prod.cartonSize !== null) ? String(prod.cartonSize).trim() : '';
+    const customPackaging = (prod.customPackaging !== undefined && prod.customPackaging !== null) ? String(prod.customPackaging).trim() : '';
 
-    // Clean statutory specs to remove FSSAI and HSN as requested
+    // Clean statutory specs
     let cleanSpecs = {};
     if (prod.specs && Object.keys(prod.specs).length > 0) {
       Object.entries(prod.specs).forEach(([k, v]) => {
@@ -1627,9 +1688,14 @@ export const AppProvider = ({ children }) => {
       });
     } else {
       cleanSpecs = {
-        "Consumer Pack Size": packSize,
-        "Inner Bundle Packaging": bundleSize,
-        "Master Case Packaging": caseSize,
+        ...(unitQuantity ? { "Unit Measure": unitQuantity } : {}),
+        ...(packSize ? { "Consumer Pack Size": packSize } : {}),
+        ...(bundleSize ? { "Inner Bundle Packaging": bundleSize } : {}),
+        ...(malaSize ? { "Mala Packaging": malaSize } : {}),
+        ...(boriSize ? { "Bori Packaging": boriSize } : {}),
+        ...(caseSize ? { "Master Case Packaging": caseSize } : {}),
+        ...(cartonSize ? { "Carton Packaging": cartonSize } : {}),
+        ...(customPackaging ? { "Packaging Breakdown": customPackaging } : {}),
         "Shelf Life": "12 Months from MFD",
         "Storage Conditions": "Cool & Dry Place (Ambient)",
         "Country of Origin": "India"
@@ -1651,9 +1717,15 @@ export const AppProvider = ({ children }) => {
       stock: prod.stock !== undefined ? parseInt(prod.stock, 10) : 100,
       lowStockThreshold: prod.lowStockThreshold || 20,
       minOrderQty: prod.minOrderQty || 1,
+      unitType,
+      unitQuantity,
       packSize,
       bundleSize,
+      malaSize,
+      boriSize,
       caseSize,
+      cartonSize,
+      customPackaging,
       rating: prod.rating || 4.9,
       reviewCount: prod.reviewCount || 48,
       isFeatured: prod.isFeatured ?? true,
@@ -2341,9 +2413,15 @@ export const AppProvider = ({ children }) => {
         category: item.category || 'Food & Beverages',
         price: item.price || 500,
         stock: 100,
-        packSize: item.packSize || '1 Unit',
-        bundleSize: item.bundleSize || '5 Units',
-        caseSize: item.caseSize || '10 Units',
+        unitType: item.unitType || 'Piece',
+        unitQuantity: item.unitQuantity || item.unitDetail || '',
+        packSize: item.packSize || '',
+        bundleSize: item.bundleSize || '',
+        malaSize: item.malaSize || '',
+        boriSize: item.boriSize || '',
+        caseSize: item.caseSize || '',
+        cartonSize: item.cartonSize || '',
+        customPackaging: item.customPackaging || '',
         image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'
       };
 
@@ -2510,4 +2588,7 @@ export const AppProvider = ({ children }) => {
   );
 };
 
-export const useApp = () => useContext(AppContext);
+export const useApp = () => {
+  const context = useContext(AppContext);
+  return context || defaultAppContext;
+};

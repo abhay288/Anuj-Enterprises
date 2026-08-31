@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Building2, Package, Tag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const NewArrivalsBanner = () => {
   const { products, brands, navigateTo, addToCart } = useApp();
@@ -79,11 +80,14 @@ export const NewArrivalsBanner = () => {
                     </div>
                   </div>
 
-                  {/* Pack Spec details */}
-                  <div className="text-[10px] text-slate-300 bg-slate-950/50 p-2 rounded-xl border border-white/5 space-y-0.5 mb-3">
-                    <div>Pack: <strong>{item.packSize || '100g Bar'}</strong></div>
-                    <div>Case: <strong>{item.caseSize || '24 Bars'}</strong></div>
-                  </div>
+                  {/* Packaging Spec details (Only shown if configured) */}
+                  {getPackagingLevels(item).length > 0 && (
+                    <div className="text-[10px] text-slate-300 bg-slate-950/50 p-2 rounded-xl border border-white/5 space-y-0.5 mb-3">
+                      {getPackagingLevels(item).slice(0, 2).map((lvl) => (
+                        <div key={lvl.key}>{lvl.label}: <strong>{lvl.value}</strong></div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-2 border-t border-white/10">
                     <span className="text-[11px] font-bold text-amber-400/90 uppercase tracking-wider">{item.category || 'Wholesale'}</span>

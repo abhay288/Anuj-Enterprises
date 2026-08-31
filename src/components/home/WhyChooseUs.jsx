@@ -1,37 +1,40 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Truck, Percent, Headset, FileText, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Truck, Percent, Headset } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export const WhyChooseUs = () => {
+  const { t } = useApp();
+
   const features = [
     {
       id: 1,
-      title: "100% Genuine FMCG Brands",
-      desc: "Direct authorized distribution with Amul, Nestlé, Britannia, Cadbury, Colgate, and HUL with complete batch authenticity.",
+      title: t('feat_direct_factory', '100% Genuine FMCG Brands'),
+      desc: t('feat_direct_factory_desc', 'Direct authorized distribution with Amul, Nestlé, Britannia, Cadbury, Colgate, and HUL with complete batch authenticity.'),
       icon: ShieldCheck,
       color: "text-amber-500",
       bg: "bg-amber-50 dark:bg-amber-950/40"
     },
     {
       id: 2,
-      title: "Kanpur Central Warehouse",
-      desc: "Centralized warehouse hub in Kanpur, Uttar Pradesh for dependable dispatch across regional retail networks.",
+      title: t('feat_fast_dispatch', 'Fast Warehouse Dispatch'),
+      desc: t('feat_fast_dispatch_desc', 'Centralized warehouse hub in Kanpur, Uttar Pradesh for dependable dispatch across regional retail networks.'),
       icon: Truck,
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-950/40"
     },
     {
       id: 3,
-      title: "Wholesale Case Packaging",
-      desc: "Master cartons, bundle packaging, and dependable wholesale volume supply for supermarkets and retail stores.",
+      title: t('feat_packaging_breakdown', 'Flexible Kirana Packaging'),
+      desc: t('feat_packaging_breakdown_desc', 'Master cartons, bundle packaging, malas, and boris for supermarkets and retail kirana stores.'),
       icon: Percent,
       color: "text-brand-500",
       bg: "bg-brand-50 dark:bg-brand-950/40"
     },
     {
       id: 4,
-      title: "Dedicated Field Sales Force",
-      desc: "Assigned sales representatives for regular store visits, stock replenishment, and personalized customer care.",
+      title: t('feat_mandi_settlement', 'Direct Mandi Settlement'),
+      desc: t('feat_mandi_settlement_desc', 'Direct wholesale collection and settlement terms with transparent invoicing for verified retailers.'),
       icon: Headset,
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-950/40"
@@ -43,10 +46,10 @@ export const WhyChooseUs = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400 block mb-1">
-            Enterprise Value Proposition
+            {t('why_choose_title', 'Why Wholesale Retailers Choose Anuj Enterprises')}
           </span>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Why India's Top EPCs & OEMs Trust Anuj Enterprises
+            {t('why_choose_subtitle', 'Enterprise-grade B2B distribution infrastructure built for high-velocity FMCG retail stores and supermarkets.')}
           </h2>
         </div>
 

@@ -39,17 +39,35 @@ app.use(
     crossOriginEmbedderPolicy: false
   })
 );
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(s => s.trim()) : [])
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate Limiting for Public APIs
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests from this IP. Please try again after 15 minutes.', code: 'RATE_LIMIT_EXCEEDED' }
@@ -57,14 +75,15 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // 20 login attempts per 15 minutes
+  max: 30, // 30 login/register attempts per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many login attempts from this IP. Please wait 15 minutes before trying again.', code: 'AUTH_RATE_LIMIT' }
+  message: { success: false, message: 'Too many authentication attempts from this IP. Please wait 15 minutes before trying again.', code: 'AUTH_RATE_LIMIT' }
 });
 
 app.use('/api/', apiLimiter);
 app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
 
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {

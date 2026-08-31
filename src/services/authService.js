@@ -1,6 +1,17 @@
 import { apiClient } from './apiClient';
 
 export const authService = {
+  register: async (userData) => {
+    const res = await apiClient('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+    if (res.data?.token) {
+      localStorage.setItem('anuj_jwt_token', res.data.token);
+    }
+    return res;
+  },
+
   login: async (identifier, password, role) => {
     const res = await apiClient('/auth/login', {
       method: 'POST',

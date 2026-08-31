@@ -54,7 +54,7 @@ export const DEFAULT_LEGAL_POLICIES = {
           '256-bit TLS/SSL encryption for all data in transit across our digital catalog and ordering portal.',
           'Role-Based Access Control (RBAC) restricting customer ledgers strictly to authorized administrative personnel.',
           'Encrypted credential storage and automatic session termination for field salesman terminals.',
-          'Daily secure offline backups of business ledgers and invoice audit trails.'
+          'Daily secure cloud and local backups of business ledgers and invoice audit trails.'
         ],
         alertNote: 'Anuj Enterprises will NEVER request your banking passwords, OTPs, or UPI PINs over phone or email.'
       },
@@ -87,7 +87,7 @@ export const DEFAULT_LEGAL_POLICIES = {
         content: 'For questions, data access requests, or privacy concerns, please contact our designated Grievance & Commercial Compliance Officer:',
         keyPoints: [
           'Company: Anuj Enterprises (B2B FMCG Distribution Central Hub)',
-          'Address: Transport Nagar / Industrial Area, Kanpur, Uttar Pradesh — 208001',
+          'Address: Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021',
           'Email: anujenterprises.fmcg.006@gmail.com',
           'Support Lines: +91 88876 83782 / +91 70719 79894',
           'WhatsApp Desk: +91 88876 83782 (Mon–Sat, 9:00 AM – 7:00 PM IST)'
@@ -156,7 +156,7 @@ export const DEFAULT_LEGAL_POLICIES = {
         heading: 'Payment Modes & B2B Corporate Credit Facilities',
         content: 'We offer flexible payment mechanisms including RTGS, NEFT, IMPS, Verified Company Cheques, and Authorized Field Representative Cash Collections.',
         keyPoints: [
-          'Cash-On-Delivery (COD) / Direct Offline Collection is standard for walk-in and non-credit wholesale buyers.',
+          'Cash-On-Delivery (COD) / Direct Mandi Settlement is standard for walk-in and non-credit wholesale buyers.',
           'Net 15 to Net 30 Trade Credit is extended exclusively to audited corporate buyers, authorized institutional accounts, and verified retail partners.',
           'Overdue trade balances beyond agreed credit periods will incur commercial interest at 18% per annum from the due date until full settlement.',
           'Supply lines may be temporarily suspended if outstanding trade receivables exceed approved credit thresholds.'
@@ -274,7 +274,7 @@ export const DEFAULT_LEGAL_POLICIES = {
           'Email: anujenterprises.fmcg.006@gmail.com (Subject: Return Claim - [Invoice #])',
           'Claims Hotline: +91 88876 83782 / +91 70719 79894',
           'WhatsApp Claims Assistant: +91 88876 83782',
-          'Physical Inspection Depot: Central Dispatch Hub, Kanpur, Uttar Pradesh — 208001'
+          'Physical Inspection Depot: Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021'
         ]
       }
     ]

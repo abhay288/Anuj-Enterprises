@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { formatPackagingSummary } from './packagingUtils';
 
 /**
  * Generate a professional, vector PDF invoice for Anuj Enterprises
@@ -40,7 +41,7 @@ export const generateInvoicePDF = (order) => {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(203, 213, 225); // Slate 300
   doc.setFontSize(8);
-  doc.text('Kanpur HQ, Uttar Pradesh | Helpline: +91 88876 83782 / +91 70719 79894', 14, 32);
+  doc.text('Anand Vihar Society, Koyla Nagar, Kanpur — 208021 | Helpline: +91 88876 83782', 14, 32);
 
   // Invoice Meta Right Box
   doc.setTextColor(255, 255, 255);
@@ -144,7 +145,8 @@ export const generateInvoicePDF = (order) => {
 
     doc.text(String(index + 1), 18, rowY + 5.5);
     doc.text(String(item.name || item.product || 'FMCG Product SKU').substring(0, 48), 28, rowY + 5.5);
-    doc.text(String(item.packSize || '1 Pack'), 115, rowY + 5.5);
+    const packStr = formatPackagingSummary(item, ' • ') || item.packSize || item.unitQuantity || item.unitType || 'Standard Unit';
+    doc.text(String(packStr).substring(0, 32), 115, rowY + 5.5);
     doc.setFont('helvetica', 'bold');
     doc.text(`${q} Units`, 170, rowY + 5.5, { align: 'right' });
 

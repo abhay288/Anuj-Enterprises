@@ -6,10 +6,23 @@ import {
   FileText, Award, Send, ArrowRight 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { updatePageSEO } from '../../utils/seoUtils';
 
 export const SupportView = () => {
-  const { showToast, submitSupportTicket } = useApp();
+  const { showToast, submitSupportTicket, t, language } = useApp();
   const [openFaq, setOpenFaq] = useState(0);
+
+  React.useEffect(() => {
+    updatePageSEO({
+      title: 'Support Desk & Wholesale FAQs | Anuj Enterprises Kanpur',
+      description: 'Contact Anuj Enterprises B2B trade support. Get assistance with FMCG order dispatches, invoices, and direct settlement collections.',
+      url: 'https://anujfmcg.com/#/support',
+      breadcrumbs: [
+        { name: 'Home', url: 'https://anujfmcg.com/' },
+        { name: 'Support & FAQs', url: 'https://anujfmcg.com/#/support' }
+      ]
+    });
+  }, []);
   const [ticketForm, setTicketForm] = useState({
     name: '',
     phone: '',
@@ -20,9 +33,34 @@ export const SupportView = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const faqs = [
+  const faqs = language === 'hi' ? [
     {
-      q: "How does the Offline Collection and Settlement workflow operate?",
+      q: "डायरेक्ट मंडी कलेक्शन एवं सेटलमेंट प्रक्रिया कैसे काम करती है?",
+      a: "जब आप सेल्समैन या पोर्टल के माध्यम से B2B ऑर्डर देते हैं, तो पेंडिंग स्टेटस के साथ एक आधिकारिक इनवॉइस बनता है। जब कानपुर वेयरहाउस से माल आपकी दुकान पर पहुंचता है, तो डिलीवरी प्रतिनिधि भुगतान (कैश, चेक या RTGS) कलेक्ट कर खाता अपडेट कर देता है।"
+    },
+    {
+      q: "दुकानदार वर्गीकरण (सामान्य, डैमेज, एक्सपायरी) का क्या अर्थ है?",
+      a: "अनुज एंटरप्राइजेज खातों को 3 श्रेणियों में बांटता है: 1) नॉर्मल ग्राहक: 100% ताजा पैकिंग का नियमित थोक व्यापार; 2) डैमेज ग्राहक: मामूली बाहरी पैकेजिंग डैमेज पर विशेष डिस्काउंट वाला स्टॉक; 3) एक्सपायरी ग्राहक: फास्ट-क्लियरेंस व कंपनी रिप्लेसमेंट प्रोटोकॉल।"
+    },
+    {
+      q: "मैं अपने इनवॉइस को प्रिंट, डाउनलोड या शेयर कैसे कर सकता हूँ?",
+      a: "हर ऑर्डर पर तुरंत पक्का B2B इनवॉइस जनरेट होता है। आप इनवॉइस को 1-क्लिक में प्रिंट कर सकते हैं, PDF डाउनलोड कर सकते हैं, या व्हाट्सएप पर सीधे भेज सकते हैं।"
+    },
+    {
+      q: "FMCG थोक ऑर्डर्स के लिए न्यूनतम ऑर्डर मात्रा (MOQ) क्या है?",
+      a: "MOQ प्रोडक्ट के अनुसार पैक (सिंगल यूनिट), बंडल (5-6 यूनिट) या मास्टर पेटी / केस (10-24 यूनिट) में निर्धारित होती है। पेटी और बल्क ऑर्डर पर अधिकतम थोक छूट मिलती है।"
+    },
+    {
+      q: "रास्ते में माल टूटने या कमी होने पर क्या करें?",
+      a: "सभी माल की वेयरहाउस में 2-पॉइंट जांच होती है। यदि डिलीवरी के समय कोई डैमेज मिले, तो डिलीवरी चालान पर नोट करवाएं और 24 घंटे के भीतर अपने सेल्समैन से संपर्क करें।"
+    },
+    {
+      q: "नया दुकानदार खाता कैसे रजिस्टर करें?",
+      a: "अधिकृत सेल्समैन सीधे सेल्समैन पोर्टल > ग्राहक लिस्ट से या चेकआउट के समय नए दुकानदार का पूरा विवरण भरकर नया खाता तुरंत रजिस्टर कर सकते हैं।"
+    }
+  ] : [
+    {
+      q: "How does the Direct Mandi Collection and Settlement workflow operate?",
       a: "Upon placing a B2B order through your designated sales representative or the portal, an official Invoice is generated with a collection status of PENDING. When the goods are delivered from our central warehouse to your retail/wholesale store, our delivery agent or field representative completes payment collection (cash, Cheque, or RTGS) and updates the ledger."
     },
     {
@@ -72,13 +110,13 @@ export const SupportView = () => {
         <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl border border-slate-800 text-center relative overflow-hidden">
           <div className="relative z-10 max-w-3xl mx-auto space-y-3">
             <span className="px-3 py-1 bg-amber-500/20 text-amber-400 font-extrabold text-[11px] rounded-full uppercase tracking-widest border border-amber-500/30 inline-block">
-              Dedicated B2B Trade Support & Business Information
+              {t('nav_support', 'Dedicated B2B Trade Support & Business Information')}
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              How Can We Assist Your Enterprise Today?
+              {t('support_title', 'How Can We Assist Your Enterprise Today?')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              Get immediate assistance with warehouse dispatches, invoices, customer registrations, and offline collections.
+              {t('support_subtitle', 'Get immediate assistance with warehouse dispatches, invoices, customer registrations, and direct mandi collections.')}
             </p>
           </div>
         </div>

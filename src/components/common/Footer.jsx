@@ -55,7 +55,10 @@ export const Footer = () => {
               </div>
             </div>
 
-
+            {/* Tagline Watermark Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 font-black text-xs tracking-wider">
+              <span>#ANUJ FMCG</span>
+            </div>
           </div>
 
           {/* Col 2: Quick Links */}
@@ -103,7 +106,7 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Col 4: Contact HQ & Map Placeholder */}
+          {/* Col 4: Contact HQ */}
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
               {t('corporate_hq', 'Corporate Headquarters')}
@@ -111,7 +114,9 @@ export const Footer = () => {
             <div className="space-y-2.5 text-xs">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>{t('office_address', 'Collectorganj Wholesale Market, Kanpur, Uttar Pradesh - 208001')}</span>
+                <span className="leading-relaxed font-medium text-slate-300">
+                  {t('office_address', 'Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh - 208021')}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -124,14 +129,6 @@ export const Footer = () => {
                 <a href="mailto:anujenterprises.fmcg.006@gmail.com" className="hover:text-amber-400 transition-colors">
                   anujenterprises.fmcg.006@gmail.com
                 </a>
-              </div>
-            </div>
-
-            {/* Google Map Placeholder */}
-            <div className="mt-3 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-2 relative group">
-              <div className="h-20 w-full bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-2">
-                <MapPin className="w-5 h-5 text-amber-400 animate-bounce mb-1" />
-                <span className="text-[10px] text-slate-300 font-bold">{t('kanpur_hub', 'Kanpur HQ & Central Dispatch Hub')}</span>
               </div>
             </div>
           </div>
@@ -163,10 +160,21 @@ export const Footer = () => {
               {t('return_policy', 'Return & Claims Policy')}
             </button>
           </div>
-          <div className="text-slate-400 text-xs">
-            {t('official_platform_notice', 'Official B2B FMCG Distribution & Sourcing Platform • Kanpur HQ')}
+          <div className="flex items-center gap-3 text-slate-400 text-xs">
+            <span>{t('official_platform_notice', 'Official B2B FMCG Distribution Platform • Kanpur')}</span>
+            <span className="font-mono font-black text-amber-400 text-xs">#ANUJ FMCG</span>
           </div>
         </div>
+      </div>
+
+      {/* #ANUJ FMCG Full Background Subtle Typographic Watermark */}
+      <div 
+        aria-hidden="true"
+        className="absolute -bottom-6 left-0 right-0 flex justify-center items-center pointer-events-none select-none overflow-hidden opacity-[0.03] dark:opacity-[0.05]"
+      >
+        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] lg:text-[18rem] font-black tracking-tighter text-amber-400 whitespace-nowrap leading-none">
+          #ANUJ FMCG
+        </span>
       </div>
     </footer>
   );

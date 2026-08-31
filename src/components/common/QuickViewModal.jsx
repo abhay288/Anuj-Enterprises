@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Layers, ArrowLeftRight 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const QuickViewModal = () => {
   const { 
@@ -50,6 +51,39 @@ export const QuickViewModal = () => {
     }
   };
 
+  // Touch swipe handling for Tablets & Mobile devices
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX === null || touchStartY === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchStartX - touchEndX;
+    const diffY = touchStartY - touchEndY;
+
+    // Minimum swipe distance threshold (50px) and ensure horizontal movement is dominant
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      if (diffX > 0) {
+        // Swiped Left -> Go to Next Product
+        handleNextProduct();
+      } else {
+        // Swiped Right -> Go to Previous Product
+        handlePrevProduct();
+      }
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   // Keyboard Navigation: ArrowLeft for Prev, ArrowRight for Next, Escape to Close
   useEffect(() => {
     if (!isQuickViewOpen) return;
@@ -83,14 +117,19 @@ export const QuickViewModal = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/75 backdrop-blur-md">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/75 backdrop-blur-md"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Floating Prev Button (Desktop/Tablet) */}
         {totalProducts > 1 && (
           <button
             type="button"
             onClick={handlePrevProduct}
-            className="hidden md:flex fixed left-4 lg:left-8 top-1/2 -translate-y-1/2 z-50 p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-white shadow-2xl border border-slate-200 dark:border-slate-700 hover:scale-110 hover:bg-amber-500 hover:text-slate-950 transition-all group items-center justify-center"
-            title="Previous Product (Left Arrow Key)"
+            className="hidden md:flex fixed left-3 lg:left-6 top-1/2 -translate-y-1/2 z-50 p-3.5 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white shadow-2xl border border-slate-200 dark:border-slate-700 hover:scale-110 hover:bg-amber-500 hover:text-slate-950 transition-all group items-center justify-center active:scale-95"
+            title="Previous Product (Left Arrow Key / Swipe Right)"
+            aria-label="Previous Product"
           >
             <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
           </button>
@@ -101,8 +140,9 @@ export const QuickViewModal = () => {
           <button
             type="button"
             onClick={handleNextProduct}
-            className="hidden md:flex fixed right-4 lg:right-8 top-1/2 -translate-y-1/2 z-50 p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-white shadow-2xl border border-slate-200 dark:border-slate-700 hover:scale-110 hover:bg-amber-500 hover:text-slate-950 transition-all group items-center justify-center"
-            title="Next Product (Right Arrow Key)"
+            className="hidden md:flex fixed right-3 lg:right-6 top-1/2 -translate-y-1/2 z-50 p-3.5 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white shadow-2xl border border-slate-200 dark:border-slate-700 hover:scale-110 hover:bg-amber-500 hover:text-slate-950 transition-all group items-center justify-center active:scale-95"
+            title="Next Product (Right Arrow Key / Swipe Left)"
+            aria-label="Next Product"
           >
             <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
           </button>
@@ -114,7 +154,19 @@ export const QuickViewModal = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+          drag={totalProducts > 1 ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, info) => {
+            const swipeThreshold = 40;
+            const velocityThreshold = 200;
+            if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+              handleNextProduct();
+            } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+              handlePrevProduct();
+            }
+          }}
+          className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh] touch-pan-y"
         >
           {/* Header Switcher & Close Bar */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -257,21 +309,43 @@ export const QuickViewModal = () => {
                   {quickViewProduct.name}
                 </h2>
 
-                {/* Pack, Bundle, Case Specification Grid */}
-                <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Pack</span>
-                    <strong className="text-slate-900 dark:text-white">{quickViewProduct.packSize || '1 Unit'}</strong>
+                {/* Packaging & Quantity (Kirana/FMCG Dynamic Levels - Only shown if configured) */}
+                {getPackagingLevels(quickViewProduct).length > 0 && (
+                  <div className="mb-3 space-y-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                      {t('packaging_and_quantity', 'Packaging & Quantity')}:
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                      {getPackagingLevels(quickViewProduct).map((lvl) => (
+                        <div 
+                          key={lvl.key}
+                          className={`p-2 rounded-xl border shadow-xs ${
+                            lvl.key === 'case' || lvl.key === 'bori'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-900'
+                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <span className={`text-[10px] block font-semibold ${
+                            lvl.key === 'case' || lvl.key === 'bori' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                          }`}>
+                            {t(lvl.label, lvl.label)}
+                          </span>
+                          <strong className={`block truncate ${
+                            lvl.key === 'case' || lvl.key === 'bori' ? 'text-amber-800 dark:text-amber-300 font-extrabold' : 'text-slate-900 dark:text-white font-bold'
+                          }`}>
+                            {lvl.value}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                    {quickViewProduct.customPackaging && (
+                      <div className="text-[10px] font-medium text-slate-600 dark:text-slate-300 bg-amber-500/5 p-2 rounded-lg border border-amber-200/40 dark:border-slate-800">
+                        <span className="font-bold text-amber-700 dark:text-amber-400">{t('packaging_breakdown', 'Breakdown')}: </span>
+                        {quickViewProduct.customPackaging}
+                      </div>
+                    )}
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 block font-semibold">Bundle</span>
-                    <strong className="text-slate-900 dark:text-white">{quickViewProduct.bundleSize || '5 Units'}</strong>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900">
-                    <span className="text-[10px] text-amber-600 dark:text-amber-400 block font-semibold">Case</span>
-                    <strong className="text-amber-800 dark:text-amber-300 font-extrabold">{quickViewProduct.caseSize || '10 Units'}</strong>
-                  </div>
-                </div>
+                )}
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 leading-relaxed">
                   {quickViewProduct.description}
@@ -281,7 +355,7 @@ export const QuickViewModal = () => {
               {/* Quick Add Action Controls */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Order Quantity:</span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('order_quantity', 'Order Quantity')}:</span>
                   <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800">
                     <button
                       type="button"

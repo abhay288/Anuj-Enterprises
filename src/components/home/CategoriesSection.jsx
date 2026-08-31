@@ -4,7 +4,7 @@ import { ArrowRight, Wrench, Zap, Cog, ShieldCheck, Cpu, Layers, Flame, Truck } 
 import { useApp } from '../../context/AppContext';
 
 export const CategoriesSection = () => {
-  const { categories, filterByCategory } = useApp();
+  const { categories, filterByCategory, t } = useApp();
 
   const getIcon = (iconName) => {
     switch (iconName) {
@@ -25,17 +25,17 @@ export const CategoriesSection = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400 block mb-1">
-              Engineered Equipment Categories
+              {t('nav_categories', 'FMCG Categories')}
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Featured Industrial Departments
+              {t('all_categories', 'All FMCG Categories')}
             </h2>
           </div>
           <button
             onClick={() => filterByCategory('All')}
             className="text-sm font-bold text-brand-900 dark:text-brand-400 hover:underline flex items-center gap-1.5 self-start md:self-auto"
           >
-            Explore All 8 Categories <ArrowRight className="w-4 h-4" />
+            {t('all_categories', 'Explore All Categories')} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -71,7 +71,7 @@ export const CategoriesSection = () => {
 
               <div className="p-4 flex items-center justify-between bg-white dark:bg-slate-900">
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {cat.count}+ FMCG Products
+                  {cat.count}+ {t('nav_products', 'Products')}
                 </span>
                 <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center group-hover:bg-brand-900 group-hover:text-white transition-colors">
                   <ArrowRight className="w-3.5 h-3.5" />

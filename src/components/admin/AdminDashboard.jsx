@@ -30,6 +30,12 @@ import {
   exportInventoryReportCSV,
   exportCustomersCSV
 } from '../../utils/csvExportUtils';
+import { 
+  UNIT_TYPES, 
+  validatePackagingInputs, 
+  getPackagingLevels, 
+  formatPackagingSummary 
+} from '../../utils/packagingUtils';
 
 const CHART_COLORS = ['#1e3a8a', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
 
@@ -264,9 +270,9 @@ export const AdminDashboard = () => {
     address: '',
     city: 'Kanpur',
     state: 'Uttar Pradesh',
-    pincode: '208001',
+    pincode: '208021',
     classification: 'NORMAL',
-    password: 'Cust@123'
+    password: ''
   });
 
   // Restock / Inventory Modals
@@ -300,9 +306,15 @@ export const AdminDashboard = () => {
     price: 1200,
     stock: 100,
     lowStockThreshold: 20,
-    packSize: '1 Unit',
-    bundleSize: '5 Units',
-    caseSize: '10 Units',
+    unitType: 'Piece',
+    unitQuantity: '',
+    packSize: '',
+    bundleSize: '',
+    malaSize: '',
+    boriSize: '',
+    caseSize: '',
+    cartonSize: '',
+    customPackaging: '',
     isFeatured: true,
     isNew: true,
     isNrp: false,
@@ -318,7 +330,7 @@ export const AdminDashboard = () => {
     name: '',
     email: '',
     phone: '',
-    password: 'Sales@123',
+    password: '',
     region: 'Central UP (Kanpur HQ)'
   });
 
@@ -750,6 +762,13 @@ export const AdminDashboard = () => {
   };
 
   const handleSaveProduct = (statusOverride = null) => {
+    // 1. Validate packaging inputs
+    const valResult = validatePackagingInputs(prodForm);
+    if (!valResult.isValid) {
+      showToast(valResult.message, 'warning');
+      return;
+    }
+
     const finalImages = (prodForm.images && prodForm.images.length > 0 ? prodForm.images : [prodForm.image]).filter(Boolean).slice(0, 3);
     const finalForm = {
       ...prodForm,
@@ -776,23 +795,30 @@ export const AdminDashboard = () => {
     ).filter(Boolean).slice(0, 3);
 
     setProdForm({
-      name: product.name,
-      brand: product.brand,
-      category: product.category,
-      sku: product.sku,
+      name: product.name || '',
+      brand: product.brand || 'Amul',
+      category: product.category || 'Food & Beverages',
+      sku: product.sku || '',
       hsn: product.hsn || '19053100',
       price: product.price || 0,
       stock: product.stock ?? 100,
-      packSize: product.packSize || '1 Unit',
-      bundleSize: product.bundleSize || '5 Units',
-      caseSize: product.caseSize || '10 Units',
+      lowStockThreshold: product.lowStockThreshold || 20,
+      unitType: product.unitType || 'Piece',
+      unitQuantity: product.unitQuantity || product.unitDetail || '',
+      packSize: product.packSize || '',
+      bundleSize: product.bundleSize || '',
+      malaSize: product.malaSize || '',
+      boriSize: product.boriSize || '',
+      caseSize: product.caseSize || '',
+      cartonSize: product.cartonSize || '',
+      customPackaging: product.customPackaging || '',
       isFeatured: product.isFeatured ?? true,
       isNew: product.isNew ?? false,
       isNrp: product.isNrp ?? false,
       status: product.status || 'Published',
       image: productImages[0] || product.image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
       images: productImages.length > 0 ? productImages : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
-      description: product.description
+      description: product.description || ''
     });
     setIsAddProductOpen(true);
   };
@@ -832,7 +858,7 @@ export const AdminDashboard = () => {
       address: '',
       city: 'Kanpur',
       state: 'Uttar Pradesh',
-      pincode: '208001',
+      pincode: '208021',
       classification: 'NORMAL',
       password: 'Cust@123'
     });
@@ -848,7 +874,7 @@ export const AdminDashboard = () => {
       address: customer.address || '',
       city: customer.city || 'Kanpur',
       state: customer.state || 'Uttar Pradesh',
-      pincode: customer.pincode || '208001',
+      pincode: customer.pincode || '208021',
       classification: customer.classification || 'NORMAL',
       password: customer.password || 'Cust@123'
     });
@@ -875,7 +901,7 @@ export const AdminDashboard = () => {
       address: '',
       city: 'Kanpur',
       state: 'Uttar Pradesh',
-      pincode: '208001',
+      pincode: '208021',
       classification: 'NORMAL',
       password: 'Cust@123'
     });
@@ -1230,9 +1256,11 @@ export const AdminDashboard = () => {
                         setProdForm({
                           name: '', brand: brands[0]?.name || 'Amul', category: categories[0]?.name || 'Food & Beverages',
                           sku: '', hsn: '19053100', price: 1200, stock: 100, lowStockThreshold: 20,
-                          packSize: '1 Unit', bundleSize: '5 Units', caseSize: '10 Units',
-                          isFeatured: true, isNew: true, status: 'Published',
+                          unitType: 'Piece', unitQuantity: '',
+                          packSize: '', bundleSize: '', malaSize: '', boriSize: '', caseSize: '', cartonSize: '', customPackaging: '',
+                          isFeatured: true, isNew: true, isNrp: false, status: 'Published',
                           image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+                          images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
                           description: 'High-margin B2B product.'
                         });
                         setIsAddProductOpen(true);
@@ -1250,7 +1278,7 @@ export const AdminDashboard = () => {
                       <tr>
                         <th className="py-3 px-4">Product & SKU</th>
                         <th className="py-3 px-4">Brand</th>
-                        <th className="py-3 px-4">Pack Info</th>
+                        <th className="py-3 px-4">Packaging & Unit Info</th>
                         <th className="py-3 px-4 text-center">Badges</th>
                         <th className="py-3 px-4 text-center">Status</th>
                         <th className="py-3 px-4 text-center">Actions</th>
@@ -1270,8 +1298,22 @@ export const AdminDashboard = () => {
                           </td>
                           <td className="py-3 px-4 font-bold">{prod.brand}</td>
                           <td className="py-3 px-4 text-[10px] text-slate-500">
-                            <div>Pack: <strong>{prod.packSize || '1 Unit'}</strong></div>
-                            <div>Case: <strong>{prod.caseSize || '10 Units'}</strong></div>
+                            {getPackagingLevels(prod).length > 0 ? (
+                              <div className="space-y-0.5 max-w-[180px]">
+                                {getPackagingLevels(prod).slice(0, 2).map((lvl) => (
+                                  <div key={lvl.key} className="truncate">
+                                    {lvl.label}: <strong className="text-slate-800 dark:text-slate-200">{lvl.value}</strong>
+                                  </div>
+                                ))}
+                                {getPackagingLevels(prod).length > 2 && (
+                                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold block">
+                                    +{getPackagingLevels(prod).length - 2} more packaging levels
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">No packaging set</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-center space-x-1">
                             <button
@@ -2549,8 +2591,8 @@ export const AdminDashboard = () => {
 
                                 {/* Account Password */}
                                 <td className="py-3.5 px-4 text-center">
-                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 inline-block">
-                                    {cust.password || 'Cust@123'}
+                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 inline-block tracking-widest">
+                                    ••••••••
                                   </span>
                                 </td>
 
@@ -2638,7 +2680,7 @@ export const AdminDashboard = () => {
                           name: '', 
                           email: '', 
                           phone: '', 
-                          password: 'Sales@123',
+                          password: '',
                           region: 'Central UP (Kanpur HQ)' 
                         });
                         setIsAddSalesmanOpen(true);
@@ -2674,8 +2716,8 @@ export const AdminDashboard = () => {
                           </td>
                           <td className="py-3 px-4 font-medium">{s.region}</td>
                           <td className="py-3 px-4">
-                            <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              {s.password || 'Sales@123'}
+                            <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 tracking-widest">
+                              ••••••••
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -3904,42 +3946,139 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* 2. B2B Packaging Breakdown */}
-                <div className="p-3.5 bg-gradient-to-r from-amber-500/10 via-brand-500/5 to-slate-100 dark:to-slate-950 rounded-2xl border border-amber-500/30 space-y-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-300 block">
-                    📦 B2B Packaging Hierarchy
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 2. Packaging & Quantity (Kirana / FMCG Multi-Level Packaging Hierarchy) */}
+                <div className="p-4 bg-gradient-to-r from-amber-500/10 via-brand-500/5 to-slate-100 dark:to-slate-950 rounded-2xl border border-amber-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                      📦 Packaging & Quantity
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      All packaging levels are optional • Admin defined
+                    </span>
+                  </div>
+
+                  {/* Unit Type & Unit Quantity */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white/70 dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-800">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Unit Pack Size</label>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        1. Primary Unit Type
+                      </label>
+                      <select
+                        value={prodForm.unitType || 'Piece'}
+                        onChange={(e) => setProdForm({ ...prodForm, unitType: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-900 dark:text-white"
+                      >
+                        {UNIT_TYPES.map(u => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">Piece, Gram, Kg, Litre, Bottle, Packet, Box, etc.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        2. Unit Quantity / Measure
+                      </label>
                       <input
                         type="text"
-                        value={prodForm.packSize}
-                        onChange={(e) => setProdForm({ ...prodForm, packSize: e.target.value })}
-                        placeholder="e.g. 1 Litre Tetra / 500g"
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                        value={prodForm.unitQuantity || ''}
+                        onChange={(e) => setProdForm({ ...prodForm, unitQuantity: e.target.value })}
+                        placeholder="e.g. 500 g, 1 kg, 2 kg, 5 kg, 250 ml, 1 bottle"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-900 dark:text-white"
                       />
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">Exact unit quantity / weight measure</span>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Inner Bundle Size</label>
-                      <input
-                        type="text"
-                        value={prodForm.bundleSize}
-                        onChange={(e) => setProdForm({ ...prodForm, bundleSize: e.target.value })}
-                        placeholder="e.g. 6 Packs Shrink Wrap"
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
-                      />
+                  </div>
+
+                  {/* Multi-Level Packaging Hierarchy: Pack, Bundle, Mala, Bori, Case, Carton */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Configurable Packaging Levels (Fill only what applies):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Pack Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.packSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, packSize: e.target.value })}
+                          placeholder="e.g. 1 Packet / 500g Box"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Bundle Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.bundleSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, bundleSize: e.target.value })}
+                          placeholder="e.g. 12 Bottles / 6 Packs"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Mala Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.malaSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, malaSize: e.target.value })}
+                          placeholder="e.g. 20 Pieces / Mala"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Bori Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.boriSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, boriSize: e.target.value })}
+                          placeholder="e.g. 5 × 1 kg / 50 kg Bori"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Case Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.caseSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, caseSize: e.target.value })}
+                          placeholder="e.g. 24 Bottles / Master Case"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-xl text-xs font-bold text-brand-900 dark:text-amber-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Carton Size</label>
+                        <input
+                          type="text"
+                          value={prodForm.cartonSize || ''}
+                          onChange={(e) => setProdForm({ ...prodForm, cartonSize: e.target.value })}
+                          placeholder="e.g. 10 Boxes / Outer Carton"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Master Case Size</label>
-                      <input
-                        type="text"
-                        value={prodForm.caseSize}
-                        onChange={(e) => setProdForm({ ...prodForm, caseSize: e.target.value })}
-                        placeholder="e.g. 12 Units / Master Case"
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-400 dark:border-amber-800 rounded-xl font-bold text-brand-900 dark:text-amber-300"
-                      />
-                    </div>
+                  </div>
+
+                  {/* Custom Packaging / Relationship Breakdown */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                      Custom Packaging / Breakdown Notes
+                    </label>
+                    <input
+                      type="text"
+                      value={prodForm.customPackaging || ''}
+                      onChange={(e) => setProdForm({ ...prodForm, customPackaging: e.target.value })}
+                      placeholder="e.g. 1 Bori = 5 × 1 kg packets • 1 Mala = 20 pieces • 1 Case = 24 bottles"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium"
+                    />
+                    <span className="text-[9px] text-slate-400 mt-0.5 block">
+                      Optional breakdown notes. Leave blank if not applicable.
+                    </span>
                   </div>
                 </div>
 
@@ -4583,9 +4722,9 @@ export const AdminDashboard = () => {
                       onChange={(e) => setCustForm({ ...custForm, classification: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
                     >
-                      <option value="NORMAL">NORMAL (Standard Verified)</option>
-                      <option value="DAMAGE">DAMAGE (Return / Claims Account)</option>
-                      <option value="EXPIRY">EXPIRY (Stock Replacements Account)</option>
+                      <option value="NORMAL">NORMAL (सामान्य ग्राहक — Standard)</option>
+                      <option value="DAMAGE">DAMAGE (डैमेज ग्राहक — Return/Claims)</option>
+                      <option value="EXPIRY">EXPIRY (एक्सपायरी ग्राहक — Replacements)</option>
                     </select>
                   </div>
 

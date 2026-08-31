@@ -10,7 +10,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
 import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
-
+import { getPackagingLevels } from '../../utils/packagingUtils';
 import { checkUnwantedContent } from '../../utils/securityUtils';
 
 // 🛡️ Security & Performance Constants for Docket Photo Attachments
@@ -378,14 +378,17 @@ export const CartView = () => {
   };
 
   const commonDamageReasons = [
-    'Damaged Packaging',
-    'Broken Product',
-    'Leakage',
-    'Torn/Opened Pack',
-    'Water Damage',
-    'Transport Damage',
-    'Manufacturing Damage',
-    'Other (Custom Reason)'
+    { value: 'Damaged Packaging', key: 'reason_damaged_packaging', defaultText: 'Damaged Packaging / Crushed Box' },
+    { value: 'Broken Product', key: 'reason_broken_product', defaultText: 'Broken Product / Damaged Item' },
+    { value: 'Leakage', key: 'reason_leakage', defaultText: 'Seal Broken / Liquid Leakage' },
+    { value: 'Torn/Opened Pack', key: 'reason_torn_pack', defaultText: 'Torn / Opened Pack' },
+    { value: 'Water Damage', key: 'reason_water_damage', defaultText: 'Water Damage / Moisture Defect' },
+    { value: 'Transport Damage', key: 'reason_transport_damage', defaultText: 'Transport / In-Transit Damage' },
+    { value: 'Manufacturing Damage', key: 'reason_manufacturing_defect', defaultText: 'Manufacturing Defect' },
+    { value: 'Expired Stock', key: 'reason_expired_product', defaultText: 'Expired Stock' },
+    { value: 'Near Expiry', key: 'reason_near_expiry', defaultText: 'Near Expiry / Retailer Rotation' },
+    { value: 'Wrong Item', key: 'reason_wrong_item', defaultText: 'Wrong Item Delivered Previously' },
+    { value: 'Other (Custom Reason)', key: 'reason_other_custom', defaultText: 'Other (Custom Reason)' }
   ];
 
   // Products belonging to the selected Return Company
@@ -779,13 +782,19 @@ export const CartView = () => {
                           </div>
                         </td>
 
-                        {/* Pack Info Column */}
+                        {/* Packaging & Unit Info Column */}
                         <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
-                          <div className="text-[11px] space-y-0.5">
-                            {item.product.packSize && <div>Pack: <strong>{item.product.packSize}</strong></div>}
-                            {item.product.bundleSize && <div>Bundle: <strong>{item.product.bundleSize}</strong></div>}
-                            {item.product.caseSize && <div className="text-amber-700 dark:text-amber-400 font-bold">Case: {item.product.caseSize}</div>}
-                          </div>
+                          {getPackagingLevels(item.product).length > 0 ? (
+                            <div className="text-[11px] space-y-0.5 max-w-[160px]">
+                              {getPackagingLevels(item.product).map((lvl) => (
+                                <div key={lvl.key} className="truncate">
+                                  {lvl.label}: <strong className="text-slate-800 dark:text-slate-200">{lvl.value}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-mono">-</span>
+                          )}
                         </td>
 
                         {/* Direct Numeric Input & Custom B2B Quantity Presets */}
@@ -963,7 +972,7 @@ export const CartView = () => {
                         required
                         value={salesmanAreaInput}
                         onChange={(e) => setSalesmanAreaInput(e.target.value)}
-                        placeholder={t('enter_shop_owner_area', 'e.g. South Kanpur Central / Collectorganj')}
+                        placeholder={t('enter_shop_owner_area', 'e.g. Koyla Nagar / Anand Vihar / South Kanpur')}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
@@ -1023,15 +1032,15 @@ export const CartView = () => {
                   </span>
                   <div>
                     <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
-                      <span>Expired Products Claim & Replacement (Optional)</span>
+                      <span>{t('expired_product_heading', 'Expired Products Claim & Replacement (Optional)')}</span>
                       {expiredItems.length > 0 && (
                         <span className="px-2.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-full shadow-sm">
-                          {expiredItems.length} {expiredItems.length === 1 ? 'Product' : 'Products'} Logged
+                          {expiredItems.length} {t('products', 'Products')}
                         </span>
                       )}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Record expired stock returned by retailer for manufacturer credit adjustment / replacement.
+                      {t('expired_product_desc', 'Record expired stock returned by retailer for manufacturer credit adjustment / replacement.')}
                     </p>
                   </div>
                 </div>
@@ -1050,11 +1059,11 @@ export const CartView = () => {
                 >
                   {isExpiredOpen ? (
                     <>
-                      <ChevronUp className="w-3.5 h-3.5" /> Collapse
+                      <ChevronUp className="w-3.5 h-3.5" /> {t('collapse', 'Collapse')}
                     </>
                   ) : (
                     <>
-                      <Plus className="w-3.5 h-3.5" /> {expiredItems.length > 0 ? '+ Add More Expired Product' : '+ Add Expired Product'}
+                      <Plus className="w-3.5 h-3.5" /> {expiredItems.length > 0 ? t('add_more_expired_product', '+ Add More Expired Product') : t('add_expired_product', '+ Add Expired Product')}
                     </>
                   )}
                 </button>
@@ -1069,14 +1078,14 @@ export const CartView = () => {
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
-                      {editingExpiredId ? 'Edit Expired Product Claim' : 'Log New Expired Product Claim'}
+                      {editingExpiredId ? t('edit_expired_claim', 'Edit Expired Product Claim') : t('log_expired_claim', 'Log New Expired Product Claim')}
                     </span>
                     <button
                       type="button"
                       onClick={() => { setIsExpiredOpen(false); resetExpiredForm(); }}
                       className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
-                      Cancel
+                      {t('cancel', 'Cancel')}
                     </button>
                   </div>
 
@@ -1084,7 +1093,7 @@ export const CartView = () => {
                     {/* 1. Company Selection Dropdown */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        1. Select Company / Brand <span className="text-rose-500">*</span>
+                        {t('expired_company_select', '1. Select Company / Brand')} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -1095,7 +1104,7 @@ export const CartView = () => {
                         }}
                         className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-500"
                       >
-                        <option value="">-- Select Company ({companyList.length} Available) --</option>
+                        <option value="">-- {t('select_company', 'Select Company')} ({companyList.length}) --</option>
                         {companyList.map((comp) => (
                           <option key={comp} value={comp}>{comp}</option>
                         ))}
@@ -1105,7 +1114,7 @@ export const CartView = () => {
                     {/* 2. Product Selection Dropdown */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        2. Select Expired Product <span className="text-rose-500">*</span>
+                        {t('expired_product_select', '2. Select Expired Product')} <span className="text-rose-500">*</span>
                       </label>
                       <select
                         required
@@ -1116,10 +1125,10 @@ export const CartView = () => {
                       >
                         <option value="">
                           {!expiredCompany 
-                            ? '-- First Select a Company above --' 
+                            ? `-- ${t('select_company_first', 'First Select a Company above')} --` 
                             : companyProducts.length === 0 
-                            ? '-- No products found for this company --' 
-                            : `-- Choose Product (${companyProducts.length} Available) --`}
+                            ? `-- ${t('no_products_found', 'No products found for this company')} --` 
+                            : `-- ${t('choose_product', 'Choose Product')} (${companyProducts.length}) --`}
                         </option>
                         {companyProducts.map((prod) => (
                           <option 
@@ -1178,7 +1187,7 @@ export const CartView = () => {
                     {/* MFD Date Picker */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        MFD Date {!expiredNoDate && <span className="text-rose-500">*</span>}
+                        {t('expired_mfd_label', 'MFD / Manufacturing Date')} {!expiredNoDate && <span className="text-rose-500">*</span>}
                       </label>
                       <div className="relative flex items-center">
                         <input
@@ -1206,7 +1215,7 @@ export const CartView = () => {
                           className="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500 cursor-pointer"
                         />
                         <span className="font-bold text-slate-800 dark:text-slate-200 select-none text-[11px]">
-                          No Date Available on Pack
+                          {t('expired_no_date', 'No Date Available on Pack')}
                         </span>
                       </label>
                     </div>
@@ -1214,7 +1223,7 @@ export const CartView = () => {
                     {/* Quantity of Expired Items */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        Quantity of Expired Items <span className="text-rose-500">*</span>
+                        {t('expired_qty_label', 'Quantity of Expired Items')} <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -1234,9 +1243,9 @@ export const CartView = () => {
                     <div className="flex items-center justify-between">
                       <label className="font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <Camera className="w-3.5 h-3.5 text-rose-500" />
-                        Attach Expired Pack / MFD Batch Photos
+                        {t('expired_photos_label', 'Attach Expired Pack / MFD Batch Photos')}
                         <span className="text-slate-400 font-normal">
-                          ({expiredImages.length}/{MAX_PHOTOS_PER_ITEM} photos • Shows on Invoice)
+                          ({expiredImages.length}/{MAX_PHOTOS_PER_ITEM} photos • {t('shows_on_invoice', 'Shows on Invoice')})
                         </span>
                       </label>
                       {expiredImages.length > 0 && (
@@ -1483,15 +1492,15 @@ export const CartView = () => {
                   </span>
                   <div>
                     <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
-                      <span>Goods Return & Damage Docket (Optional)</span>
+                      <span>{t('damage_product_heading', 'Goods Return & Damage Docket (Optional)')}</span>
                       {returnItems.length > 0 && (
                         <span className="px-2.5 py-0.5 bg-orange-600 text-white text-[10px] font-black rounded-full shadow-sm">
-                          {returnItems.length} {returnItems.length === 1 ? 'Product' : 'Products'} Logged
+                          {returnItems.length} {t('products', 'Products')}
                         </span>
                       )}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Record damaged boxes, leakages, or unsellable stock sent back by merchant.
+                      {t('damage_product_desc', 'Record damaged boxes, leakages, or unsellable stock sent back by merchant.')}
                     </p>
                   </div>
                 </div>
@@ -1510,11 +1519,11 @@ export const CartView = () => {
                 >
                   {isReturnOpen ? (
                     <>
-                      <ChevronUp className="w-3.5 h-3.5" /> Collapse
+                      <ChevronUp className="w-3.5 h-3.5" /> {t('collapse', 'Collapse')}
                     </>
                   ) : (
                     <>
-                      <Plus className="w-3.5 h-3.5" /> {returnItems.length > 0 ? '+ Add More Damage Product' : '+ Add Damage Product'}
+                      <Plus className="w-3.5 h-3.5" /> {returnItems.length > 0 ? t('add_more_damage_product', '+ Add More Damage Product') : t('add_damage_product', '+ Add Damage Product')}
                     </>
                   )}
                 </button>
@@ -1529,14 +1538,14 @@ export const CartView = () => {
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
                     <span className="text-xs font-extrabold uppercase tracking-wider text-orange-700 dark:text-orange-400 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
-                      {editingReturnId ? 'Edit Damage Product Docket' : 'Log New Damage Product Docket'}
+                      {editingReturnId ? t('edit_damage_docket', 'Edit Damage Product Docket') : t('log_damage_docket', 'Log New Damage Product Docket')}
                     </span>
                     <button
                       type="button"
                       onClick={() => { setIsReturnOpen(false); resetReturnForm(); }}
                       className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
-                      Cancel
+                      {t('cancel', 'Cancel')}
                     </button>
                   </div>
 
@@ -1544,7 +1553,7 @@ export const CartView = () => {
                     {/* 1. Company Selection Dropdown */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        1. Select Company / Brand <span className="text-orange-500">*</span>
+                        {t('damage_company_select', '1. Select Company / Brand')} <span className="text-orange-500">*</span>
                       </label>
                       <select
                         required
@@ -1555,7 +1564,7 @@ export const CartView = () => {
                         }}
                         className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
                       >
-                        <option value="">-- Select Company ({companyList.length} Available) --</option>
+                        <option value="">-- {t('select_company', 'Select Company')} ({companyList.length}) --</option>
                         {companyList.map((comp) => (
                           <option key={comp} value={comp}>{comp}</option>
                         ))}
@@ -1565,7 +1574,7 @@ export const CartView = () => {
                     {/* 2. Product Selection Dropdown */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        2. Select Damage Product <span className="text-orange-500">*</span>
+                        {t('damage_product_select', '2. Select Damage Product')} <span className="text-orange-500">*</span>
                       </label>
                       <select
                         required
@@ -1576,10 +1585,10 @@ export const CartView = () => {
                       >
                         <option value="">
                           {!returnCompany 
-                            ? '-- First Select a Company above --' 
+                            ? `-- ${t('select_company_first', 'First Select a Company above')} --` 
                             : returnCompanyProducts.length === 0 
-                            ? '-- No products found for this company --' 
-                            : `-- Choose Product (${returnCompanyProducts.length} Available) --`}
+                            ? `-- ${t('no_products_found', 'No products found for this company')} --` 
+                            : `-- ${t('choose_product', 'Choose Product')} (${returnCompanyProducts.length}) --`}
                         </option>
                         {returnCompanyProducts.map((prod) => (
                           <option 
@@ -1638,7 +1647,7 @@ export const CartView = () => {
                     {/* Damage / Incident Date */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        Damage / Incident Date {!returnNoDate && <span className="text-orange-500">*</span>}
+                        {t('damage_date_label', 'Damage / Incident Date')} {!returnNoDate && <span className="text-orange-500">*</span>}
                       </label>
                       <div className="relative flex items-center">
                         <input
@@ -1666,7 +1675,7 @@ export const CartView = () => {
                           className="w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer"
                         />
                         <span className="font-bold text-slate-800 dark:text-slate-200 select-none text-[11px]">
-                          No Date Available
+                          {t('damage_no_date', 'No Date Available')}
                         </span>
                       </label>
                     </div>
@@ -1674,7 +1683,7 @@ export const CartView = () => {
                     {/* Quantity of Damaged Items */}
                     <div>
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300 mb-1">
-                        Quantity of Damaged Items <span className="text-orange-500">*</span>
+                        {t('damage_qty_label', 'Quantity of Damaged Items')} <span className="text-orange-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -1693,7 +1702,7 @@ export const CartView = () => {
                   <div className="pt-1 text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <label className="block font-extrabold uppercase text-[11px] text-slate-700 dark:text-slate-300">
-                        Damage Reason <span className="text-orange-500">*</span>
+                        {t('damage_reason_label', 'Damage Reason / Defect Type')} <span className="text-orange-500">*</span>
                       </label>
                       {!isCustomReason && (
                         <button
@@ -1704,7 +1713,7 @@ export const CartView = () => {
                           }}
                           className="text-[10px] font-extrabold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-0.5"
                         >
-                          <Plus className="w-3 h-3" /> Add Custom Reason
+                          <Plus className="w-3 h-3" /> {t('add_custom_reason', 'Add Custom Reason')}
                         </button>
                       )}
                     </div>
@@ -1722,7 +1731,7 @@ export const CartView = () => {
                         className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500"
                       >
                         {commonDamageReasons.map(r => (
-                          <option key={r} value={r}>{r}</option>
+                          <option key={r.value} value={r.value}>{t(r.key, r.defaultText)}</option>
                         ))}
                       </select>
                     ) : (
@@ -1734,7 +1743,7 @@ export const CartView = () => {
                             autoFocus
                             value={customReturnReason}
                             onChange={(e) => setCustomReturnReason(e.target.value)}
-                            placeholder="Type specific damage reason (e.g. Seal broken during transport)"
+                            placeholder={t('damage_custom_reason', 'Type specific damage reason')}
                             className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
                           />
                         </div>
@@ -2019,7 +2028,7 @@ export const CartView = () => {
               <div className="p-4 rounded-2xl bg-amber-50 dark:bg-slate-950 border border-amber-200 dark:border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="font-extrabold text-slate-600 dark:text-slate-400">ORDER TYPE</span>
-                  <span className="px-2.5 py-0.5 bg-brand-900 text-white font-extrabold text-[10px] rounded uppercase">Offline Collection</span>
+                  <span className="px-2.5 py-0.5 bg-brand-900 text-white font-extrabold text-[10px] rounded uppercase">Direct Collection</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-extrabold text-slate-600 dark:text-slate-400">PAYMENT METHOD</span>
@@ -2195,7 +2204,7 @@ export const CartView = () => {
                   </div>
                 )}
                 <p className="text-center text-[11px] text-slate-500 font-medium">
-                  Verified high-resolution client attachment for offline docket inspection & invoice billing.
+                  Verified high-resolution client attachment for docket inspection & invoice billing.
                 </p>
               </div>
             </motion.div>

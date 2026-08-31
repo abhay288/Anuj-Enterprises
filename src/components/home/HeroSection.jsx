@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 const Enterprise3DModel = lazy(() => import('./Enterprise3DModel'));
 
 export const HeroSection = () => {
-  const { navigateTo, setIsSalesmanModalOpen, searchQuery, setSearchQuery } = useApp();
+  const { navigateTo, setIsSalesmanModalOpen, searchQuery, setSearchQuery, t } = useApp();
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -34,7 +34,7 @@ export const HeroSection = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/60 backdrop-blur-md text-xs font-semibold text-amber-400 shadow-lg"
             >
               <Award className="w-4 h-4 text-amber-400 animate-bounce" />
-              <span>India's Premier B2B FMCG & Consumer Goods Wholesale Distributor</span>
+              <span>{t('hero_badge', "India's Premier B2B FMCG & Consumer Goods Wholesale Distributor")}</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -44,9 +44,9 @@ export const HeroSection = () => {
               transition={{ delay: 0.1 }}
               className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none"
             >
-              Powering India's <br />
+              {t('hero_title_1', "Powering India's")} <br />
               <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
-                FMCG Supply Chain
+                {t('hero_title_highlight', 'FMCG Supply Chain')}
               </span>
             </motion.h1>
 
@@ -56,7 +56,7 @@ export const HeroSection = () => {
               transition={{ delay: 0.2 }}
               className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed"
             >
-              Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Net 30 B2B Credit, Instant B2B Invoicing & 24h Express Freight.
+              {t('hero_subtitle', 'Direct factory wholesale supply for Milk, Beverages, Cereals, Soaps, Shampoos, Toothpaste & Snacks. Direct Mandi Settlement, Instant B2B Invoicing & Express Freight.')}
             </motion.p>
 
             {/* Search Bar in Hero */}
@@ -72,14 +72,14 @@ export const HeroSection = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 1,200+ Wholesale FMCG SKUs (Amul, Nestlé, Dove, Colgate...)"
+                placeholder={t('search_placeholder', 'Search FMCG SKUs, Amul, Nestlé, Dove, Colgate, Rice, Oil...')}
                 className="w-full pl-12 pr-32 py-3.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-sm font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-xl backdrop-blur-md"
               />
               <button
                 type="submit"
                 className="absolute right-2 top-2 px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all"
               >
-                Find Products
+                {t('hero_search_btn', 'Find Products')}
               </button>
             </motion.form>
 
@@ -94,7 +94,7 @@ export const HeroSection = () => {
                 onClick={() => navigateTo('catalogue')}
                 className="px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 flex items-center gap-2 group transition-all"
               >
-                <ShoppingBag className="w-4 h-4" /> Browse Catalog
+                <ShoppingBag className="w-4 h-4" /> {t('hero_browse_btn', 'Browse Catalog')}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
@@ -102,7 +102,7 @@ export const HeroSection = () => {
                 onClick={() => setIsSalesmanModalOpen(true)}
                 className="px-6 py-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-bold text-sm border border-slate-700 backdrop-blur-md flex items-center gap-2 transition-all shadow-lg"
               >
-                <ShieldCheck className="w-4 h-4 text-amber-400" /> Login/SignUp
+                <ShieldCheck className="w-4 h-4 text-amber-400" /> {t('nav_salesman', 'Login / Sign Up')}
               </button>
             </motion.div>
 
@@ -114,13 +114,13 @@ export const HeroSection = () => {
               className="pt-6 border-t border-slate-800/80 flex flex-wrap items-center gap-6 text-xs text-slate-400"
             >
               <span className="flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-amber-400" /> 24h Express Route Dispatch
+                <Truck className="w-4 h-4 text-amber-400" /> {t('stat_delivery', 'Same-Day Dispatch')}
               </span>
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" /> 100% Genuine Direct Mill Stock
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> {t('stat_quality', '100% Original Brand Assured')}
               </span>
               <span className="flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-brand-400" /> Official B2B Sales Invoice
+                <Building2 className="w-4 h-4 text-brand-400" /> {t('feat_mandi_settlement', 'Direct Mandi Settlement')}
               </span>
             </motion.div>
           </div>

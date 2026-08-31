@@ -1,45 +1,141 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Primary Storefront Pages -->
   <url>
-    <loc>https://anujenterprises.com/</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://anujfmcg.com/</loc>
+    <lastmod>2026-08-31</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://anujfmcg.com/logo.png</image:loc>
+      <image:title>Anuj Enterprises B2B FMCG Distribution Central Hub Kanpur</image:title>
+      <image:caption>Official B2B FMCG wholesale sourcing platform for Amul, Nestlé, Britannia, Cadbury, and Colgate in Kanpur, Uttar Pradesh.</image:caption>
+    </image:image>
   </url>
+
   <url>
-    <loc>https://anujenterprises.com/#/catalogue</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://anujfmcg.com/#/catalogue</loc>
+    <lastmod>2026-08-31</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
+
   <url>
-    <loc>https://anujenterprises.com/#/about</loc>
-    <lastmod>2026-08-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://anujfmcg.com/#/about</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
+
   <url>
-    <loc>https://anujenterprises.com/#/contact</loc>
-    <lastmod>2026-08-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://anujfmcg.com/#/support</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
   </url>
+
+  <!-- Statutory Legal & Trade Policy Pages -->
   <url>
-    <loc>https://anujenterprises.com/#/terms-of-supply</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://anujfmcg.com/#/terms-of-supply</loc>
+    <lastmod>2026-08-31</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.70</priority>
   </url>
+
   <url>
-    <loc>https://anujenterprises.com/#/privacy-policy</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://anujfmcg.com/#/privacy-policy</loc>
+    <lastmod>2026-08-31</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.70</priority>
   </url>
+
   <url>
-    <loc>https://anujenterprises.com/#/return-policy</loc>
-    <lastmod>2026-08-21</lastmod>
+    <loc>https://anujfmcg.com/#/return-policy</loc>
+    <lastmod>2026-08-31</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.70</priority>
   </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/legal</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+  </url>
+
+  <!-- Top FMCG Wholesale Product Category Landing Slugs -->
+  <url>
+    <loc>https://anujfmcg.com/#/product/amul-pasteurised-butter-500g-pack</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/maggi-2-minute-masala-noodles-70g</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/britannia-good-day-butter-cookies-600g</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/cadbury-dairy-milk-silk-chocolate-bar-150g</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/colgate-strong-teeth-toothpaste-500g-saver-pack</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/nestle-everyday-dairy-whitener-1kg-pouch</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/fortune-sunlite-refined-sunflower-oil-1l-pouch</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/#/product/surf-excel-quick-wash-detergent-powder-1kg</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- AI & Machine Discovery Files -->
+  <url>
+    <loc>https://anujfmcg.com/llms.txt</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://anujfmcg.com/llms-full.txt</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
 </urlset>

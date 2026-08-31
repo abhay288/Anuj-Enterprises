@@ -9,7 +9,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const LegalView = ({ initialTab = 'privacy' }) => {
-  const { legalPolicies, user, navigateTo, showToast } = useApp();
+  const { legalPolicies, user, navigateTo, showToast, t } = useApp();
   
   // Tab can be 'privacy' | 'terms' | 'returns'
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -40,9 +40,9 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-6 print:hidden">
-          <button onClick={() => navigateTo('home')} className="hover:text-amber-500 font-bold">Home</button>
+          <button onClick={() => navigateTo('home')} className="hover:text-amber-500 font-bold">{t('nav_home', 'Home')}</button>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="font-semibold text-slate-700 dark:text-slate-300">Compliance & Legal Center</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">{t('nav_legal', 'Compliance & Legal Center')}</span>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="font-extrabold text-brand-900 dark:text-amber-400">{policy.title}</span>
         </div>
@@ -56,7 +56,7 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
                   <Scale className="w-3.5 h-3.5" />
-                  Statutory B2B Trade Compliance
+                  {t('statutory_compliance', 'Statutory B2B Trade Compliance')}
                 </span>
                 <span className="text-xs text-slate-300 font-mono">Ver: {policy.version}</span>
               </div>
@@ -88,7 +88,7 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
                 onClick={handlePrint}
                 className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 shadow flex items-center gap-2 transition-colors"
               >
-                <Printer className="w-4 h-4 text-amber-400" /> Print Official Copy
+                <Printer className="w-4 h-4 text-amber-400" /> {t('print_invoice', 'Print Official Copy')}
               </button>
 
               {user?.role === 'admin' && (
@@ -96,7 +96,7 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
                   onClick={() => navigateTo('admin-dash')}
                   className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-2 transition-colors"
                 >
-                  <Edit3 className="w-4 h-4" /> Edit in Admin Portal
+                  <Edit3 className="w-4 h-4" /> {t('nav_admin', 'Edit in Admin Portal')}
                 </button>
               )}
             </div>
@@ -106,9 +106,9 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
         {/* Tab Navigation Controls */}
         <div className="flex flex-wrap items-center gap-2 mb-8 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm print:hidden">
           {[
-            { id: 'privacy', label: 'Privacy Policy', icon: ShieldCheck, desc: 'B2B Data Encryption & Security' },
-            { id: 'terms', label: 'Terms of Supply', icon: FileText, desc: 'Commercial Wholesale Trade Terms' },
-            { id: 'returns', label: 'Return & Claims Policy', icon: RotateCcw, desc: 'Quality Guarantee & Replacement Dockets' }
+            { id: 'privacy', label: t('privacy_policy', 'Privacy Policy'), icon: ShieldCheck, desc: 'B2B Data Encryption & Security' },
+            { id: 'terms', label: t('terms_of_supply', 'Terms of Supply'), icon: FileText, desc: 'Commercial Wholesale Trade Terms' },
+            { id: 'returns', label: t('return_policy', 'Return & Claims Policy'), icon: RotateCcw, desc: 'Quality Guarantee & Replacement Dockets' }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -302,7 +302,7 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
               <Building2 className="w-8 h-8 text-amber-400 mx-auto" />
               <h4 className="text-sm font-extrabold">Anuj Enterprises — Central FMCG Distribution Hub</h4>
               <p className="text-xs text-slate-400 print:text-slate-600 max-w-lg mx-auto">
-                Transport Nagar / Industrial Area, Kanpur, Uttar Pradesh — 208001. All transactions are governed strictly by the commercial laws of India and subject to exclusive Kanpur Jurisdiction.
+                Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021. All transactions are governed strictly by the commercial laws of India and subject to exclusive Kanpur Jurisdiction.
               </p>
               <div className="pt-2 text-[10px] text-slate-500 font-mono">
                 Document Auth Hash: AE-LEGAL-2026-KANPUR-VERIFIED

@@ -6,7 +6,7 @@ import { User } from '../models/User.js';
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const PROD_ADMIN_EMAIL = process.env.PROD_ADMIN_EMAIL || 'admin@anujenterprises.com';
+const PROD_ADMIN_EMAIL = process.env.PROD_ADMIN_EMAIL || 'admin@anujfmcg.com';
 const PROD_ADMIN_PASSWORD = process.env.PROD_ADMIN_PASSWORD || 'AnujAdmin#2026!Secure';
 
 export const bootstrapProductionAdmin = async () => {

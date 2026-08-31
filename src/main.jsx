@@ -9,7 +9,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Register PWA Service Worker for Offline Capabilities & Logo Caching
+// Register PWA Service Worker for Fast App Performance & Logo Caching
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')

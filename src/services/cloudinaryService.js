@@ -57,7 +57,7 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
 
   // 1. Try Authenticated Backend Upload Endpoint
   try {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    const backendUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api/v1';
     const headers = {
       'Content-Type': 'application/json'
     };

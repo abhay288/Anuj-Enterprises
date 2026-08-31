@@ -1,17 +1,92 @@
-# Robots.txt for Anuj Enterprises B2B Platform
+# ==============================================================================
+# Robots.txt for Anuj Enterprises — Official B2B FMCG Distribution Platform
+# Website: https://anujfmcg.com/
+# Headquarters: Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021
+# ==============================================================================
+
+# Global Search Engine Crawlers
 User-agent: *
 Allow: /
 Allow: /#/
 Allow: /#/catalogue
+Allow: /#/product/
 Allow: /#/about
-Allow: /#/contact
+Allow: /#/support
 Allow: /#/privacy-policy
 Allow: /#/terms-of-supply
 Allow: /#/return-policy
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /sitemap.xml
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+Disallow: /customer-dash
 
-# Disallow internal and authenticated dashboards from search engine scrapers
+# Google Search & Google Extended (Gemini Search)
+User-agent: Googlebot
+User-agent: Googlebot-Image
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /api/
 Disallow: /admin-dash
 Disallow: /salesman-dash
 
-Sitemap: https://anujenterprises.com/sitemap.xml
+# OpenAI ChatGPT & SearchGPT (GPTBot / ChatGPT-User)
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Anthropic Claude & Claude Search
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Perplexity AI Search Engine
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Apple Search & Siri
+User-agent: Applebot
+User-agent: Applebot-Extended
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Microsoft Bing & Copilot
+User-agent: Bingbot
+User-agent: msnbot
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Sitemap & LLM Knowledge Endpoints
+Sitemap: https://anujfmcg.com/sitemap.xml
+# LLMs.txt AI Reference: https://anujfmcg.com/llms.txt
+# LLMs Full Knowledge Base: https://anujfmcg.com/llms-full.txt
+

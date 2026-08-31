@@ -488,7 +488,7 @@ export const SalesmanDashboard = () => {
                               </span>
                             ) : (
                               <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-extrabold text-[10px]">
-                                {order.status || 'Offline - Pending'}
+                                {order.status || 'Direct - Pending'}
                               </span>
                             )}
                           </td>
@@ -578,14 +578,14 @@ export const SalesmanDashboard = () => {
                         <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-brand-950 text-white">
                           {cust.customerId || 'CUST'}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                           cust.classification === 'DAMAGE'
                             ? 'bg-orange-100 text-orange-800'
                             : cust.classification === 'EXPIRY'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-emerald-100 text-emerald-800'
                         }`}>
-                          {cust.classification || 'NORMAL'}
+                          {cust.classification === 'DAMAGE' ? 'DAMAGE / डैमेज' : cust.classification === 'EXPIRY' ? 'EXPIRY / एक्सपायरी' : 'NORMAL / सामान्य'}
                         </span>
                       </div>
                       <h4 className="text-sm font-extrabold text-slate-900 dark:text-white leading-snug">{cust.name}</h4>
@@ -715,9 +715,9 @@ export const SalesmanDashboard = () => {
                       onChange={(e) => setNewCustomerForm({ ...newCustomerForm, classification: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
                     >
-                      <option value="NORMAL">Normal Customer</option>
-                      <option value="DAMAGE">Damage Customer</option>
-                      <option value="EXPIRY">Expiry Customer</option>
+                      <option value="NORMAL">Normal Customer (सामान्य ग्राहक)</option>
+                      <option value="DAMAGE">Damage Customer (डैमेज ग्राहक)</option>
+                      <option value="EXPIRY">Expiry Customer (एक्सपायरी ग्राहक)</option>
                     </select>
                   </div>
                 </div>
