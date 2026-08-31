@@ -92,6 +92,7 @@ export const HeadlineBar = () => {
 
             <button
               onClick={() => setIsDismissed(true)}
+              aria-label="Dismiss announcement"
               title="Dismiss announcement"
               className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors"
             >

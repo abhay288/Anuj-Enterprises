@@ -337,9 +337,9 @@ export const ProductGrid = () => {
               <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-slate-800 text-amber-500 mx-auto flex items-center justify-center mb-4">
                 <PackageX className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
                 No Products Matched Your Sourcing Criteria
-              </h3>
+              </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
                 Try clearing selected search keywords or category filters to display all catalog items.
               </p>

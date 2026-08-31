@@ -51,7 +51,7 @@ const MultiSelectDropdown = ({
 
   return (
     <div className="relative flex-1 min-w-[200px]" ref={dropdownRef}>
-      <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+      <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-1">
         <Icon className="w-3.5 h-3.5 text-amber-500 shrink-0" />
         {label}
       </label>

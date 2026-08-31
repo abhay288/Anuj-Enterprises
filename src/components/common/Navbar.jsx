@@ -57,7 +57,7 @@ export const Navbar = () => {
                 ENTERPRISES
               </span>
             </div>
-            <span className="text-[9px] sm:text-xs font-extrabold tracking-widest text-amber-600 dark:text-amber-400 uppercase block mt-0.5">
+            <span className="text-[9px] sm:text-xs font-extrabold tracking-widest text-amber-800 dark:text-amber-300 uppercase block mt-0.5">
               {t('trusted_partner', 'Your Trusted Supply Partner')}
             </span>
           </div>
@@ -127,14 +127,14 @@ export const Navbar = () => {
             onClick={toggleLanguage}
             aria-label="Switch Language (English or Hindi)"
             title={language === 'en' ? 'Switch to Easy Hindi (हिंदी)' : 'Switch to English'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-400/40 bg-amber-50/80 dark:bg-amber-950/40 text-slate-800 dark:text-slate-200 hover:bg-amber-100/80 dark:hover:bg-amber-900/60 transition-all font-bold text-xs shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-400/60 bg-amber-50 dark:bg-amber-950/60 text-slate-900 dark:text-slate-100 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all font-bold text-xs shadow-xs"
           >
-            <Globe className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span className={language === 'en' ? 'text-amber-700 dark:text-amber-400 font-extrabold' : 'text-slate-400'}>
+            <Globe className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+            <span className={language === 'en' ? 'text-amber-900 dark:text-amber-300 font-extrabold' : 'text-slate-700 dark:text-slate-300'}>
               EN
             </span>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
-            <span className={language === 'hi' ? 'text-amber-700 dark:text-amber-400 font-extrabold' : 'text-slate-400'}>
+            <span className="text-slate-400 dark:text-slate-500">|</span>
+            <span className={language === 'hi' ? 'text-amber-900 dark:text-amber-300 font-extrabold' : 'text-slate-700 dark:text-slate-300'}>
               हिंदी
             </span>
           </button>
