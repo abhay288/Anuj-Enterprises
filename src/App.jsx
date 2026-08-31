@@ -1,4 +1,6 @@
 import React, { Suspense, lazy } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
@@ -141,6 +143,8 @@ export default function App() {
     <AppProvider>
       <ErrorBoundary>
         <MainContent />
+        <Analytics />
+        <SpeedInsights />
       </ErrorBoundary>
     </AppProvider>
   );
