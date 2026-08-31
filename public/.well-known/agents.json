@@ -1,0 +1,24 @@
+{
+  "name": "Anuj Enterprises B2B FMCG Distribution Agent",
+  "version": "2.0.0",
+  "description": "Agentic AI discovery manifest for Anuj Enterprises — Kanpur's premier wholesale FMCG distributor.",
+  "organization": {
+    "name": "Anuj Enterprises",
+    "url": "https://anujfmcg.com/",
+    "email": "anujenterprises.fmcg.006@gmail.com",
+    "phone": "+91-8887683782",
+    "address": "Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021, India"
+  },
+  "capabilities": [
+    "product_catalog_search",
+    "packaging_unit_calculation",
+    "b2b_tax_invoicing",
+    "mandi_settlement_verification",
+    "kirana_store_reorder_workflow"
+  ],
+  "resources": {
+    "llms_context": "https://anujfmcg.com/llms.txt",
+    "llms_full_kb": "https://anujfmcg.com/llms-full.txt",
+    "sitemap": "https://anujfmcg.com/sitemap.xml"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Anuj Enterprises B2B FMCG Hub",
+  "name_for_model": "anuj_enterprises_fmcg",
+  "description_for_human": "Official B2B FMCG Wholesale Distribution and Sourcing Platform based in Kanpur, Uttar Pradesh.",
+  "description_for_model": "Anuj Enterprises provides direct factory FMCG wholesale procurement for Amul, Nestlé, Britannia, Cadbury, Colgate, Fortune, and HUL. Search products, calculate packaging tiers (Unit, Pack, Bundle, Mala, Bori, Case, Carton), inspect mandi settlement terms, and access B2B tax invoicing.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://anujfmcg.com/openapi.json"
+  },
+  "logo_url": "https://anujfmcg.com/logo.png",
+  "contact_email": "anujenterprises.fmcg.006@gmail.com",
+  "legal_info_url": "https://anujfmcg.com/#/terms-of-supply"
+}
