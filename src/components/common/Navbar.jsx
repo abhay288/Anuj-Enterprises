@@ -125,6 +125,7 @@ export const Navbar = () => {
           <button
             type="button"
             onClick={toggleLanguage}
+            aria-label="Switch Language (English or Hindi)"
             title={language === 'en' ? 'Switch to Easy Hindi (हिंदी)' : 'Switch to English'}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-400/40 bg-amber-50/80 dark:bg-amber-950/40 text-slate-800 dark:text-slate-200 hover:bg-amber-100/80 dark:hover:bg-amber-900/60 transition-all font-bold text-xs shadow-xs"
           >
@@ -145,7 +146,9 @@ export const Navbar = () => {
 
           {/* Cart Icon */}
           <button
+            type="button"
             onClick={() => navigateTo('cart')}
+            aria-label={`View Shopping Cart (${cartTotalQty} items)`}
             className="relative p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
           >
             <ShoppingCart className="w-5 h-5" />
@@ -264,7 +267,9 @@ export const Navbar = () => {
 
           {/* Mobile Hamburger Button */}
           <button
+            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle Mobile Navigation Menu"
             className="md:hidden p-2.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

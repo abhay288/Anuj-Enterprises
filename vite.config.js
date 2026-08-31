@@ -8,9 +8,14 @@ export default defineConfig({
     port: 3000,
     open: true
   },
+  esbuild: {
+    drop: ['console', 'debugger'],
+    legalComments: 'none'
+  },
   build: {
     target: 'es2020',
     cssCodeSplit: true,
+    minify: 'esbuild',
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
