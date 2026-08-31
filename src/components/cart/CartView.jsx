@@ -412,7 +412,7 @@ export const CartView = () => {
     setReturnDate('');
     setReturnNoDate(false);
     setReturnQty(1);
-    setReturnImage(null);
+    setReturnImages([]);
     setReturnReason('Damaged Packaging');
     setCustomReturnReason('');
     setIsCustomReason(false);
@@ -431,7 +431,10 @@ export const CartView = () => {
     setReturnQty(item.qty || 1);
     setReturnDate(item.damageDate || item.date || item.mfdDate || '');
     setReturnNoDate(Boolean(item.noDateAvailable));
-    setReturnImage(item.image || item.damageImage || null);
+    const itemImgs = Array.isArray(item.images) && item.images.length > 0 
+      ? item.images 
+      : (item.image || item.damageImage) ? [item.image || item.damageImage] : [];
+    setReturnImages(itemImgs);
     if (commonDamageReasons.includes(item.reason) && item.reason !== 'Other (Custom Reason)') {
       setReturnReason(item.reason);
       setIsCustomReason(false);
@@ -492,7 +495,8 @@ export const CartView = () => {
       damageDate: returnNoDate ? '' : returnDate,
       date: returnNoDate ? '' : returnDate,
       noDateAvailable: returnNoDate,
-      image: returnImage || null,
+      images: returnImages,
+      image: returnImages[0] || null,
       batchOrNote: returnNoDate ? 'No Date Available' : `Date: ${returnDate}`
     };
 
@@ -507,7 +511,7 @@ export const CartView = () => {
         i.damageDate === payload.damageDate
       );
       if (duplicateIdx >= 0) {
-        setReturnItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, image: payload.image || item.image } : item));
+        setReturnItems(prev => prev.map((item, idx) => idx === duplicateIdx ? { ...item, qty: item.qty + q, images: payload.images.length > 0 ? payload.images : item.images, image: payload.images[0] || item.image } : item));
         showToast(`✓ Added +${q} units to existing damage claim for ${selectedReturnProductObj.name}`, 'success');
       } else {
         setReturnItems(prev => [...prev, payload]);
