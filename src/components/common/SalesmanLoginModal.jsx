@@ -143,72 +143,80 @@ export const SalesmanLoginModal = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden my-6 sm:my-10"
+          className="relative w-full max-w-[500px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden my-auto py-2"
         >
           {/* Header Banner */}
-          <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-slate-900 text-white p-6 relative">
+          <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-slate-900 text-white p-6 sm:p-7 relative">
             <button
               type="button"
               onClick={() => setIsSalesmanModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-slate-300 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              className="absolute top-5 right-5 p-2 text-slate-300 hover:text-white rounded-full hover:bg-white/10 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white p-2.5 flex items-center justify-center mb-4 shadow-2xl shadow-amber-500/30 border-2 border-amber-400 overflow-hidden flex-shrink-0 relative ring-4 ring-white/20">
-              <img src="/logo.png" alt="Anuj Enterprises Logo" className="w-full h-full object-contain filter drop-shadow-sm scale-110" />
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-2 flex items-center justify-center shadow-xl shadow-amber-500/20 border-2 border-amber-400 overflow-hidden flex-shrink-0 relative ring-4 ring-white/20">
+                <img src="/logo.png" alt="Anuj Enterprises Logo" className="w-full h-full object-contain filter drop-shadow-sm scale-105" />
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">Anuj Enterprises Portal</h3>
+                <p className="text-xs text-slate-300 mt-0.5 font-medium">
+                  Select your role authentication mode to proceed
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight">Anuj Enterprises Portal</h3>
-            <p className="text-xs text-slate-300 mt-1">
-              Select your role authentication mode to proceed
-            </p>
 
             {/* 3-Role Toggle Tabs */}
-            <div className="grid grid-cols-3 bg-slate-950/70 p-1 rounded-2xl border border-white/10 mt-4 gap-1">
+            <div className="grid grid-cols-3 bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 mt-2 gap-1.5">
               <button
                 type="button"
                 onClick={() => setAuthMode('user')}
-                className={`py-2 rounded-xl text-[11px] font-extrabold transition-all flex items-center justify-center gap-1 ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   authMode === 'user'
-                    ? 'bg-amber-500 text-slate-950 shadow'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <User className="w-3.5 h-3.5" /> {t('customer_details', 'User')}
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span>Customer</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAuthMode('salesman')}
-                className={`py-2 rounded-xl text-[11px] font-extrabold transition-all flex items-center justify-center gap-1 ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   authMode === 'salesman'
-                    ? 'bg-brand-600 text-white shadow'
+                    ? 'bg-brand-600 text-white shadow-md'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" /> {t('salesman_dashboard', 'Salesman')}
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span>Salesman</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAuthMode('admin')}
-                className={`py-2 rounded-xl text-[11px] font-extrabold transition-all flex items-center justify-center gap-1 ${
+                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   authMode === 'admin'
-                    ? 'bg-red-600 text-white shadow'
+                    ? 'bg-red-600 text-white shadow-md'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <Lock className="w-3.5 h-3.5" /> {t('nav_admin', 'Admin')}
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Admin</span>
               </button>
             </div>
           </div>
 
           {/* Form Content */}
-          <div className="p-6">
+          <div className="p-6 sm:p-7">
             {authMode === 'user' && (
               <div className="space-y-4">
                 {/* Sub-tabs: Sign In vs Self-Registration */}
