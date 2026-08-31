@@ -36,7 +36,8 @@ export const SalesmanLoginModal = () => {
   const [isCustomCity, setIsCustomCity] = useState(false);
   const [customCity, setCustomCity] = useState('');
   const [regForm, setRegForm] = useState({
-    name: '',
+    name: '', // Retail Shop Name
+    ownerName: '', // Shop Owner / Customer Name
     mobile: '',
     email: '',
     password: '',
@@ -110,11 +111,15 @@ export const SalesmanLoginModal = () => {
       showToast('Please enter Shop Name and Email Address.', 'warning');
       return;
     }
+    if (!regForm.ownerName.trim()) {
+      showToast('Please enter Shop Owner / Proprietor Name.', 'warning');
+      return;
+    }
     if (!regForm.password.trim()) {
       showToast('Please create a password for your account.', 'warning');
       return;
     }
-    const check = checkUnwantedContent(`${regForm.name} ${regForm.email} ${regForm.address} ${regForm.city}`);
+    const check = checkUnwantedContent(`${regForm.name} ${regForm.ownerName} ${regForm.email} ${regForm.address} ${regForm.city}`);
     if (check.hasUnwanted) {
       showToast(`🚫 Registration Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter clean business details.`, 'error');
       return;
@@ -123,6 +128,9 @@ export const SalesmanLoginModal = () => {
     try {
       await saveCustomer({
         name: regForm.name.trim(),
+        shopName: regForm.name.trim(),
+        ownerName: regForm.ownerName.trim(),
+        shopOwnerName: regForm.ownerName.trim(),
         mobile: regForm.mobile.trim(),
         email: regForm.email.trim(),
         password: regForm.password.trim(),
@@ -132,10 +140,10 @@ export const SalesmanLoginModal = () => {
         classification: 'NORMAL',
         customerMode: 'QUICK'
       });
-      await loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim());
-      showToast(`Account registered for "${regForm.name}"! Welcome to Anuj Enterprises`, 'success');
+      await loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim(), regForm.ownerName.trim());
+      showToast(`Account registered for "${regForm.name}" (${regForm.ownerName})! Welcome to Anuj Enterprises`, 'success');
     } catch (err) {
-      loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim());
+      loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim(), regForm.ownerName.trim());
     } finally {
       setIsVerifying(false);
     }
@@ -318,20 +326,39 @@ export const SalesmanLoginModal = () => {
                 ) : (
                   /* Option 2: Normal User Self-Registration Form */
                   <form onSubmit={handleUserRegisterSubmit} className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Retail Store / Customer Name *
-                      </label>
-                      <div className="relative">
-                        <Store className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-                        <input
-                          type="text"
-                          required
-                          value={regForm.name}
-                          onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
-                          placeholder="e.g. Mahavir Kirana Store"
-                          className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                        />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                          Retail Shop Name *
+                        </label>
+                        <div className="relative">
+                          <Store className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                          <input
+                            type="text"
+                            required
+                            value={regForm.name}
+                            onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
+                            placeholder="e.g. Mahavir Kirana Store"
+                            className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                          Shop Owner / Proprietor *
+                        </label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                          <input
+                            type="text"
+                            required
+                            value={regForm.ownerName}
+                            onChange={(e) => setRegForm({ ...regForm, ownerName: e.target.value })}
+                            placeholder="e.g. Ramesh Kumar Gupta"
+                            className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                          />
+                        </div>
                       </div>
                     </div>
 

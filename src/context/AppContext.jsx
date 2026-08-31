@@ -1293,7 +1293,7 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
-  const loginNormalUser = async (emailOrMobile = '', password = '', name = '') => {
+  const loginNormalUser = async (emailOrMobile = '', password = '', name = '', ownerName = '') => {
     const { isLocked, remainingSec } = checkLockout('user');
     if (isLocked) {
       showToast(`🔒 Customer Security Lockout Active: Exceeded 3 failed login attempts. Please wait ${remainingSec} seconds before trying again.`, 'error');
@@ -1310,7 +1310,10 @@ export const AppProvider = ({ children }) => {
         recordSuccessfulAuth('user');
         setUser({
           role: 'customer',
-          name: res.data.user.name || name || 'Valued Customer',
+          name: res.data.user.shopName || res.data.user.name || name || 'Valued Customer',
+          shopName: res.data.user.shopName || res.data.user.name || name || 'Valued Customer',
+          ownerName: res.data.user.ownerName || res.data.user.shopOwnerName || ownerName || name || 'Valued Customer',
+          shopOwnerName: res.data.user.ownerName || res.data.user.shopOwnerName || ownerName || name || 'Valued Customer',
           email: res.data.user.email || target,
           mobile: res.data.user.mobile,
           customerId: res.data.user.customerId
@@ -1339,8 +1342,9 @@ export const AppProvider = ({ children }) => {
       setUser({
         role: 'customer',
         name: foundCust.name,
-        shopName: foundCust.name,
-        ownerName: foundCust.ownerName || foundCust.shopOwnerName || foundCust.name,
+        shopName: foundCust.shopName || foundCust.name,
+        ownerName: foundCust.ownerName || foundCust.shopOwnerName || ownerName || foundCust.name,
+        shopOwnerName: foundCust.ownerName || foundCust.shopOwnerName || ownerName || foundCust.name,
         email: foundCust.email || target,
         mobile: foundCust.mobile,
         customerId: foundCust.customerId || foundCust.id,
@@ -1357,12 +1361,14 @@ export const AppProvider = ({ children }) => {
 
     // 3. Fallback sign in for newly registering customers
     const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
+    const propName = ownerName.trim() || displayName;
     recordSuccessfulAuth('user');
     setUser({ 
       role: 'customer', 
       name: displayName,
       shopName: displayName,
-      ownerName: displayName,
+      ownerName: propName,
+      shopOwnerName: propName,
       email: target,
       city: 'Kanpur',
       state: 'Uttar Pradesh',
