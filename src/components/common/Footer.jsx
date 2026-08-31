@@ -54,11 +54,6 @@ export const Footer = () => {
                 <span>Working Hours: Mon - Sat (9:00 AM - 7:00 PM IST)</span>
               </div>
             </div>
-
-            {/* Tagline Watermark Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 font-black text-xs tracking-wider">
-              <span>#ANUJ FMCG</span>
-            </div>
           </div>
 
           {/* Col 2: Quick Links */}
@@ -118,11 +113,16 @@ export const Footer = () => {
                   {t('office_address', 'Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh - 208021')}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <a href="tel:+918887683782" className="hover:text-amber-400 transition-colors">
-                  +91 88876 83782 / +91 70719 79894
-                </a>
+              <div className="flex items-start gap-2">
+                <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex flex-col text-slate-300 font-semibold">
+                  <a href="tel:+918887683782" className="hover:text-amber-400 transition-colors whitespace-nowrap block">
+                    +91 88876 83782
+                  </a>
+                  <a href="tel:+917071979894" className="hover:text-amber-400 transition-colors whitespace-nowrap block">
+                    +91 70719 79894
+                  </a>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-brand-400 shrink-0" />
@@ -162,18 +162,17 @@ export const Footer = () => {
           </div>
           <div className="flex items-center gap-3 text-slate-400 text-xs">
             <span>{t('official_platform_notice', 'Official B2B FMCG Distribution Platform • Kanpur')}</span>
-            <span className="font-mono font-black text-amber-400 text-xs">#ANUJ FMCG</span>
           </div>
         </div>
       </div>
 
-      {/* #ANUJ FMCG Full Background Subtle Typographic Watermark */}
+      {/* Elegant Small Background Watermark */}
       <div 
         aria-hidden="true"
-        className="absolute -bottom-6 left-0 right-0 flex justify-center items-center pointer-events-none select-none overflow-hidden opacity-[0.03] dark:opacity-[0.05]"
+        className="absolute bottom-2 left-0 right-0 flex justify-center items-center pointer-events-none select-none overflow-hidden opacity-[0.02] dark:opacity-[0.03]"
       >
-        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] lg:text-[18rem] font-black tracking-tighter text-amber-400 whitespace-nowrap leading-none">
-          #ANUJ FMCG
+        <span className="text-[2.5rem] sm:text-[3.5rem] font-black tracking-widest text-amber-400 uppercase whitespace-nowrap leading-none">
+          ANUJ ENTERPRISES
         </span>
       </div>
     </footer>
