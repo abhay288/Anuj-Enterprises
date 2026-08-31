@@ -246,14 +246,6 @@ export const SalesmanLoginModal = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                           Email Address / Mobile Number *
                         </label>
-                        <button
-                          type="button"
-                          onClick={fillDemoUser}
-                          className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
-                        >
-                          <Sparkles className="w-3 h-3 text-amber-500" />
-                          Fill Demo User
-                        </button>
                       </div>
                       <input
                         type="text"
@@ -519,18 +511,9 @@ export const SalesmanLoginModal = () => {
               /* Option 2: Salesman Login */
               <form onSubmit={handleSalesmanSubmit} className="space-y-4">
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      Salesman ID *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={fillDemoSalesman}
-                      className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
-                    >
-                      Fill Demo (AE-SM-001)
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                    Salesman ID *
+                  </label>
                   <div className="relative">
                     <UserCheck className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                     <input
