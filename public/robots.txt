@@ -23,11 +23,24 @@ Disallow: /admin-dash
 Disallow: /salesman-dash
 Disallow: /customer-dash
 
-# Google Search & Google Extended (Gemini Search)
+# Google Search, Favicon & Gemini Search
 User-agent: Googlebot
 User-agent: Googlebot-Image
 User-agent: Google-Extended
+User-agent: Google-Favicon
 Allow: /
+Allow: /favicon*
+Allow: /logo*
+Allow: /llms.txt
+Allow: /llms-full.txt
+Disallow: /api/
+Disallow: /admin-dash
+Disallow: /salesman-dash
+
+# Brave Search Crawler (Bravebot)
+User-agent: Bravebot
+Allow: /
+Allow: /sitemap.xml
 Allow: /llms.txt
 Allow: /llms-full.txt
 Disallow: /api/

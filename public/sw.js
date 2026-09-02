@@ -7,6 +7,8 @@ const ASSETS_TO_CACHE = [
   '/logo.webp',
   '/favicon.png',
   '/favicon.webp',
+  '/favicon-48x48.png',
+  '/favicon-96x96.png',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
   '/maskable-192x192.png',
