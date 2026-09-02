@@ -23,6 +23,13 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [altchaVerified, setAltchaVerified] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setAltchaVerified(false);
+      setErrorMessage('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const isMatching = newPassword && confirmPassword && newPassword === confirmPassword;
@@ -253,8 +260,8 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
 
               <button
                 type="submit"
-                disabled={isSubmitting || (confirmPassword && !isMatching)}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
+                disabled={isSubmitting || !altchaVerified || (confirmPassword && !isMatching)}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>

@@ -27,6 +27,14 @@ export const SalesmanLoginModal = () => {
       setAuthMode(salesmanModalMode);
     }
   }, [salesmanModalMode, isSalesmanModalOpen]);
+
+  // Reset all ALTCHA verification states whenever the modal opens or role/tab changes
+  useEffect(() => {
+    setAltchaCustomerLogin(false);
+    setAltchaCustomerReg(false);
+    setAltchaSalesman(false);
+    setAltchaAdmin(false);
+  }, [isSalesmanModalOpen, authMode, userSubTab]);
   
   // Normal User State (Sign In & Self-Registration)
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
@@ -352,15 +360,20 @@ export const SalesmanLoginModal = () => {
 
                     <button
                       type="submit"
-                      disabled={isVerifying}
-                      className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                      disabled={isVerifying || !altchaCustomerLogin}
+                      className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+                        altchaCustomerLogin
+                          ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+                      }`}
                     >
                       {isVerifying ? (
                         <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                       ) : (
                         <>
-                          <span>Sign In / Access Portal</span>
-                          <ArrowRight className="w-4 h-4" />
+                          {!altchaCustomerLogin && <Lock className="w-3.5 h-3.5 shrink-0" />}
+                          <span>{altchaCustomerLogin ? 'Sign In / Access Portal' : 'Verify "I\'m not a robot" to Sign In'}</span>
+                          {altchaCustomerLogin && <ArrowRight className="w-4 h-4" />}
                         </>
                       )}
                     </button>
@@ -583,15 +596,20 @@ export const SalesmanLoginModal = () => {
 
                     <button
                       type="submit"
-                      disabled={isVerifying}
-                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-2"
+                      disabled={isVerifying || !altchaCustomerReg}
+                      className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-2 ${
+                        altchaCustomerReg
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+                      }`}
                     >
                       {isVerifying ? (
                         <Loader2 className="w-4 h-4 animate-spin text-white" />
                       ) : (
                         <>
-                          <UserPlus className="w-4 h-4" />
-                          <span>Create Account & Start Ordering</span>
+                          {!altchaCustomerReg && <Lock className="w-3.5 h-3.5 shrink-0" />}
+                          <span>{altchaCustomerReg ? 'Create Account & Start Ordering' : 'Verify "I\'m not a robot" to Register'}</span>
+                          {altchaCustomerReg && <UserPlus className="w-4 h-4" />}
                         </>
                       )}
                     </button>
@@ -648,15 +666,20 @@ export const SalesmanLoginModal = () => {
 
                 <button
                   type="submit"
-                  disabled={isVerifying}
-                  className="w-full py-3 px-4 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2"
+                  disabled={isVerifying || !altchaSalesman}
+                  className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 ${
+                    altchaSalesman
+                      ? 'bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white cursor-pointer'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+                  }`}
                 >
                   {isVerifying ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                   ) : (
                     <>
-                      <span>Activate Salesman Session</span>
-                      <ArrowRight className="w-4 h-4" />
+                      {!altchaSalesman && <Lock className="w-3.5 h-3.5 shrink-0" />}
+                      <span>{altchaSalesman ? 'Activate Salesman Session' : 'Verify "I\'m not a robot" to Login'}</span>
+                      {altchaSalesman && <ArrowRight className="w-4 h-4" />}
                     </>
                   )}
                 </button>
@@ -711,15 +734,20 @@ export const SalesmanLoginModal = () => {
 
                 <button
                   type="submit"
-                  disabled={isVerifying}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2"
+                  disabled={isVerifying || !altchaAdmin}
+                  className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 ${
+                    altchaAdmin
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
+                  }`}
                 >
                   {isVerifying ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                   ) : (
                     <>
-                      <span>Enter Enterprise Admin Panel</span>
-                      <ArrowRight className="w-4 h-4" />
+                      {!altchaAdmin && <Lock className="w-3.5 h-3.5 shrink-0" />}
+                      <span>{altchaAdmin ? 'Enter Enterprise Admin Panel' : 'Verify "I\'m not a robot" to Login'}</span>
+                      {altchaAdmin && <ArrowRight className="w-4 h-4" />}
                     </>
                   )}
                 </button>

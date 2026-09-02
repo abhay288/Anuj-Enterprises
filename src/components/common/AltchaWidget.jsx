@@ -16,7 +16,19 @@ export const AltchaWidget = ({
   const [status, setStatus] = useState('idle'); // 'idle' | 'verifying' | 'verified'
   const [payload, setPayload] = useState(null);
 
-  // Auto-verify if auto is set to 'onload'
+  // Ensure parent always begins in false/unverified state on mount
+  useEffect(() => {
+    if (onVerified) {
+      onVerified(false, null);
+    }
+    return () => {
+      if (onVerified) {
+        onVerified(false, null);
+      }
+    };
+  }, []);
+
+  // Auto-verify if auto is explicitly set to 'onload'
   useEffect(() => {
     if (auto === 'onload' && status === 'idle') {
       handleTriggerVerification();

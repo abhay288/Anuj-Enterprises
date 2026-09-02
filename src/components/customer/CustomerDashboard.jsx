@@ -144,6 +144,12 @@ export const CustomerDashboard = () => {
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [altchaPasswordVerified, setAltchaPasswordVerified] = useState(false);
 
+  React.useEffect(() => {
+    if (isChangePasswordModalOpen) {
+      setAltchaPasswordVerified(false);
+    }
+  }, [isChangePasswordModalOpen]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isCustomCity, setIsCustomCity] = useState(() => !FMCG_CITIES.includes(user?.city || 'Kanpur'));
 
@@ -1378,10 +1384,14 @@ export const CustomerDashboard = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmittingPassword}
-                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow transition-colors"
+                    disabled={isSubmittingPassword || !altchaPasswordVerified}
+                    className={`flex-1 py-2.5 font-black rounded-xl shadow transition-colors ${
+                      altchaPasswordVerified
+                        ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 cursor-pointer'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
+                    }`}
                   >
-                    {isSubmittingPassword ? 'Verifying...' : 'Change Password'}
+                    {isSubmittingPassword ? 'Verifying...' : altchaPasswordVerified ? 'Change Password' : 'Verify First'}
                   </button>
                 </div>
               </form>
