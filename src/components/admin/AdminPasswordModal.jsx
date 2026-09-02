@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { useApp } from '../../context/AppContext';
+import { AltchaWidget } from '../common/AltchaWidget';
 
 export const AdminPasswordModal = ({ isOpen, onClose }) => {
-  const { user, showToast } = useApp();
+  const { user, showToast, updateAdminPassword } = useApp();
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -20,6 +21,7 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [altchaVerified, setAltchaVerified] = useState(false);
 
   if (!isOpen) return null;
 
@@ -31,40 +33,59 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
     setErrorMessage('');
 
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setErrorMessage('Please fill in all three password fields.');
+      const msg = 'Please fill in all three password fields.';
+      setErrorMessage(msg);
+      showToast('⚠️ ' + msg, 'warning');
+      return;
+    }
+
+    if (!altchaVerified) {
+      const msg = 'Security Verification Required: Please complete Altcha check before changing password.';
+      setErrorMessage(msg);
+      showToast('🛡️ ' + msg, 'warning');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('New password and Retype New password do not match.');
+      const msg = 'New password and Retype New password do not match.';
+      setErrorMessage(msg);
+      showToast('❌ ' + msg, 'error');
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMessage('New password must be at least 6 characters in length.');
+      const msg = 'New password must be at least 6 characters in length.';
+      setErrorMessage(msg);
+      showToast('⚠️ ' + msg, 'warning');
       return;
     }
 
     if (oldPassword === newPassword) {
-      setErrorMessage('New password must be different from your old password.');
+      const msg = 'New password must be different from your old password.';
+      setErrorMessage(msg);
+      showToast('⚠️ ' + msg, 'warning');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const res = await authService.changePassword(oldPassword, newPassword, confirmPassword);
+      const res = updateAdminPassword 
+        ? await updateAdminPassword(oldPassword, newPassword, confirmPassword)
+        : await authService.changePassword(oldPassword, newPassword, confirmPassword);
 
-      if (res.success) {
-        showToast(res.message || 'Admin password successfully updated in database! Security confirmation dispatched to email.', 'success');
+      if (res && res.success) {
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
         onClose();
       } else {
-        setErrorMessage(res.message || 'Failed to update password. Please check your credentials.');
+        const msg = res?.message || 'Failed to update password. Please verify old password.';
+        setErrorMessage(msg);
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to change password. Please verify old password.');
+      const msg = err.message || 'Failed to change password. Please verify old password.';
+      setErrorMessage(msg);
+      showToast(`❌ ${msg}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -216,6 +237,8 @@ export const AdminPasswordModal = ({ isOpen, onClose }) => {
                 </button>
               </div>
             </div>
+
+            <AltchaWidget onVerified={setAltchaVerified} label="Admin Security Verification" />
 
             {/* Actions */}
             <div className="pt-2 flex items-center justify-end gap-3">

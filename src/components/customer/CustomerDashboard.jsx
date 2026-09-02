@@ -11,6 +11,8 @@ import { useApp } from '../../context/AppContext';
 import { generateInvoicePDF, downloadInvoicePDF } from '../../utils/pdfGenerator';
 import { ALL_INDIAN_STATES } from '../../data/indiaStatesAndDistricts';
 import { checkUnwantedContent } from '../../utils/securityUtils';
+import { AddressAutocomplete } from '../common/AddressAutocomplete';
+import { AltchaWidget } from '../common/AltchaWidget';
 
 const FMCG_CITIES = [
   'Kanpur', 'Lucknow', 'Unnao', 'Fatehpur', 'Prayagraj', 
@@ -104,10 +106,8 @@ export const CustomerDashboard = () => {
         }
       }
     }
-    // 3. Fallback default upcoming dates
-    const d1 = new Date(); d1.setDate(d1.getDate() + 2);
-    const d2 = new Date(); d2.setDate(d2.getDate() + 6);
-    return [d1.toISOString().split('T')[0], d2.toISOString().split('T')[0]];
+    // 3. If no delivery schedule marked by admin, return empty
+    return [];
   }, [myCustId, myArea, deliverySchedules, customers]);
 
   const upcomingDeliveryDates = useMemo(() => {
@@ -142,6 +142,7 @@ export const CustomerDashboard = () => {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [altchaPasswordVerified, setAltchaPasswordVerified] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isCustomCity, setIsCustomCity] = useState(() => !FMCG_CITIES.includes(user?.city || 'Kanpur'));
@@ -239,7 +240,7 @@ export const CustomerDashboard = () => {
   }, [customerOrders]);
 
   // Change Password Handler (Requires Old Password Verification)
-  const handleChangePasswordSubmit = (e) => {
+  const handleChangePasswordSubmit = async (e) => {
     e.preventDefault();
     if (!passwordForm.oldPassword) {
       showToast('⚠️ Please enter your current (old) password.', 'warning');
@@ -247,6 +248,10 @@ export const CustomerDashboard = () => {
     }
     if (!passwordForm.newPassword || passwordForm.newPassword.length < 6) {
       showToast('⚠️ New password must be at least 6 characters.', 'warning');
+      return;
+    }
+    if (!altchaPasswordVerified) {
+      showToast('🛡️ Security Verification Required: Please verify with Altcha before changing your password.', 'warning');
       return;
     }
     if (passwordForm.newPassword === passwordForm.oldPassword) {
@@ -259,14 +264,17 @@ export const CustomerDashboard = () => {
     }
 
     setIsSubmittingPassword(true);
-    setTimeout(() => {
-      const res = updateNormalUserPassword(passwordForm.oldPassword, passwordForm.newPassword);
-      setIsSubmittingPassword(false);
+    try {
+      const res = await updateNormalUserPassword(passwordForm.oldPassword, passwordForm.newPassword);
       if (res && res.success) {
         setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
         setIsChangePasswordModalOpen(false);
       }
-    }, 400);
+    } catch (err) {
+      showToast(`❌ Error updating password: ${err.message || err}`, 'error');
+    } finally {
+      setIsSubmittingPassword(false);
+    }
   };
 
   // Save Profile Handler
@@ -388,8 +396,8 @@ export const CustomerDashboard = () => {
           </div>
         </div>
 
-        {/* 3 Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/10">
+        {/* Overview Metric Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 pt-6 border-t border-white/10">
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
               Total Invoices Booked
@@ -407,16 +415,6 @@ export const CustomerDashboard = () => {
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-white">{metrics.totalUnits}</span>
               <span className="text-xs text-emerald-400 font-bold">Total Units / Cases</span>
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Account Verification
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-amber-400">100% KYC Verified</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
             </div>
           </div>
         </div>
@@ -1021,21 +1019,24 @@ export const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                {/* 4. Shop Address */}
+                {/* 4. Shop Address with Auto-Suggest */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                    Store Physical Address / Landmark
+                    Store Physical Address / Landmark (Auto-Suggested)
                   </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={profileForm.address}
-                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                      placeholder="Shop/Gala No, Market Complex, Road, Landmark..."
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
+                  <AddressAutocomplete
+                    value={profileForm.address}
+                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                    onSelectLocation={(loc) => {
+                      setProfileForm(prev => ({
+                        ...prev,
+                        address: loc.label,
+                        city: loc.city || prev.city,
+                        state: loc.state || prev.state
+                      }));
+                    }}
+                    placeholder="Search or enter shop/gala, market complex, road, mandi..."
+                  />
                 </div>
 
                 {/* 5. City & State Selection */}
@@ -1364,6 +1365,8 @@ export const CustomerDashboard = () => {
                     </button>
                   </div>
                 </div>
+
+                <AltchaWidget onVerified={setAltchaPasswordVerified} label="Customer Security Verification" />
 
                 <div className="flex gap-3 pt-2">
                   <button

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, Sparkles, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { checkUnwantedContent } from '../../utils/securityUtils';
+import { AltchaWidget } from './AltchaWidget';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 export const SalesmanLoginModal = () => {
   const { 
@@ -49,47 +51,89 @@ export const SalesmanLoginModal = () => {
   // Salesman State
   const [salesmanId, setSalesmanId] = useState('');
   const [salesmanPassword, setSalesmanPassword] = useState('');
+  const [showSalesmanPassword, setShowSalesmanPassword] = useState(false);
 
   // Admin State
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+
+  // Altcha Security Verification State
+  const [altchaCustomerLogin, setAltchaCustomerLogin] = useState(false);
+  const [altchaCustomerReg, setAltchaCustomerReg] = useState(false);
+  const [altchaSalesman, setAltchaSalesman] = useState(false);
+  const [altchaAdmin, setAltchaAdmin] = useState(false);
 
   const [isVerifying, setIsVerifying] = useState(false);
 
   if (!isSalesmanModalOpen) return null;
 
-  const handleSalesmanSubmit = (e) => {
+  const handleSalesmanSubmit = async (e) => {
     e.preventDefault();
+    if (!salesmanId.trim()) {
+      showToast('⚠️ Please enter your Salesman ID.', 'warning');
+      return;
+    }
+    if (!salesmanPassword) {
+      showToast('⚠️ Please enter your Salesman password.', 'warning');
+      return;
+    }
+    if (!altchaSalesman) {
+      showToast('🛡️ Security Verification Required: Please complete the Altcha check to activate salesman session.', 'warning');
+      return;
+    }
     const check = checkUnwantedContent(salesmanId);
     if (check.hasUnwanted) {
       showToast('🚫 Prohibited characters or words detected in Salesman ID.', 'error');
       return;
     }
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      await loginSalesman(salesmanId, salesmanPassword);
+    } finally {
       setIsVerifying(false);
-      loginSalesman(salesmanId, salesmanPassword);
-    }, 600);
+    }
   };
 
-  const handleAdminSubmit = (e) => {
+  const handleAdminSubmit = async (e) => {
     e.preventDefault();
+    if (!adminEmail.trim()) {
+      showToast('⚠️ Please enter your Admin Email.', 'warning');
+      return;
+    }
+    if (!adminPassword) {
+      showToast('⚠️ Please enter your Admin password.', 'warning');
+      return;
+    }
+    if (!altchaAdmin) {
+      showToast('🛡️ Security Verification Required: Please complete the Altcha check for Enterprise Admin access.', 'warning');
+      return;
+    }
     const check = checkUnwantedContent(adminEmail);
     if (check.hasUnwanted) {
       showToast('🚫 Prohibited characters or words detected in Admin Email.', 'error');
       return;
     }
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      await loginAdmin(adminEmail, adminPassword);
+    } finally {
       setIsVerifying(false);
-      loginAdmin(adminEmail, adminPassword);
-    }, 600);
+    }
   };
 
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     if (!userEmail.trim()) {
-      showToast('Please enter your Email Address or Mobile Number.', 'warning');
+      showToast('⚠️ Please enter your Email Address or Mobile Number.', 'warning');
+      return;
+    }
+    if (!userPassword) {
+      showToast('⚠️ Please enter your account password.', 'warning');
+      return;
+    }
+    if (!altchaCustomerLogin) {
+      showToast('🛡️ Security Verification Required: Please complete the Altcha check to log in.', 'warning');
       return;
     }
     const check = checkUnwantedContent(`${userName} ${userEmail}`);
@@ -117,6 +161,10 @@ export const SalesmanLoginModal = () => {
     }
     if (!regForm.password.trim()) {
       showToast('Please create a password for your account.', 'warning');
+      return;
+    }
+    if (!altchaCustomerReg) {
+      showToast('🛡️ Security Verification Required: Please complete the Altcha check to register account.', 'warning');
       return;
     }
     const check = checkUnwantedContent(`${regForm.name} ${regForm.ownerName} ${regForm.email} ${regForm.address} ${regForm.city}`);
@@ -170,7 +218,10 @@ export const SalesmanLoginModal = () => {
 
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-2 flex items-center justify-center shadow-xl shadow-amber-500/20 border-2 border-amber-400 overflow-hidden flex-shrink-0 relative ring-4 ring-white/20">
-                <img src="/logo.png" alt="Anuj Enterprises Logo" className="w-full h-full object-contain filter drop-shadow-sm scale-105" />
+                <picture>
+                  <source srcSet="/logo.webp" type="image/webp" />
+                  <img src="/logo.png" alt="Anuj Enterprises Logo" className="w-full h-full object-contain filter drop-shadow-sm scale-105" width="72" height="72" />
+                </picture>
               </div>
               <div>
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">Anuj Enterprises Portal</h3>
@@ -296,6 +347,8 @@ export const SalesmanLoginModal = () => {
                         </button>
                       </div>
                     </div>
+
+                    <AltchaWidget onVerified={setAltchaCustomerLogin} label="Customer Login Verification" />
 
                     <button
                       type="submit"
@@ -429,18 +482,21 @@ export const SalesmanLoginModal = () => {
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        Address
+                        Address / Mandi Area (Auto-Suggested)
                       </label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                        <input
-                          type="text"
-                          value={regForm.address}
-                          onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                          placeholder="House/Shop No, Market, Landmark, Address"
-                          className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
-                        />
-                      </div>
+                      <AddressAutocomplete
+                        value={regForm.address}
+                        onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                        onSelectLocation={(loc) => {
+                          setRegForm(prev => ({
+                            ...prev,
+                            address: loc.label,
+                            city: loc.city || prev.city,
+                            state: loc.state || prev.state
+                          }));
+                        }}
+                        placeholder="House/Shop No, Market, Mandi, Landmark..."
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -523,6 +579,8 @@ export const SalesmanLoginModal = () => {
                       </div>
                     </div>
 
+                    <AltchaWidget onVerified={setAltchaCustomerReg} label="Account Registration Verification" />
+
                     <button
                       type="submit"
                       disabled={isVerifying}
@@ -569,15 +627,24 @@ export const SalesmanLoginModal = () => {
                   <div className="relative">
                     <Key className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                     <input
-                      type="password"
+                      type={showSalesmanPassword ? "text" : "password"}
                       value={salesmanPassword}
                       onChange={(e) => setSalesmanPassword(e.target.value)}
                       required
                       placeholder="Enter Salesman password..."
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowSalesmanPassword(!showSalesmanPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showSalesmanPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
+
+                <AltchaWidget onVerified={setAltchaSalesman} label="Salesman Auth Verification" />
 
                 <button
                   type="submit"
@@ -623,15 +690,24 @@ export const SalesmanLoginModal = () => {
                   <div className="relative">
                     <Key className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                     <input
-                      type="password"
+                      type={showAdminPassword ? "text" : "password"}
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required
                       placeholder="Enter Admin password..."
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
+
+                <AltchaWidget onVerified={setAltchaAdmin} label="Admin Security Verification" />
 
                 <button
                   type="submit"

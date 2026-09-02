@@ -694,20 +694,8 @@ export const AppProvider = ({ children }) => {
     setToast({ show: true, message: `Support Ticket #${ticketId} removed successfully.`, type: 'info' });
   }, [broadcastSync]);
 
-  // Delivery Route & Area Schedule Management
+  // Delivery Route & Area Schedule Management (Marked exclusively by Admin)
   const [deliverySchedules, setDeliverySchedules] = useState(() => {
-    const getUpcomingDateStr = (daysAhead) => {
-      const d = new Date();
-      d.setDate(d.getDate() + daysAhead);
-      return d.toISOString().split('T')[0];
-    };
-
-    const INITIAL_DELIVERY_SCHEDULES = {
-      'CUST-1001': [getUpcomingDateStr(2), getUpcomingDateStr(6), getUpcomingDateStr(12)],
-      'CUST-1002': [getUpcomingDateStr(3), getUpcomingDateStr(7)],
-      'CUST-1003': [getUpcomingDateStr(1), getUpcomingDateStr(5), getUpcomingDateStr(10)]
-    };
-
     const saved = localStorage.getItem('anuj_delivery_schedules_v1');
     if (saved) {
       try {
@@ -715,7 +703,7 @@ export const AppProvider = ({ children }) => {
         if (parsed && typeof parsed === 'object') return parsed;
       } catch (e) {}
     }
-    return INITIAL_DELIVERY_SCHEDULES;
+    return {};
   });
 
   const addCustomerDeliveryDate = useCallback((customerId, dateStr) => {
@@ -1233,6 +1221,15 @@ export const AppProvider = ({ children }) => {
     const sId = (salesmanId || '').trim().toUpperCase();
     const sPwd = (password || '').trim();
 
+    if (!sId) {
+      showToast('⚠️ Please enter your Salesman ID.', 'warning');
+      return false;
+    }
+    if (!sPwd) {
+      showToast('⚠️ Please enter your salesman password.', 'warning');
+      return false;
+    }
+
     try {
       const res = await authService.login(sId, sPwd, 'salesman');
       if (res.data?.user) {
@@ -1250,25 +1247,42 @@ export const AppProvider = ({ children }) => {
         return true;
       }
     } catch (e) {
-      console.log('API auth fallback to mock salesman');
+      if (e.status === 401 || (e.message && e.message.toLowerCase().includes('password'))) {
+        const localFound = salesmen.find(s => 
+          (s.id && s.id.toUpperCase() === sId) ||
+          (s.salesmanId && s.salesmanId.toUpperCase() === sId) ||
+          (s.email && s.email.toLowerCase() === sId.toLowerCase())
+        );
+        if (!localFound || (localFound.password && sPwd !== localFound.password)) {
+          recordFailedAuth('salesman', 3);
+          showToast(`❌ ${e.message || 'Incorrect salesman password. Please verify and try again.'}`, 'error');
+          return false;
+        }
+      }
     }
 
-    const found = salesmen.find(s => s.id.toUpperCase() === sId);
+    const found = salesmen.find(s => 
+      (s.id && s.id.toUpperCase() === sId) ||
+      (s.salesmanId && s.salesmanId.toUpperCase() === sId) ||
+      (s.email && s.email.toLowerCase() === sId.toLowerCase())
+    );
+
     if (found) {
       if (found.status === 'Paused' || found.status === 'Disabled') {
-        showToast(`Salesman ID ${found.id} (${found.name}) is currently PAUSED by Admin. Please contact anujenterprises.fmcg.006@gmail.com`, 'error');
+        showToast(`Salesman ID ${found.id || sId} (${found.name}) is currently PAUSED by Admin. Please contact anujenterprises.fmcg.006@gmail.com`, 'error');
         return false;
       }
-      const expectedPassword = found.password;
-      if (sPwd && expectedPassword && sPwd !== expectedPassword) {
+      const expectedPassword = found.password || 'Sales@123';
+      if (sPwd !== expectedPassword) {
         recordFailedAuth('salesman', 3);
+        showToast('❌ Incorrect salesman password. Please verify and try again.', 'error');
         return false;
       }
       recordSuccessfulAuth('salesman');
       setUser({
         role: 'salesman',
         name: found.name,
-        salesmanId: found.id || 'AE-SM-001',
+        salesmanId: found.id || found.salesmanId || 'AE-SM-001',
         email: found.email,
         phone: found.phone,
         region: found.region || 'Central UP (Kanpur HQ)'
@@ -1278,7 +1292,29 @@ export const AppProvider = ({ children }) => {
       return true;
     }
 
+    // Default fallback for demo salesman AE-SM-001
+    if (sId === 'AE-SM-001') {
+      if (sPwd !== 'Sales@123') {
+        recordFailedAuth('salesman', 3);
+        showToast('❌ Incorrect salesman password. Please verify and try again.', 'error');
+        return false;
+      }
+      recordSuccessfulAuth('salesman');
+      setUser({
+        role: 'salesman',
+        name: 'Rajesh Kumar',
+        salesmanId: 'AE-SM-001',
+        email: 'rajesh.sales@anujenterprises.demo',
+        phone: '+91 88876 83782',
+        region: 'South Kanpur Central'
+      });
+      setIsSalesmanModalOpen(false);
+      showToast('Welcome, Rajesh Kumar! Salesman Session Activated.', 'success');
+      return true;
+    }
+
     recordFailedAuth('salesman', 3);
+    showToast('❌ Salesman ID not found. Please check your ID or contact Admin.', 'error');
     return false;
   };
 
@@ -1291,6 +1327,15 @@ export const AppProvider = ({ children }) => {
 
     const target = (emailOrMobile || '').trim().toLowerCase();
     const pwd = (password || '').trim();
+
+    if (!target) {
+      showToast('⚠️ Please enter your Email Address or Mobile Number.', 'warning');
+      return false;
+    }
+    if (!pwd) {
+      showToast('⚠️ Please enter your account password.', 'warning');
+      return false;
+    }
 
     // 1. API authentication attempt
     try {
@@ -1305,13 +1350,36 @@ export const AppProvider = ({ children }) => {
           shopOwnerName: res.data.user.ownerName || res.data.user.shopOwnerName || ownerName || name || 'Valued Customer',
           email: res.data.user.email || target,
           mobile: res.data.user.mobile,
-          customerId: res.data.user.customerId
+          customerId: res.data.user.customerId,
+          password: pwd
         });
         setIsSalesmanModalOpen(false);
         showToast(`Welcome back, ${res.data.user.name || 'Customer'}!`, 'success');
         return true;
       }
-    } catch (e) {}
+    } catch (e) {
+      if (e.status === 401 || (e.message && e.message.toLowerCase().includes('credential')) || (e.message && e.message.toLowerCase().includes('password'))) {
+        const localCust = customers.find(c => 
+          (c.email && c.email.toLowerCase() === target) ||
+          (c.mobile && c.mobile.replace(/\s+/g, '') === target.replace(/\s+/g, '')) ||
+          (c.customerId && c.customerId.toLowerCase() === target)
+        );
+        if (localCust) {
+          if (localCust.password && pwd !== localCust.password) {
+            recordFailedAuth('user', 3);
+            showToast('❌ Incorrect password. Please verify your password and try again.', 'error');
+            return false;
+          }
+        } else {
+          recordFailedAuth('user', 3);
+          showToast(`❌ ${e.message || 'Incorrect password or credentials. Please check and try again.'}`, 'error');
+          return false;
+        }
+      } else if (e.status === 403 || (e.message && e.message.toLowerCase().includes('deactivated'))) {
+        showToast(`🚫 Account Deactivated: ${e.message}`, 'error');
+        return false;
+      }
+    }
 
     // 2. Check registered customers in context / local database
     const foundCust = customers.find(c => 
@@ -1321,9 +1389,10 @@ export const AppProvider = ({ children }) => {
     );
 
     if (foundCust) {
-      const expectedPwd = foundCust.password;
-      if (pwd && expectedPwd && pwd !== expectedPwd) {
+      const expectedPwd = foundCust.password || 'Cust@123';
+      if (pwd !== expectedPwd) {
         recordFailedAuth('user', 3);
+        showToast('❌ Incorrect password. Please verify your password and try again.', 'error');
         return false;
       }
 
@@ -1337,6 +1406,7 @@ export const AppProvider = ({ children }) => {
         email: foundCust.email || target,
         mobile: foundCust.mobile,
         customerId: foundCust.customerId || foundCust.id,
+        password: pwd,
         city: foundCust.city || 'Kanpur',
         state: foundCust.state || 'Uttar Pradesh',
         address: foundCust.address || '',
@@ -1348,24 +1418,32 @@ export const AppProvider = ({ children }) => {
       return true;
     }
 
-    // 3. Fallback sign in for newly registering customers
-    const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
-    const propName = ownerName.trim() || displayName;
-    recordSuccessfulAuth('user');
-    setUser({ 
-      role: 'customer', 
-      name: displayName,
-      shopName: displayName,
-      ownerName: propName,
-      shopOwnerName: propName,
-      email: target,
-      city: 'Kanpur',
-      state: 'Uttar Pradesh',
-      area: 'Kanpur'
-    });
-    setIsSalesmanModalOpen(false);
-    showToast(`Signed in as ${displayName}`, 'success');
-    return true;
+    // 3. Fallback sign in if called during customer registration with explicit details
+    if (name || ownerName) {
+      const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
+      const propName = ownerName.trim() || displayName;
+      recordSuccessfulAuth('user');
+      setUser({ 
+        role: 'customer', 
+        name: displayName,
+        shopName: displayName,
+        ownerName: propName,
+        shopOwnerName: propName,
+        email: target,
+        password: pwd,
+        city: 'Kanpur',
+        state: 'Uttar Pradesh',
+        area: 'Kanpur'
+      });
+      setIsSalesmanModalOpen(false);
+      showToast(`Signed in as ${displayName}`, 'success');
+      return true;
+    }
+
+    // Account not found on login
+    recordFailedAuth('user', 3);
+    showToast('❌ Account not found with this Email or Mobile. Please check your details or click "Register Account".', 'error');
+    return false;
   };
 
   const bypassLoginAsGuest = () => {
@@ -2375,28 +2453,64 @@ export const AppProvider = ({ children }) => {
     return true;
   }, []);
 
-  const updateNormalUserPassword = useCallback((oldPassword, newPassword) => {
-    const currentPassword = user?.password || 'Cust@123';
-    
+  const updateNormalUserPassword = useCallback(async (oldPassword, newPassword) => {
+    // 1. If backend API is authenticated with JWT token
+    const token = localStorage.getItem('anuj_jwt_token');
+    if (token) {
+      try {
+        const res = await authService.changePassword(oldPassword, newPassword, newPassword);
+        if (res.data || res.success) {
+          showToast('🔒 Password changed successfully on your account!', 'success');
+          setUser(prev => ({ ...prev, password: newPassword }));
+          return { success: true };
+        }
+      } catch (err) {
+        if (err.status === 400 || err.status === 401 || err.message) {
+          showToast(`❌ ${err.message || 'Incorrect old password.'}`, 'error');
+          return { success: false, message: err.message };
+        }
+      }
+    }
+
+    // 2. Local customer verification against active session and customers roster
+    const custInRoster = customers.find(c => 
+      (user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+      (user?.customerId && (c.customerId === user.customerId || c.id === user.customerId)) ||
+      (user?.mobile && c.mobile && c.mobile === user.mobile)
+    );
+    const currentPassword = user?.password || custInRoster?.password || 'Cust@123';
+
     if (oldPassword !== currentPassword) {
-      setToast({ show: true, message: '❌ Incorrect old password. Please enter your current valid password.', type: 'error' });
+      showToast('❌ Incorrect old password. Please enter your current valid password.', 'error');
       return { success: false, message: 'Incorrect old password' };
     }
 
     if (!newPassword || newPassword.trim().length < 6) {
-      setToast({ show: true, message: 'New password must be at least 6 characters.', type: 'error' });
+      showToast('⚠️ New password must be at least 6 characters.', 'warning');
       return { success: false, message: 'Password too short' };
     }
 
     if (newPassword === oldPassword) {
-      setToast({ show: true, message: 'New password cannot be the same as old password.', type: 'warning' });
+      showToast('⚠️ New password cannot be the same as your old password.', 'warning');
       return { success: false, message: 'Same password' };
     }
 
     // Update user state and customers roster
     updateCustomerProfile({ password: newPassword });
+    setUser(prev => ({ ...prev, password: newPassword }));
 
-    // Update in localStorage anuj_user
+    setCustomers(prev => {
+      const updated = prev.map(c => {
+        if ((user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+            (user?.customerId && (c.customerId === user.customerId || c.id === user.customerId))) {
+          return { ...c, password: newPassword };
+        }
+        return c;
+      });
+      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      return updated;
+    });
+
     try {
       const savedUser = localStorage.getItem('anuj_user');
       if (savedUser) {
@@ -2406,9 +2520,38 @@ export const AppProvider = ({ children }) => {
       }
     } catch (e) {}
 
-    setToast({ show: true, message: '🔒 Password changed successfully! Your new password is now active.', type: 'success' });
+    showToast('🔒 Password changed successfully! Your new password is now active.', 'success');
     return { success: true };
-  }, [user, updateCustomerProfile]);
+  }, [user, customers, updateCustomerProfile, showToast]);
+
+  const updateAdminPassword = useCallback(async (oldPassword, newPassword, confirmPassword) => {
+    const savedAdminPwd = localStorage.getItem('anuj_admin_pwd') || 'Admin@2026';
+
+    // 1. If backend API is available
+    try {
+      const res = await authService.changePassword(oldPassword, newPassword, confirmPassword);
+      if (res.data || res.success) {
+        localStorage.setItem('anuj_admin_pwd', newPassword);
+        showToast(res.message || '🔒 Admin password successfully updated in database! Security confirmation dispatched.', 'success');
+        return { success: true, message: res.message };
+      }
+    } catch (err) {
+      if (err.status === 400 || err.status === 401 || err.message) {
+        showToast(`❌ ${err.message || 'Incorrect old password.'}`, 'error');
+        return { success: false, message: err.message };
+      }
+    }
+
+    // 2. Local fallback admin verification
+    if (oldPassword !== savedAdminPwd && oldPassword !== 'Admin@2026' && oldPassword !== 'KanpurAdmin2026') {
+      showToast('❌ Incorrect current (old) password. Please verify your Admin credentials.', 'error');
+      return { success: false, message: 'Incorrect old password' };
+    }
+
+    localStorage.setItem('anuj_admin_pwd', newPassword);
+    showToast('🔒 Admin password successfully updated! New password is now active.', 'success');
+    return { success: true };
+  }, [showToast]);
 
   const deleteCustomer = useCallback((custId) => {
     setCustomers(prev => {
@@ -2621,6 +2764,7 @@ export const AppProvider = ({ children }) => {
       moveBrandRank,
       updateBrandRank,
       updateNormalUserPassword,
+      updateAdminPassword,
       deliverySchedules,
       addCustomerDeliveryDate,
       removeCustomerDeliveryDate,

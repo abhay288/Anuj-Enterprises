@@ -195,7 +195,10 @@ export const InvoiceModal = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 sm:w-14 sm:h-14 invoice-logo-container rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0 border-2 border-amber-400">
-                    <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain invoice-logo-img" />
+                    <picture>
+                      <source srcSet="/logo.webp" type="image/webp" />
+                      <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain invoice-logo-img" width="56" height="56" />
+                    </picture>
                   </div>
                   <div>
                     <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">ANUJ ENTERPRISES</span>

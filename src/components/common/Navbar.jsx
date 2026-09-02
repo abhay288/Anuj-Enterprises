@@ -42,11 +42,17 @@ export const Navbar = () => {
           className="flex items-center gap-3.5 cursor-pointer group shrink-0"
         >
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-400 p-0.5 sm:p-1 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 sm:ring-4 ring-amber-500/20">
-            <img 
-              src="/logo.png" 
-              alt="Anuj Enterprises Logo" 
-              className="w-full h-full object-contain scale-110" 
-            />
+            <picture>
+              <source srcSet="/logo.webp" type="image/webp" />
+              <img 
+                src="/logo.png" 
+                alt="Anuj Enterprises Logo" 
+                className="w-full h-full object-contain scale-110" 
+                width="64"
+                height="64"
+                loading="eager"
+              />
+            </picture>
           </div>
           <div>
             <div className="flex items-center gap-1 leading-tight">

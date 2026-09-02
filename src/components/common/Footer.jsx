@@ -30,7 +30,10 @@ export const Footer = () => {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white border border-amber-400/80 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md relative">
-                <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" />
+                <picture>
+                  <source srcSet="/logo.webp" type="image/webp" />
+                  <img src="/logo.png" alt="Anuj Enterprises" className="w-full h-full object-contain" width="44" height="44" loading="lazy" />
+                </picture>
               </div>
               <div>
                 <span className="text-lg sm:text-xl font-black text-white tracking-tight">ANUJ ENTERPRISES</span>

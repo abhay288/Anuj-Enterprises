@@ -21,7 +21,21 @@ export const INITIAL_BRANDS = [
   { id: "b8", name: "Colgate-Palmolive", logo: "https://images.unsplash.com/photo-1559598467-f8b76c8155d0?auto=format&fit=crop&w=300&q=80", count: 0, country: "USA", isNew: false }
 ];
 
-export const INITIAL_SALESMEN = [];
+export const INITIAL_SALESMEN = [
+  {
+    id: 'AE-SM-001',
+    salesmanId: 'AE-SM-001',
+    name: 'Rajesh Kumar',
+    phone: '+91 88876 83782',
+    email: 'rajesh.sales@anujenterprises.demo',
+    password: 'Sales@123',
+    region: 'South Kanpur Central',
+    status: 'Active',
+    target: 100000,
+    achieved: 68500,
+    commissionRate: 2.5
+  }
+];
 
 export const INITIAL_ORDERS = [];
 
