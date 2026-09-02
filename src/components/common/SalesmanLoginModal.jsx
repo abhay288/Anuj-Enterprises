@@ -21,20 +21,6 @@ export const SalesmanLoginModal = () => {
   } = useApp();
 
   const [authMode, setAuthMode] = useState(salesmanModalMode || 'user');
-
-  useEffect(() => {
-    if (salesmanModalMode) {
-      setAuthMode(salesmanModalMode);
-    }
-  }, [salesmanModalMode, isSalesmanModalOpen]);
-
-  // Reset all ALTCHA verification states whenever the modal opens or role/tab changes
-  useEffect(() => {
-    setAltchaCustomerLogin(false);
-    setAltchaCustomerReg(false);
-    setAltchaSalesman(false);
-    setAltchaAdmin(false);
-  }, [isSalesmanModalOpen, authMode, userSubTab]);
   
   // Normal User State (Sign In & Self-Registration)
   const [userSubTab, setUserSubTab] = useState('login'); // 'login' | 'register'
@@ -73,6 +59,20 @@ export const SalesmanLoginModal = () => {
   const [altchaAdmin, setAltchaAdmin] = useState(false);
 
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    if (salesmanModalMode) {
+      setAuthMode(salesmanModalMode);
+    }
+  }, [salesmanModalMode, isSalesmanModalOpen]);
+
+  // Reset all ALTCHA verification states whenever the modal opens or role/tab changes
+  useEffect(() => {
+    setAltchaCustomerLogin(false);
+    setAltchaCustomerReg(false);
+    setAltchaSalesman(false);
+    setAltchaAdmin(false);
+  }, [isSalesmanModalOpen, authMode, userSubTab]);
 
   if (!isSalesmanModalOpen) return null;
 
