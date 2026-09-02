@@ -199,21 +199,8 @@ export const AppProvider = ({ children }) => {
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
 
-  // Initial Seed for Admin Notifications with exact timestamp
-  const INITIAL_NOTIFICATION_SEED = [
-    {
-      id: 'notif-1',
-      type: 'NEW_ORDER',
-      title: 'New Order Received',
-      message: 'Order #ORD-2026-000001 (Invoice #AE-2026-000001) booked for Reliance Retail (80 Units).',
-      orderId: 'ORD-2026-000001',
-      invoiceNumber: 'AE-2026-000001',
-      targetRole: 'ALL',
-      isRead: false,
-      time: '10m ago',
-      timestamp: Date.now() - (10 * 60 * 1000)
-    }
-  ];
+  // Initial Seed for Admin Notifications (No fake notifications)
+  const INITIAL_NOTIFICATION_SEED = [];
 
   // Active Notifications Queue (Stored in localStorage: anuj_active_notifications_v2)
   const [notifications, setNotifications] = useState(() => {
@@ -222,12 +209,14 @@ export const AppProvider = ({ children }) => {
       const legacy = localStorage.getItem('anuj_notifications_v1');
       if (savedActive) {
         const parsed = JSON.parse(savedActive);
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed && Array.isArray(parsed.active)) return parsed.active;
+        let list = [];
+        if (Array.isArray(parsed)) list = parsed;
+        else if (parsed && Array.isArray(parsed.active)) list = parsed.active;
+        return list.filter(n => n && n.id !== 'notif-1' && n.orderId !== 'ORD-2026-000001');
       }
       if (legacy) {
         const parsed = JSON.parse(legacy);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter(n => n && n.id !== 'notif-1' && n.orderId !== 'ORD-2026-000001');
       }
     } catch (e) {}
     return INITIAL_NOTIFICATION_SEED;
@@ -239,7 +228,7 @@ export const AppProvider = ({ children }) => {
       const savedHistory = localStorage.getItem('anuj_notification_history_v2');
       if (savedHistory) {
         const parsed = JSON.parse(savedHistory);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter(n => n && n.id !== 'notif-1' && n.orderId !== 'ORD-2026-000001');
       }
     } catch (e) {}
     return [];

@@ -130,22 +130,22 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
               {viewMode === 'active' && (
                 <div>
                   {/* Header Bar */}
-                  <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-amber-400" />
-                      <span className="font-extrabold text-sm">Notifications</span>
+                  <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Bell className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="font-extrabold text-sm truncate">Notifications</span>
                       {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] whitespace-nowrap shrink-0 inline-flex items-center justify-center shadow-xs">
                           {unreadCount} New
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-1">
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllNotificationsAsRead}
-                          className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-extrabold transition-colors px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20"
+                          className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-extrabold transition-colors px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20 whitespace-nowrap"
                           title="Mark all as read"
                         >
                           <Check className="w-3 h-3" /> Mark Read
@@ -154,7 +154,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                       {roleNotifications.length > 0 && (
                         <button
                           onClick={clearAllNotifications}
-                          className="text-[10px] text-slate-300 hover:text-rose-400 flex items-center gap-1 font-bold transition-colors px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg"
+                          className="text-[10px] text-slate-300 hover:text-rose-400 flex items-center gap-1 font-bold transition-colors px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg whitespace-nowrap"
                           title="Move active notifications to 10-day History"
                         >
                           <Trash2 className="w-3 h-3" /> Clear All
@@ -170,7 +170,7 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                   </div>
 
                   {/* Active Notification List */}
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-800">
+                  <div className="max-h-80 overflow-y-auto p-2 space-y-2">
                     {roleNotifications.length === 0 ? (
                       <div className="p-8 text-center text-slate-400 space-y-2">
                         <Clock className="w-8 h-8 text-amber-500 mx-auto opacity-80" />
@@ -187,13 +187,15 @@ export const NotificationCenter = ({ role = 'ADMIN' }) => {
                         return (
                           <div
                             key={notif.id}
-                            className={`p-3.5 flex items-start gap-3 hover:bg-slate-800/80 transition-colors group relative ${
-                              !notif.isRead ? 'bg-amber-950/30' : ''
+                            className={`p-3.5 rounded-2xl flex items-start gap-3 border transition-colors group relative ${
+                              !notif.isRead 
+                                ? 'bg-amber-950/40 border-amber-500/30 hover:bg-amber-950/60' 
+                                : 'bg-slate-800/40 border-slate-800 hover:bg-slate-800/70'
                             }`}
                           >
                             <div 
                               onClick={() => handleNotificationClick(notif)}
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 cursor-pointer ${
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer ${
                                 isNewOrder 
                                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
                                   : isBulk 

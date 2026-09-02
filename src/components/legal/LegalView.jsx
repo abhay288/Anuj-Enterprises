@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ShieldCheck, FileText, RotateCcw, Search, Printer, 
+  ShieldCheck, FileText, RotateCcw, Search, 
   Download, ArrowRight, CheckCircle2, AlertTriangle, 
   MapPin, Phone, Mail, Clock, Scale, Building2, 
   Edit3, ChevronRight, Lock, Sparkles, HelpCircle
@@ -30,9 +30,6 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
     );
   }, [policy, searchQuery]);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="py-8 sm:py-12 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100 print:bg-white print:text-black">
@@ -82,24 +79,17 @@ export const LegalView = ({ initialTab = 'privacy' }) => {
               </div>
             </div>
 
-            {/* Print & Action Controls */}
-            <div className="flex flex-wrap md:flex-col gap-2.5 shrink-0 print:hidden">
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 shadow flex items-center gap-2 transition-colors"
-              >
-                <Printer className="w-4 h-4 text-amber-400" /> {t('print_invoice', 'Print Official Copy')}
-              </button>
-
-              {user?.role === 'admin' && (
+            {/* Action Controls */}
+            {user?.role === 'admin' && (
+              <div className="flex flex-wrap md:flex-col gap-2.5 shrink-0 print:hidden">
                 <button
                   onClick={() => navigateTo('admin-dash')}
                   className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-2 transition-colors"
                 >
                   <Edit3 className="w-4 h-4" /> {t('nav_admin', 'Edit in Admin Portal')}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
