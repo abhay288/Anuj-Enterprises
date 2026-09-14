@@ -175,14 +175,12 @@ export const AppProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasAnand = parsed.some(b => b.name?.toLowerCase() === 'anand bakery');
-          if (!hasAnand) {
-            const anandBrand = INITIAL_BRANDS.find(b => b.name === 'Anand Bakery');
-            if (anandBrand) {
-              const merged = [anandBrand, ...parsed];
-              try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
-              return merged;
-            }
+          const existingNames = new Set(parsed.map(b => (b.name || '').toLowerCase()));
+          const missing = INITIAL_BRANDS.filter(b => !existingNames.has((b.name || '').toLowerCase()));
+          if (missing.length > 0) {
+            const merged = [...missing, ...parsed];
+            try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
+            return merged;
           }
           return parsed;
         }
