@@ -22,6 +22,7 @@ export const seedDatabase = async () => {
     const companyList = [
       { name: 'ABC Industries', featured: true, isNew: true },
       { name: 'Anand Bakery', featured: true, isNew: true },
+      { name: 'All Time', featured: true, isNew: true },
       { name: 'VTC', featured: true, isNew: true },
       { name: 'Cook Yumm', featured: true, isNew: true },
       { name: "Kay's India", featured: true, isNew: true },
