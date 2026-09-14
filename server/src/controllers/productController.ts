@@ -97,11 +97,19 @@ export const getProducts = async (req: Request, res: Response) => {
       price: p.price,
       mrp: p.mrp || Math.round(p.price * 1.2),
       stock: p.stock,
-      packSize: p.packSize,
-      bundleSize: p.bundleSize,
-      caseSize: p.caseSize,
+      lowStockThreshold: p.lowStockThreshold || 20,
+      unitType: p.unitType || 'Piece',
+      unitQuantity: p.unitQuantity || '',
+      packSize: p.packSize || '',
+      bundleSize: p.bundleSize || '',
+      malaSize: p.malaSize || '',
+      boriSize: p.boriSize || '',
+      caseSize: p.caseSize || '',
+      cartonSize: p.cartonSize || '',
+      customPackaging: p.customPackaging || '',
       isFeatured: p.featured,
       isNew: p.newProduct,
+      isNrp: p.isNrp || false,
       status: p.status,
       image: p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
       gallery: p.images ? p.images.map((img: any) => img.url) : [],
@@ -153,13 +161,23 @@ export const getProductById = async (req: Request, res: Response) => {
           brand: product.companyName,
           category: product.categoryName,
           sku: product.sku,
+          hsn: product.hsn || '19053100',
           price: product.price,
+          mrp: product.mrp || Math.round(product.price * 1.2),
           stock: product.stock,
-          packSize: product.packSize,
-          bundleSize: product.bundleSize,
-          caseSize: product.caseSize,
+          lowStockThreshold: product.lowStockThreshold || 20,
+          unitType: product.unitType || 'Piece',
+          unitQuantity: product.unitQuantity || '',
+          packSize: product.packSize || '',
+          bundleSize: product.bundleSize || '',
+          malaSize: product.malaSize || '',
+          boriSize: product.boriSize || '',
+          caseSize: product.caseSize || '',
+          cartonSize: product.cartonSize || '',
+          customPackaging: product.customPackaging || '',
           isFeatured: product.featured,
           isNew: product.newProduct,
+          isNrp: product.isNrp || false,
           status: product.status,
           image: product.images && product.images.length > 0 ? product.images[0].url : '',
           gallery: product.images ? product.images.map((i: any) => i.url) : [],
@@ -176,7 +194,9 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
   try {
     const { 
       name, brand, company, category, sku, price, mrp, stock, 
-      packSize, bundleSize, caseSize, description, image, isFeatured, isNew, status 
+      lowStockThreshold, unitType, unitQuantity, packSize, bundleSize, 
+      malaSize, boriSize, caseSize, cartonSize, customPackaging, 
+      hsn, isNrp, description, image, images, gallery, isFeatured, isNew, status 
     } = req.body || {};
 
     if (!name || !sku || !price) {
@@ -196,6 +216,22 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    let finalImages = [];
+    const incomingImgs = (Array.isArray(images) && images.length > 0 ? images : (Array.isArray(gallery) && gallery.length > 0 ? gallery : (image ? [image] : []))).filter(Boolean);
+    if (incomingImgs.length > 0) {
+      finalImages = incomingImgs.slice(0, 3).map((url: string, idx: number) => ({
+        url,
+        isPrimary: idx === 0,
+        whiteBackground: true
+      }));
+    } else {
+      finalImages = [{
+        url: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+        isPrimary: true,
+        whiteBackground: true
+      }];
+    }
+
     const newProdId = `prod-ae-${Date.now()}`;
     const product = new Product({
       productId: newProdId,
@@ -206,14 +242,23 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       description: description || 'B2B Enterprise Grade Supply Item',
       price: Number(price),
       mrp: Number(mrp || price * 1.2),
-      stock: Number(stock || 50),
-      packSize: packSize || '1 Unit',
-      bundleSize: bundleSize || '5 Units',
-      caseSize: caseSize || '10 Units',
+      stock: Number(stock ?? 50),
+      lowStockThreshold: Number(lowStockThreshold || 20),
+      unitType: unitType || 'Piece',
+      unitQuantity: unitQuantity || '',
+      packSize: packSize || '',
+      bundleSize: bundleSize || '',
+      malaSize: malaSize || '',
+      boriSize: boriSize || '',
+      caseSize: caseSize || '',
+      cartonSize: cartonSize || '',
+      customPackaging: customPackaging || '',
+      hsn: hsn || '19053100',
+      isNrp: Boolean(isNrp),
       featured: isFeatured ?? true,
       newProduct: isNew ?? true,
       status: status || 'Published',
-      images: [{ url: image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80', isPrimary: true, whiteBackground: true }],
+      images: finalImages,
       createdBy: req.user?.id || 'ADMIN'
     });
 
@@ -249,16 +294,38 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     if (updates.name) product.name = updates.name;
     if (updates.brand || updates.company) product.companyName = updates.brand || updates.company;
     if (updates.category) product.categoryName = updates.category;
+    if (updates.sku) product.sku = String(updates.sku).toUpperCase();
     if (updates.price !== undefined) product.price = Number(updates.price);
+    if (updates.mrp !== undefined) product.mrp = Number(updates.mrp);
     if (updates.stock !== undefined) product.stock = Number(updates.stock);
-    if (updates.packSize) product.packSize = updates.packSize;
-    if (updates.bundleSize) product.bundleSize = updates.bundleSize;
-    if (updates.caseSize) product.caseSize = updates.caseSize;
+    if (updates.lowStockThreshold !== undefined) product.lowStockThreshold = Number(updates.lowStockThreshold);
+    if (updates.unitType !== undefined) product.unitType = updates.unitType;
+    if (updates.unitQuantity !== undefined) product.unitQuantity = updates.unitQuantity;
+    if (updates.packSize !== undefined) product.packSize = updates.packSize;
+    if (updates.bundleSize !== undefined) product.bundleSize = updates.bundleSize;
+    if (updates.malaSize !== undefined) product.malaSize = updates.malaSize;
+    if (updates.boriSize !== undefined) product.boriSize = updates.boriSize;
+    if (updates.caseSize !== undefined) product.caseSize = updates.caseSize;
+    if (updates.cartonSize !== undefined) product.cartonSize = updates.cartonSize;
+    if (updates.customPackaging !== undefined) product.customPackaging = updates.customPackaging;
+    if (updates.hsn !== undefined) product.hsn = updates.hsn;
+    if (updates.isNrp !== undefined) product.isNrp = Boolean(updates.isNrp);
     if (updates.isFeatured !== undefined) product.featured = updates.isFeatured;
     if (updates.isNew !== undefined) product.newProduct = updates.isNew;
     if (updates.status) product.status = updates.status;
-    if (updates.image) {
-      product.images = [{ url: updates.image, isPrimary: true, whiteBackground: true }];
+    if (updates.description !== undefined) product.description = updates.description;
+
+    const incomingImgs = (Array.isArray(updates.images) && updates.images.length > 0 
+      ? updates.images 
+      : (Array.isArray(updates.gallery) && updates.gallery.length > 0 
+        ? updates.gallery 
+        : (updates.image ? [updates.image] : null)));
+    if (incomingImgs && incomingImgs.length > 0) {
+      product.images = incomingImgs.slice(0, 3).map((url: string, idx: number) => ({
+        url,
+        isPrimary: idx === 0,
+        whiteBackground: true
+      }));
     }
 
     await product.save();

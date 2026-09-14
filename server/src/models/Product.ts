@@ -31,6 +31,8 @@ export interface IProduct extends Document {
   caseSize?: string;
   cartonSize?: string;
   customPackaging?: string;
+  hsn?: string;
+  isNrp?: boolean;
   featured: boolean;
   newProduct: boolean;
   status: 'Published' | 'Draft';
@@ -72,6 +74,8 @@ const ProductSchema: Schema = new Schema(
     caseSize: { type: String, default: '' },
     cartonSize: { type: String, default: '' },
     customPackaging: { type: String, default: '' },
+    hsn: { type: String, default: '19053100' },
+    isNrp: { type: Boolean, default: false },
     featured: { type: Boolean, default: false, index: true },
     newProduct: { type: Boolean, default: false, index: true },
     status: { type: String, enum: ['Published', 'Draft'], default: 'Published', index: true },

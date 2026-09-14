@@ -21,6 +21,7 @@ export const seedDatabase = async () => {
     // 1. Seed Base Companies (Brands) if empty
     const companyList = [
       { name: 'ABC Industries', featured: true, isNew: true },
+      { name: 'Anand Bakery', featured: true, isNew: true },
       { name: 'Amul', featured: true, isNew: false },
       { name: 'Britannia', featured: true, isNew: false },
       { name: 'Nestle', featured: true, isNew: false },

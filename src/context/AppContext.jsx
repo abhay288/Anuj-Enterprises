@@ -141,7 +141,20 @@ export const AppProvider = ({ children }) => {
   const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_products_v3');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map(p => p.sku || p.id));
+          const missing = INITIAL_PRODUCTS.filter(p => !existingIds.has(p.sku) && !existingIds.has(p.id));
+          if (missing.length > 0) {
+            const merged = [...parsed, ...missing];
+            try { localStorage.setItem('anuj_products_v3', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          }
+          return parsed;
+        }
+      }
+      return INITIAL_PRODUCTS;
     } catch (e) {
       return INITIAL_PRODUCTS;
     }
@@ -159,7 +172,22 @@ export const AppProvider = ({ children }) => {
   const [brands, setBrands] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_brands_v3');
-      return saved ? JSON.parse(saved) : INITIAL_BRANDS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasAnand = parsed.some(b => b.name?.toLowerCase() === 'anand bakery');
+          if (!hasAnand) {
+            const anandBrand = INITIAL_BRANDS.find(b => b.name === 'Anand Bakery');
+            if (anandBrand) {
+              const merged = [anandBrand, ...parsed];
+              try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
+              return merged;
+            }
+          }
+          return parsed;
+        }
+      }
+      return INITIAL_BRANDS;
     } catch (e) {
       return INITIAL_BRANDS;
     }
