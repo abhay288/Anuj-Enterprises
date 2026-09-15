@@ -3317,174 +3317,177 @@ export const AdminDashboard = () => {
                                     : 'bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
                                 }`}
                               >
-                                <div className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div className="p-3.5 sm:p-4 space-y-2.5">
                                   
-                                  {/* Left: Rank Badge + Brand Info */}
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    
-                                    {/* Podium Rank Pill */}
-                                    <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-xs transition-all ${
-                                      isTop 
-                                        ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/20' 
-                                        : isSecond 
-                                        ? 'bg-gradient-to-br from-slate-200 to-slate-400 dark:from-slate-700 dark:to-slate-800 text-slate-900 dark:text-white' 
-                                        : isThird 
-                                        ? 'bg-gradient-to-br from-amber-700/40 to-amber-800/60 text-amber-900 dark:text-amber-200' 
-                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                    }`}>
-                                      {isTop ? (
-                                        <>
-                                          <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />
-                                          <span className="text-[11px] font-black leading-none">#1</span>
-                                        </>
-                                      ) : (
-                                        <span className="text-xs font-extrabold">#{rankNum}</span>
-                                      )}
+                                  {/* TOP ROW: Brand Identity (Left) + Quick Rank & Delete (Right) */}
+                                  <div className="flex items-center justify-between gap-3">
+                                    {/* Left: Rank Badge + Brand Name + Status Badges */}
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      {/* Podium Rank Pill */}
+                                      <div className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-xs transition-all ${
+                                        isTop 
+                                          ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/20' 
+                                          : isSecond 
+                                          ? 'bg-gradient-to-br from-slate-200 to-slate-400 dark:from-slate-700 dark:to-slate-800 text-slate-900 dark:text-white' 
+                                          : isThird 
+                                          ? 'bg-gradient-to-br from-amber-700/40 to-amber-800/60 text-amber-900 dark:text-amber-200' 
+                                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                                      }`}>
+                                        {isTop ? (
+                                          <>
+                                            <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />
+                                            <span className="text-[10px] font-black leading-none">#1</span>
+                                          </>
+                                        ) : (
+                                          <span className="text-xs font-extrabold">#{rankNum}</span>
+                                        )}
+                                      </div>
+
+                                      {/* Brand Name & Flagship/Podium Badge */}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <strong className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                                            {brand.name}
+                                          </strong>
+
+                                          {isTop && (
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-xs flex items-center gap-1 shrink-0">
+                                              <Crown className="w-2.5 h-2.5 fill-slate-950" />
+                                              <span>#1 Flagship</span>
+                                            </span>
+                                          )}
+
+                                          {isSecond && (
+                                            <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[9px] uppercase tracking-wider shrink-0">
+                                              🥈 #2 Priority
+                                            </span>
+                                          )}
+
+                                          {isThird && (
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-900/20 text-amber-800 dark:text-amber-400 font-bold text-[9px] uppercase tracking-wider shrink-0">
+                                              🥉 #3 Priority
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
 
-                                    {/* Company Identity */}
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-1.5">
-                                        <strong className="text-xs sm:text-sm font-black text-slate-900 dark:text-white break-words">
-                                          {brand.name}
-                                        </strong>
-
-                                        {isTop && (
-                                          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-xs flex items-center gap-1 shrink-0">
-                                            <Crown className="w-2.5 h-2.5 fill-slate-950" />
-                                            <span>#1 Flagship</span>
-                                          </span>
-                                        )}
-
-                                        {isSecond && (
-                                          <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[9px] uppercase tracking-wider shrink-0">
-                                            🥈 #2 Priority
-                                          </span>
-                                        )}
-
-                                        {isThird && (
-                                          <span className="px-2 py-0.5 rounded-full bg-amber-900/20 text-amber-800 dark:text-amber-400 font-bold text-[9px] uppercase tracking-wider shrink-0">
-                                            🥉 #3 Priority
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                        <button
-                                          type="button"
-                                          onClick={() => setExpandedBrandProducts(isExpanded ? null : brand.name)}
-                                          className={`font-bold hover:underline inline-flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
-                                            brand.productCount > 0 
-                                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60'
-                                              : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
-                                          }`}
-                                          title="Click to preview products for this company"
+                                    {/* Right: Direct Numeric Rank Dropdown & Delete */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs">
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Rank:</span>
+                                        <select
+                                          value={rankNum}
+                                          onChange={(e) => updateBrandRank(brand.id || brand.name, e.target.value)}
+                                          className="bg-transparent font-black text-xs text-amber-600 dark:text-amber-400 focus:outline-none cursor-pointer"
+                                          title={`Change rank directly for ${brand.name}`}
                                         >
-                                          <Package className="w-3 h-3" />
-                                          <span>{brand.productCount} Products</span>
-                                          <Eye className="w-2.5 h-2.5 ml-0.5 opacity-60" />
-                                        </button>
-
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1 text-[10px]">
-                                          <Globe className="w-3 h-3 text-slate-400" />
-                                          {brand.country || 'India'}
-                                        </span>
+                                          {brands.map((_, rIdx) => (
+                                            <option 
+                                              key={rIdx + 1} 
+                                              value={rIdx + 1}
+                                              className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                                            >
+                                              #{rIdx + 1} {rIdx === 0 ? '(👑 Flagship #1)' : ''}
+                                            </option>
+                                          ))}
+                                        </select>
                                       </div>
+
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          if (window.confirm(`Remove "${brand.name}" from company directory?`)) {
+                                            deleteBrand(brand.id || brand.name);
+                                          }
+                                        }} 
+                                        className="text-slate-400 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                        title={`Delete ${brand.name}`}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
                                   </div>
 
-                                  {/* Right: Full Action Control Suite */}
-                                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
-                                    
-                                    {/* Direct Numeric Rank Dropdown */}
-                                    <div className="flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs">
-                                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Rank:</span>
-                                      <select
-                                        value={rankNum}
-                                        onChange={(e) => updateBrandRank(brand.id || brand.name, e.target.value)}
-                                        className="bg-transparent font-black text-xs text-amber-600 dark:text-amber-400 focus:outline-none cursor-pointer"
-                                        title={`Change rank directly for ${brand.name}`}
+                                  {/* BOTTOM ROW: Product Count & Country (Left) + Reorder Controls Strip (Right) */}
+                                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                                    {/* Left: Product Count + Country */}
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedBrandProducts(isExpanded ? null : brand.name)}
+                                        className={`font-bold hover:underline inline-flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${
+                                          brand.productCount > 0 
+                                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60'
+                                            : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                                        }`}
+                                        title="Click to preview products for this company"
                                       >
-                                        {brands.map((_, rIdx) => (
-                                          <option 
-                                            key={rIdx + 1} 
-                                            value={rIdx + 1}
-                                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
-                                          >
-                                            #{rIdx + 1} {rIdx === 0 ? '(👑 Flagship #1)' : ''}
-                                          </option>
-                                        ))}
-                                      </select>
+                                        <Package className="w-3 h-3" />
+                                        <span>{brand.productCount} Products</span>
+                                        <Eye className="w-2.5 h-2.5 ml-0.5 opacity-60" />
+                                      </button>
+
+                                      <span>•</span>
+                                      <span className="flex items-center gap-1 text-[10px]">
+                                        <Globe className="w-3 h-3 text-slate-400" />
+                                        {brand.country || 'India'}
+                                      </span>
                                     </div>
 
-                                    {/* 1-Click Promote to #1 Flagship */}
-                                    {!isTop && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setBrandTopRank(brand.id || brand.name)}
-                                        className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500 text-amber-800 hover:text-slate-950 dark:text-amber-400 dark:hover:text-slate-950 border border-amber-400/40 rounded-xl font-black text-xs inline-flex items-center gap-1 transition-all shadow-xs"
-                                        title={`Promote ${brand.name} to Rank #1 (Shows First in Customer Catalogue)`}
-                                      >
-                                        <Crown className="w-3 h-3 fill-current" />
-                                        <span className="hidden sm:inline">Crown #1</span>
-                                      </button>
-                                    )}
+                                    {/* Right: Crown #1 + Segmented Reorder Direction Controls */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {!isTop && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setBrandTopRank(brand.id || brand.name)}
+                                          className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500 text-amber-800 hover:text-slate-950 dark:text-amber-400 dark:hover:text-slate-950 border border-amber-400/40 rounded-xl font-black text-xs inline-flex items-center gap-1 transition-all shadow-xs"
+                                          title={`Promote ${brand.name} to Rank #1 (Shows First in Customer Catalogue)`}
+                                        >
+                                          <Crown className="w-3 h-3 fill-current" />
+                                          <span>Crown #1</span>
+                                        </button>
+                                      )}
 
-                                    {/* Segmented Reorder Direction Controls */}
-                                    <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs divide-x divide-slate-200 dark:divide-slate-700">
-                                      <button
-                                        type="button"
-                                        disabled={rankNum === 1}
-                                        onClick={() => moveBrandToExtreme(brand.id || brand.name, 'TOP')}
-                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                        title="Move to Very Top (Rank #1)"
-                                      >
-                                        <ChevronsUp className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        disabled={rankNum === 1}
-                                        onClick={() => moveBrandRank(brand.id || brand.name, 'UP')}
-                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                        title="Move Rank Up (+1 Priority)"
-                                      >
-                                        <ArrowUp className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        disabled={rankNum === brands.length}
-                                        onClick={() => moveBrandRank(brand.id || brand.name, 'DOWN')}
-                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                        title="Move Rank Down (-1 Priority)"
-                                      >
-                                        <ArrowDown className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        disabled={rankNum === brands.length}
-                                        onClick={() => moveBrandToExtreme(brand.id || brand.name, 'BOTTOM')}
-                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                        title="Move to Very Bottom (Lowest Priority)"
-                                      >
-                                        <ChevronsDown className="w-3.5 h-3.5" />
-                                      </button>
+                                      <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs divide-x divide-slate-200 dark:divide-slate-700">
+                                        <button
+                                          type="button"
+                                          disabled={rankNum === 1}
+                                          onClick={() => moveBrandToExtreme(brand.id || brand.name, 'TOP')}
+                                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                          title="Move to Very Top (Rank #1)"
+                                        >
+                                          <ChevronsUp className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={rankNum === 1}
+                                          onClick={() => moveBrandRank(brand.id || brand.name, 'UP')}
+                                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                          title="Move Rank Up (+1 Priority)"
+                                        >
+                                          <ArrowUp className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={rankNum === brands.length}
+                                          onClick={() => moveBrandRank(brand.id || brand.name, 'DOWN')}
+                                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                          title="Move Rank Down (-1 Priority)"
+                                        >
+                                          <ArrowDown className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={rankNum === brands.length}
+                                          onClick={() => moveBrandToExtreme(brand.id || brand.name, 'BOTTOM')}
+                                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                          title="Move to Very Bottom (Lowest Priority)"
+                                        >
+                                          <ChevronsDown className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
                                     </div>
-
-                                    {/* Delete Brand */}
-                                    <button 
-                                      type="button"
-                                      onClick={() => {
-                                        if (window.confirm(`Remove "${brand.name}" from company directory?`)) {
-                                          deleteBrand(brand.id || brand.name);
-                                        }
-                                      }} 
-                                      className="text-slate-400 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                                      title={`Delete ${brand.name}`}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-
                                   </div>
                                 </div>
 
