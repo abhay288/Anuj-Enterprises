@@ -3034,104 +3034,6 @@ export const AdminDashboard = () => {
             {activeTab === 'categories' && (
               <div className="space-y-8">
 
-                {/* --- EXECUTIVE COMMAND CENTER BANNER --- */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-brand-950 to-slate-900 border border-amber-500/30 p-6 sm:p-8 text-white shadow-2xl">
-                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-1/3 -mb-20 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
-
-                  <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-2 max-w-2xl">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-black tracking-wide">
-                        <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
-                        <span>EXECUTIVE CATALOGUE PRIORITY ENGINE</span>
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
-                        Company Catalogue Ranking & Priority Engine
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                        Control which manufacturer products appear first in the customer storefront and wholesale catalog. Products of the <strong className="text-amber-400 font-black">#1 Ranked Flagship Company</strong> are automatically given first-row placement across the customer store.
-                      </p>
-                    </div>
-
-                    {/* Global Engine Actions */}
-                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={autoRankByProductCount}
-                        className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5"
-                        title="Automatically sort companies so brands with the largest product catalogue rank first"
-                      >
-                        <Zap className="w-4 h-4 fill-current" />
-                        <span>Auto-Rank by Products</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={resetBrandRanks}
-                        className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs active:scale-95 transition-all flex items-center gap-1.5"
-                        title="Restore canonical factory ranking sequence"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Reset Default</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => navigateTo('catalogue')}
-                        className="px-4 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
-                        title="Open customer catalogue to preview priority order"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Verify in Live Store</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Real-time KPI Metric Deck */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-6 border-t border-slate-800/80">
-                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 block mb-0.5 flex items-center gap-1">
-                        <Crown className="w-3 h-3 fill-amber-400" /> Current #1 Flagship
-                      </span>
-                      <strong className="text-sm font-black text-white truncate block">
-                        {topRankedBrand ? topRankedBrand.name : 'Not Configured'}
-                      </strong>
-                      <span className="text-[10px] text-slate-400">
-                        {topRankedBrand ? `${topRankedBrand.productCount} Lead Products` : 'No brands'}
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5 flex items-center gap-1">
-                        <Building2 className="w-3 h-3 text-blue-400" /> Master Brands
-                      </span>
-                      <strong className="text-base font-black text-white block">
-                        {brands.length}
-                      </strong>
-                      <span className="text-[10px] text-slate-400">Companies Registered</span>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5 flex items-center gap-1">
-                        <Package className="w-3 h-3 text-emerald-400" /> Catalog Coverage
-                      </span>
-                      <strong className="text-base font-black text-white block">
-                        {products.length}
-                      </strong>
-                      <span className="text-[10px] text-slate-400">Products Prioritized</span>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 block mb-0.5 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Engine Sync
-                      </span>
-                      <strong className="text-xs font-black text-emerald-300 block mt-0.5">
-                        Live Auto-Sync
-                      </strong>
-                      <span className="text-[10px] text-slate-400">Instant Cross-Tab & DB</span>
-                    </div>
-                  </div>
-                </div>
 
                 {/* --- LIVE STOREFRONT SEQUENCE SIMULATION STRIP --- */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
@@ -3383,6 +3285,28 @@ export const AdminDashboard = () => {
                             }`}
                           >
                             Zero Products
+                          </button>
+
+                          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0 mx-1" />
+
+                          <button
+                            type="button"
+                            onClick={autoRankByProductCount}
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 font-extrabold text-xs transition-all shrink-0 flex items-center gap-1 border border-amber-500/30 active:scale-95"
+                            title="Auto-sort companies by product count"
+                          >
+                            <Zap className="w-3 h-3 fill-current" />
+                            Auto-Rank
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={resetBrandRanks}
+                            className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-xs transition-all shrink-0 flex items-center gap-1 active:scale-95"
+                            title="Reset canonical ranking sequence"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Reset
                           </button>
                         </div>
                       </div>
