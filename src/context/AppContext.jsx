@@ -1012,7 +1012,6 @@ export const AppProvider = ({ children }) => {
         syncChannel.onmessage = (event) => {
           const { type, payload } = event.data || {};
           if (type === 'SYNC_PRODUCTS' && payload) setProducts(payload);
-          if (type === 'SYNC_DELETED_PRODUCTS' && payload) setDeletedProductIds(payload);
           if (type === 'SYNC_HEADLINE' && payload) setHeadlineConfig(payload);
           if (type === 'SYNC_POLICIES' && payload) setLegalPolicies(payload);
           if (type === 'SYNC_CATEGORIES' && payload) setCategories(payload);
@@ -2940,7 +2939,7 @@ export const AppProvider = ({ children }) => {
       addProduct,
       updateProduct,
       deleteProduct,
-      deletedProductIds,
+      deletedProductIds: [],
       duplicateProduct,
       toggleProductFeatured,
       toggleProductNew,
