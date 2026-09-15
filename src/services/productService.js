@@ -9,6 +9,8 @@ export const productService = {
     if (filters.featured) query.append('featured', 'true');
     if (filters.newProduct) query.append('newProduct', 'true');
     if (filters.status) query.append('status', filters.status);
+    if (filters.limit) query.append('limit', String(filters.limit));
+    if (filters.page) query.append('page', String(filters.page));
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return apiClient(`/products${queryString}`);

@@ -4,6 +4,20 @@ import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { escapeRegex, sanitizeCsvFormula } from '../utils/securityUtils.js';
 
+export const buildProductLookupQuery = (idParam: string) => {
+  const cleanId = String(idParam || '').trim();
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(cleanId);
+  const orConditions: any[] = [
+    { productId: cleanId },
+    { sku: cleanId },
+    { sku: cleanId.toUpperCase() }
+  ];
+  if (isObjectId) {
+    orConditions.push({ _id: cleanId });
+  }
+  return { $or: orConditions };
+};
+
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const { 
@@ -36,10 +50,15 @@ export const getProducts = async (req: Request, res: Response) => {
       queryFilter.newProduct = true;
     }
 
-    if (status) {
-      queryFilter.status = status;
-    } else {
-      queryFilter.status = 'Published';
+    const cleanStatus = status ? String(status).trim() : '';
+    if (cleanStatus && cleanStatus.toLowerCase() !== 'all') {
+      queryFilter.status = cleanStatus;
+    } else if (!cleanStatus) {
+      // Default to Published unless caller explicitly asks for all or is an Admin
+      const reqRole = (req as AuthRequest).user?.role;
+      if (reqRole !== 'ADMIN') {
+        queryFilter.status = 'Published';
+      }
     }
 
     if (search) {
@@ -72,7 +91,7 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     const pageNum = Math.max(1, parseInt(String(page)) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(String(limit)) || 50));
+    const limitNum = Math.min(5000, Math.max(1, parseInt(String(limit)) || 50));
     const skip = (pageNum - 1) * limitNum;
 
     const [products, total] = await Promise.all([
@@ -140,9 +159,9 @@ export const getProducts = async (req: Request, res: Response) => {
 
 export const getProductById = async (req: Request, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    const product = await Product.findOne({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] }).lean();
+    const idStr = String(req.params.id || '').trim();
+    const query = buildProductLookupQuery(idStr);
+    const product = await Product.findOne(query).lean();
 
     if (!product) {
       return res.status(404).json({
@@ -282,11 +301,11 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
 
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
+    const idStr = String(req.params.id || '').trim();
     const updates = req.body || {};
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
+    const query = buildProductLookupQuery(idStr);
 
-    const product = await Product.findOne({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] });
+    const product = await Product.findOne(query);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -344,31 +363,48 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
 
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    const product = await Product.findOneAndDelete({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] });
-
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
+    const idStr = String(req.params.id || '').trim();
+    if (!idStr) {
+      return res.status(400).json({ success: false, message: 'Product ID is required for deletion' });
     }
 
-    await AdminActivity.create({
-      action: 'PRODUCT_DELETED',
-      adminId: req.user?.id || 'ADMIN',
-      details: `Deleted product "${product.name}" (SKU: ${product.sku})`
-    });
+    const query = buildProductLookupQuery(idStr);
+    const product = await Product.findOneAndDelete(query);
 
-    return res.json({ success: true, message: 'Product deleted successfully' });
+    if (!product) {
+      return res.status(404).json({ success: false, message: `Product not found with ID ${idStr}` });
+    }
+
+    try {
+      await AdminActivity.create({
+        action: 'PRODUCT_DELETED',
+        adminId: req.user?.id || 'ADMIN',
+        adminName: req.user?.name || 'Administrator',
+        details: `Deleted product "${product.name}" (SKU: ${product.sku}, ID: ${product.productId || product._id})`
+      });
+    } catch (actErr: any) {
+      console.warn('Could not record AdminActivity for product deletion:', actErr.message);
+    }
+
+    return res.json({ 
+      success: true, 
+      message: 'Product deleted successfully',
+      data: {
+        id: product.productId || product._id.toString(),
+        sku: product.sku,
+        name: product.name
+      }
+    });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to delete product' });
   }
 };
 
 export const toggleStatus = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    const product = await Product.findOne({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] });
+    const idStr = String(req.params.id || '').trim();
+    const query = buildProductLookupQuery(idStr);
+    const product = await Product.findOne(query);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     product.status = product.status === 'Published' ? 'Draft' : 'Published';
@@ -382,9 +418,9 @@ export const toggleStatus = async (req: AuthRequest, res: Response) => {
 
 export const toggleFeatured = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    const product = await Product.findOne({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] });
+    const idStr = String(req.params.id || '').trim();
+    const query = buildProductLookupQuery(idStr);
+    const product = await Product.findOne(query);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     product.featured = !product.featured;
@@ -398,9 +434,9 @@ export const toggleFeatured = async (req: AuthRequest, res: Response) => {
 
 export const toggleNew = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    const product = await Product.findOne({ $or: [{ productId: idStr }, { sku: idStr }, { _id: isObjectId ? idStr : null }] });
+    const idStr = String(req.params.id || '').trim();
+    const query = buildProductLookupQuery(idStr);
+    const product = await Product.findOne(query);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     product.newProduct = !product.newProduct;
