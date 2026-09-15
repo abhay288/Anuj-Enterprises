@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PackageX, LayoutGrid, List, Search, X, SlidersHorizontal, Sparkles, CheckCircle2, WifiOff } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp, normalizeBrandName } from '../../context/AppContext';
 import { ProductCard } from './ProductCard';
 import { FilterSidebar } from './FilterSidebar';
 import { FilterBottomSheet } from './FilterBottomSheet';
@@ -183,13 +183,15 @@ export const ProductGrid = () => {
     setSortBy('featured');
   };
 
-  // Build brand rank priority lookup map
+  // Build brand rank priority lookup map with robust diacritic normalization
   const brandRankMap = useMemo(() => {
     const map = {};
     (brands || []).forEach((b, index) => {
       const name = typeof b === 'string' ? b : b.name;
-      const rank = (typeof b === 'object' && b.rank !== undefined) ? b.rank : index + 1;
-      if (name) map[name.toLowerCase().trim()] = rank;
+      const rank = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (index + 1);
+      if (name) {
+        map[normalizeBrandName(name)] = rank;
+      }
     });
     return map;
   }, [brands]);
@@ -203,7 +205,8 @@ export const ProductGrid = () => {
       }
       // Company / Brand filter
       if (selectedBrands.length > 0 && !selectedBrands.includes('All')) {
-        if (!selectedBrands.includes(p.brand)) return false;
+        const selectedNorms = selectedBrands.map(normalizeBrandName);
+        if (!selectedNorms.includes(normalizeBrandName(p.brand))) return false;
       }
       // Featured check
       if (featuredOnly && !p.isFeatured) return false;
@@ -226,12 +229,12 @@ export const ProductGrid = () => {
       // If user is searching, prioritize exact SKU or title prefix matches
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const aSkuMatch = a.sku.toLowerCase() === q ? 10 : a.sku.toLowerCase().includes(q) ? 5 : 0;
-        const bSkuMatch = b.sku.toLowerCase() === q ? 10 : b.sku.toLowerCase().includes(q) ? 5 : 0;
+        const aSkuMatch = a.sku?.toLowerCase() === q ? 10 : a.sku?.toLowerCase().includes(q) ? 5 : 0;
+        const bSkuMatch = b.sku?.toLowerCase() === q ? 10 : b.sku?.toLowerCase().includes(q) ? 5 : 0;
         if (aSkuMatch !== bSkuMatch) return bSkuMatch - aSkuMatch;
 
-        const aNamePrefix = a.name.toLowerCase().startsWith(q) ? 4 : 0;
-        const bNamePrefix = b.name.toLowerCase().startsWith(q) ? 4 : 0;
+        const aNamePrefix = a.name?.toLowerCase().startsWith(q) ? 4 : 0;
+        const bNamePrefix = b.name?.toLowerCase().startsWith(q) ? 4 : 0;
         if (aNamePrefix !== bNamePrefix) return bNamePrefix - aNamePrefix;
       }
 
@@ -241,8 +244,8 @@ export const ProductGrid = () => {
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
 
       // Default & Featured Sort: Prioritize products from higher-ranked brands / companies
-      const aBrandRank = brandRankMap[a.brand?.toLowerCase()?.trim()] ?? 999;
-      const bBrandRank = brandRankMap[b.brand?.toLowerCase()?.trim()] ?? 999;
+      const aBrandRank = brandRankMap[normalizeBrandName(a.brand)] ?? 999;
+      const bBrandRank = brandRankMap[normalizeBrandName(b.brand)] ?? 999;
       if (aBrandRank !== bBrandRank) {
         return aBrandRank - bBrandRank;
       }
@@ -271,10 +274,26 @@ export const ProductGrid = () => {
             </p>
           </div>
 
-          {/* Search Bar & Grid/List View Toggle */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Controls Bar: Sort, Search, View Mode */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm cursor-pointer"
+                title="Sort Catalogue Products"
+              >
+                <option value="featured">👑 Priority (Company Ranking)</option>
+                <option value="new">✨ Newest Arrivals</option>
+                <option value="rating">⭐ Highest Rated</option>
+                <option value="price-low">💰 Price: Low to High</option>
+                <option value="price-high">💎 Price: High to Low</option>
+              </select>
+            </div>
+
             {/* Search Input Box */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-60">
               <input
                 type="text"
                 value={searchQuery}

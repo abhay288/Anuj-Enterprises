@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import { getCompanies, createCompany, deleteCompany } from '../controllers/companyController.js';
+import { getCompanies, createCompany, deleteCompany, updateCompanyRanks } from '../controllers/companyController.js';
 import { authenticateJWT, requireAuth, requireRoles } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
 router.get('/', getCompanies);
+router.put('/ranks', authenticateJWT, requireAuth, requireRoles('ADMIN'), updateCompanyRanks);
+router.patch('/ranks', authenticateJWT, requireAuth, requireRoles('ADMIN'), updateCompanyRanks);
 router.post('/', authenticateJWT, requireAuth, requireRoles('ADMIN'), createCompany);
 router.delete('/:id', authenticateJWT, requireAuth, requireRoles('ADMIN'), deleteCompany);
 

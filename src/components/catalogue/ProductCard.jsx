@@ -1,12 +1,19 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Eye, Sparkles, ShieldAlert } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { ShoppingCart, Eye, Sparkles, ShieldAlert, Crown } from 'lucide-react';
+import { useApp, normalizeBrandName } from '../../context/AppContext';
 import { getPackagingLevels } from '../../utils/packagingUtils';
 
 export const ProductCard = memo(({ product }) => {
-  const { addToCart, openQuickView, navigateTo, t } = useApp();
+  const { addToCart, openQuickView, navigateTo, brands, t } = useApp();
   const [quantity, setQuantity] = useState(1);
+
+  const isTopRankBrand = useMemo(() => {
+    if (!brands || brands.length === 0) return false;
+    const topBrand = brands[0];
+    const topBrandName = typeof topBrand === 'object' ? topBrand.name : topBrand;
+    return normalizeBrandName(product.brand) === normalizeBrandName(topBrandName);
+  }, [brands, product.brand]);
 
   const handleQtyInputChange = (e) => {
     const val = parseInt(e.target.value, 10);
@@ -36,6 +43,12 @@ export const ProductCard = memo(({ product }) => {
           <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-brand-950 text-white dark:bg-brand-600 shadow">
             {product.brand}
           </span>
+
+          {isTopRankBrand && (
+            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-md flex items-center gap-1 border border-amber-300">
+              <Crown className="w-2.5 h-2.5 fill-slate-950 text-slate-950" /> #1 Priority Brand
+            </span>
+          )}
 
           {product.isNew ? (
             <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-amber-400 text-slate-950 shadow flex items-center gap-0.5">

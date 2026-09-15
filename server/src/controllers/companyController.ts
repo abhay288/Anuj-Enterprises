@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/authMiddleware.js';
 
 export const getCompanies = async (req: Request, res: Response) => {
   try {
-    const companies = await Company.find({ status: 'Active' }).sort({ name: 1 }).lean();
+    const companies = await Company.find({ status: 'Active' }).sort({ rank: 1, name: 1 }).lean();
     return res.json({
       success: true,
       data: { companies },
@@ -17,7 +17,7 @@ export const getCompanies = async (req: Request, res: Response) => {
 
 export const createCompany = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, logo, featured, isNew } = req.body || {};
+    const { name, description, logo, featured, isNew, rank, country } = req.body || {};
     if (!name || !String(name).trim()) {
       return res.status(400).json({ success: false, message: 'Company name is required' });
     }
@@ -32,7 +32,9 @@ export const createCompany = async (req: AuthRequest, res: Response) => {
       description: description || '',
       logo: logo || '',
       featured: featured ?? false,
-      isNew: isNew ?? true
+      isNew: isNew ?? true,
+      rank: typeof rank === 'number' ? rank : 999,
+      country: country || 'India'
     });
     await company.save();
 
@@ -40,6 +42,45 @@ export const createCompany = async (req: AuthRequest, res: Response) => {
       success: true,
       data: { company },
       message: `Company "${name}" created successfully`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateCompanyRanks = async (req: AuthRequest, res: Response) => {
+  try {
+    const { ranks } = req.body || {};
+    if (!Array.isArray(ranks) || ranks.length === 0) {
+      return res.status(400).json({ success: false, message: 'Valid ranks array is required' });
+    }
+
+    const bulkOps = ranks.map((item: any, idx: number) => {
+      const rankNum = typeof item.rank === 'number' ? item.rank : idx + 1;
+      const itemId = item.id || item._id;
+      const isObjectId = itemId && String(itemId).match(/^[0-9a-fA-F]{24}$/);
+      const filter = isObjectId 
+        ? { _id: itemId } 
+        : { name: new RegExp(`^${String(item.name || '').trim()}$`, 'i') };
+
+      return {
+        updateOne: {
+          filter,
+          update: { $set: { rank: rankNum } },
+          upsert: false
+        }
+      };
+    });
+
+    if (bulkOps.length > 0) {
+      await Company.bulkWrite(bulkOps);
+    }
+
+    const updatedCompanies = await Company.find({ status: 'Active' }).sort({ rank: 1, name: 1 }).lean();
+    return res.json({
+      success: true,
+      data: { companies: updatedCompanies },
+      message: 'Company ranks synchronized successfully'
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

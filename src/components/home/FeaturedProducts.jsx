@@ -1,18 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Flame, Award } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp, normalizeBrandName } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
 
 export const FeaturedProducts = () => {
-  const { products, navigateTo, t } = useApp();
+  const { products, brands, navigateTo, t } = useApp();
   const [activeTab, setActiveTab] = useState('featured'); // 'featured' | 'trending' | 'bulk'
 
-  const filteredProducts = products.filter(p => {
-    if (activeTab === 'trending') return p.isTrending;
-    if (activeTab === 'bulk') return p.bulkTiers && p.bulkTiers.length > 0;
-    return p.isFeatured;
-  });
+  // Build brand rank priority lookup map
+  const brandRankMap = useMemo(() => {
+    const map = {};
+    (brands || []).forEach((b, index) => {
+      const name = typeof b === 'string' ? b : b.name;
+      const rank = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (index + 1);
+      if (name) {
+        map[normalizeBrandName(name)] = rank;
+      }
+    });
+    return map;
+  }, [brands]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      if (activeTab === 'trending') return p.isTrending;
+      if (activeTab === 'bulk') return p.bulkTiers && p.bulkTiers.length > 0;
+      return p.isFeatured;
+    }).sort((a, b) => {
+      const aBrandRank = brandRankMap[normalizeBrandName(a.brand)] ?? 999;
+      const bBrandRank = brandRankMap[normalizeBrandName(b.brand)] ?? 999;
+      if (aBrandRank !== bBrandRank) {
+        return aBrandRank - bBrandRank;
+      }
+      return (b.rating || 0) - (a.rating || 0);
+    });
+  }, [products, activeTab, brandRankMap]);
 
   return (
     <section className="py-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">

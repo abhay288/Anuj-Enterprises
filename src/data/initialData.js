@@ -4301,6 +4301,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=300&q=80",
     "count": 1,
     "country": "India",
+    "rank": 1,
     "isNew": true
   },
   {
@@ -4309,6 +4310,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80",
     "count": 30,
     "country": "India",
+    "rank": 2,
     "isNew": true
   },
   {
@@ -4317,6 +4319,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80",
     "count": 41,
     "country": "India",
+    "rank": 3,
     "isNew": true
   },
   {
@@ -4325,6 +4328,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=300&q=80",
     "count": 11,
     "country": "India",
+    "rank": 4,
     "isNew": true
   },
   {
@@ -4333,6 +4337,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80",
     "count": 5,
     "country": "India",
+    "rank": 5,
     "isNew": true
   },
   {
@@ -4341,6 +4346,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=300&q=80",
     "count": 15,
     "country": "India",
+    "rank": 6,
     "isNew": true
   },
   {
@@ -4349,6 +4355,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=300&q=80",
     "count": 6,
     "country": "India",
+    "rank": 7,
     "isNew": true
   },
   {
@@ -4357,6 +4364,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=300&q=80",
     "count": 7,
     "country": "India",
+    "rank": 8,
     "isNew": true
   },
   {
@@ -4365,6 +4373,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=300&q=80",
     "count": 1,
     "country": "India",
+    "rank": 9,
     "isNew": false
   },
   {
@@ -4373,6 +4382,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1521483451569-e33803c0330c?auto=format&fit=crop&w=300&q=80",
     "count": 1,
     "country": "Switzerland",
+    "rank": 10,
     "isNew": false
   },
   {
@@ -4381,6 +4391,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1607006483768-918b9ee3409d?auto=format&fit=crop&w=300&q=80",
     "count": 0,
     "country": "India",
+    "rank": 11,
     "isNew": false
   },
   {
@@ -4389,6 +4400,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=300&q=80",
     "count": 0,
     "country": "USA",
+    "rank": 12,
     "isNew": false
   },
   {
@@ -4397,6 +4409,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=300&q=80",
     "count": 1,
     "country": "India",
+    "rank": 13,
     "isNew": false
   },
   {
@@ -4405,6 +4418,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=300&q=80",
     "count": 0,
     "country": "USA",
+    "rank": 14,
     "isNew": false
   },
   {
@@ -4413,6 +4427,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=300&q=80",
     "count": 0,
     "country": "USA",
+    "rank": 15,
     "isNew": false
   },
   {
@@ -4421,6 +4436,7 @@ export const INITIAL_BRANDS = [
     "logo": "https://images.unsplash.com/photo-1559598467-f8b76c8155d0?auto=format&fit=crop&w=300&q=80",
     "count": 0,
     "country": "USA",
+    "rank": 16,
     "isNew": false
   }
 ];

@@ -22,6 +22,15 @@ import { checkUnwantedContent } from '../utils/securityUtils';
 import { updatePageSEO } from '../utils/seoUtils';
 import { translations } from '../utils/translations';
 
+export const normalizeBrandName = (name) => {
+  if (!name) return '';
+  return String(name)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+};
+
 const defaultAppContext = {
   products: INITIAL_PRODUCTS,
   categories: INITIAL_CATEGORIES,
@@ -175,19 +184,20 @@ export const AppProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingNames = new Set(parsed.map(b => (b.name || '').toLowerCase()));
-          const missing = INITIAL_BRANDS.filter(b => !existingNames.has((b.name || '').toLowerCase()));
-          if (missing.length > 0) {
-            const merged = [...missing, ...parsed];
-            try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          }
-          return parsed;
+          const existingNorm = new Set(parsed.map(b => normalizeBrandName(typeof b === 'object' ? b.name : b)));
+          const missing = INITIAL_BRANDS.filter(b => !existingNorm.has(normalizeBrandName(b.name)));
+          const merged = [...parsed, ...missing].map((b, idx) => {
+            const name = typeof b === 'object' ? b.name : b;
+            const rank = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (idx + 1);
+            return typeof b === 'object' ? { ...b, rank } : { id: `b-${idx}`, name: b, rank };
+          }).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
+          try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
+          return merged;
         }
       }
-      return INITIAL_BRANDS;
+      return INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
     } catch (e) {
-      return INITIAL_BRANDS;
+      return INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
     }
   });
 
@@ -820,7 +830,24 @@ export const AppProvider = ({ children }) => {
       try {
         const compRes = await companyService.getCompanies();
         if (compRes.data?.companies && compRes.data.companies.length > 0) {
-          setBrands(compRes.data.companies);
+          const backendCompanies = compRes.data.companies;
+          setBrands(prev => {
+            const localRankMap = {};
+            (prev || []).forEach((b, idx) => {
+              const name = typeof b === 'object' ? b.name : b;
+              const r = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (idx + 1);
+              localRankMap[normalizeBrandName(name)] = r;
+            });
+            const merged = backendCompanies.map((c, idx) => {
+              const norm = normalizeBrandName(c.name);
+              const rank = (typeof c.rank === 'number' && c.rank > 0 && c.rank < 999)
+                ? c.rank
+                : (localRankMap[norm] ?? (idx + 1));
+              return { ...c, rank };
+            }).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
+            try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
         }
       } catch (e) {
         console.log('Using initial companies cache');
@@ -2134,65 +2161,84 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  const addBrand = async (brandName) => {
-    const nameStr = typeof brandName === 'object' ? (brandName.name || '') : String(brandName || '');
+  const addBrand = async (brandData, addToTop = false) => {
+    const nameStr = typeof brandData === 'object' ? (brandData.name || '') : String(brandData || '');
     const trimmed = nameStr.trim();
     if (!trimmed) return;
 
-    const exists = brands.some(b => (typeof b === 'object' ? b.name : b)?.toLowerCase() === trimmed.toLowerCase());
+    const norm = normalizeBrandName(trimmed);
+    const exists = brands.some(b => normalizeBrandName(typeof b === 'object' ? b.name : b) === norm);
     if (exists) {
       showToast(`Company "${trimmed}" already exists in catalog`, 'warning');
       return;
     }
 
-    const newBrand = { id: `brand-${Date.now()}`, name: trimmed, country: 'India', count: 0, isNew: true };
+    const country = (typeof brandData === 'object' && brandData.country) ? brandData.country : 'India';
+    const logo = (typeof brandData === 'object' && brandData.logo) ? brandData.logo : '';
+    const newBrand = {
+      id: `brand-${Date.now()}`,
+      name: trimmed,
+      country,
+      logo,
+      count: 0,
+      isNew: true,
+      rank: addToTop ? 1 : (brands.length + 1)
+    };
+
     setBrands(prev => {
-      const updated = [newBrand, ...prev];
-      localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      const list = addToTop ? [newBrand, ...prev] : [...prev, newBrand];
+      const updated = list.map((b, idx) => ({ ...b, rank: idx + 1 }));
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      } catch (e) {}
       broadcastSync('SYNC_BRANDS', updated);
+      companyService.updateRanks(updated).catch(() => {});
       return updated;
     });
-    showToast(`Company "${trimmed}" added to catalog live`, 'success');
+
+    showToast(`Company "${trimmed}" added as Rank #${addToTop ? 1 : (brands.length + 1)} in catalog`, 'success');
     try {
-      await companyService.createCompany(trimmed);
+      await companyService.createCompany({ name: trimmed, country, logo, rank: addToTop ? 1 : (brands.length + 1) });
     } catch (e) {}
   };
 
   const deleteBrand = async (brandIdOrName) => {
-    const target = String(brandIdOrName || '').toLowerCase().trim();
+    const targetNorm = normalizeBrandName(brandIdOrName);
     setBrands(prev => {
       const updated = prev.filter(b => {
         if (typeof b === 'object') {
           const bId = String(b.id || b._id || '').toLowerCase().trim();
-          const bName = String(b.name || '').toLowerCase().trim();
-          return bId !== target && bName !== target;
+          const bNorm = normalizeBrandName(b.name);
+          return bId !== targetNorm && bNorm !== targetNorm;
         }
-        return String(b).toLowerCase().trim() !== target;
+        return normalizeBrandName(b) !== targetNorm;
       }).map((b, idx) => {
         if (typeof b === 'object') {
           return { ...b, rank: idx + 1 };
         }
-        return b;
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
       });
       try {
         localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_BRANDS', updated);
+      companyService.updateRanks(updated).catch(() => {});
       return updated;
     });
-    showToast('Company removed from catalog filters', 'info');
+    showToast('Company removed from catalog and ranking priority', 'info');
     try {
       await companyService.deleteCompany(brandIdOrName);
     } catch (e) {}
   };
 
-  // Company / Brand Catalogue Ranking Functions
+  // Company / Brand Catalogue Ranking Engine Functions
   const setBrandTopRank = useCallback((brandIdOrName) => {
     setBrands(prev => {
+      const targetNorm = normalizeBrandName(brandIdOrName);
       const targetIndex = prev.findIndex(b => {
-        const name = typeof b === 'object' ? b.name : b;
-        const id = typeof b === 'object' ? (b.id || b._id) : b;
-        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+        const id = typeof b === 'object' ? String(b.id || b._id || '').toLowerCase().trim() : '';
+        const norm = normalizeBrandName(typeof b === 'object' ? b.name : b);
+        return id === targetNorm || norm === targetNorm;
       });
 
       if (targetIndex === -1) return prev;
@@ -2211,12 +2257,9 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_BRANDS', updated);
+      companyService.updateRanks(updated).catch(() => {});
 
-      setToast({
-        show: true,
-        message: `👑 "${brandDisplayName}" is now Ranked #1! Its products will appear first in the customer catalogue.`,
-        type: 'success'
-      });
+      showToast(`👑 "${brandDisplayName}" is now Ranked #1! Its products will appear first in the customer catalogue.`, 'success');
 
       return updated;
     });
@@ -2224,10 +2267,11 @@ export const AppProvider = ({ children }) => {
 
   const moveBrandRank = useCallback((brandIdOrName, direction) => {
     setBrands(prev => {
+      const targetNorm = normalizeBrandName(brandIdOrName);
       const targetIndex = prev.findIndex(b => {
-        const name = typeof b === 'object' ? b.name : b;
-        const id = typeof b === 'object' ? (b.id || b._id) : b;
-        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+        const id = typeof b === 'object' ? String(b.id || b._id || '').toLowerCase().trim() : '';
+        const norm = normalizeBrandName(typeof b === 'object' ? b.name : b);
+        return id === targetNorm || norm === targetNorm;
       });
 
       if (targetIndex === -1) return prev;
@@ -2249,13 +2293,10 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_brands_v3', JSON.stringify(rankedUpdated));
       } catch (e) {}
       broadcastSync('SYNC_BRANDS', rankedUpdated);
+      companyService.updateRanks(rankedUpdated).catch(() => {});
 
       const brandDisplayName = typeof movedItem === 'object' ? movedItem.name : movedItem;
-      setToast({
-        show: true,
-        message: `Updated "${brandDisplayName}" catalogue priority to Rank #${newIndex + 1}`,
-        type: 'success'
-      });
+      showToast(`Updated "${brandDisplayName}" priority to Rank #${newIndex + 1}`, 'success');
 
       return rankedUpdated;
     });
@@ -2266,10 +2307,11 @@ export const AppProvider = ({ children }) => {
     if (isNaN(rankNum) || rankNum < 1) return;
 
     setBrands(prev => {
+      const targetNorm = normalizeBrandName(brandIdOrName);
       const targetIndex = prev.findIndex(b => {
-        const name = typeof b === 'object' ? b.name : b;
-        const id = typeof b === 'object' ? (b.id || b._id) : b;
-        return id === brandIdOrName || name?.toLowerCase() === String(brandIdOrName).toLowerCase();
+        const id = typeof b === 'object' ? String(b.id || b._id || '').toLowerCase().trim() : '';
+        const norm = normalizeBrandName(typeof b === 'object' ? b.name : b);
+        return id === targetNorm || norm === targetNorm;
       });
 
       if (targetIndex === -1) return prev;
@@ -2290,16 +2332,94 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_brands_v3', JSON.stringify(rankedUpdated));
       } catch (e) {}
       broadcastSync('SYNC_BRANDS', rankedUpdated);
+      companyService.updateRanks(rankedUpdated).catch(() => {});
 
       const brandDisplayName = typeof movedItem === 'object' ? movedItem.name : movedItem;
-      setToast({
-        show: true,
-        message: `Set "${brandDisplayName}" to Rank #${newIndex + 1} in product catalogue`,
-        type: 'success'
-      });
+      showToast(`Set "${brandDisplayName}" to Rank #${newIndex + 1} in product catalogue`, 'success');
 
       return rankedUpdated;
     });
+  }, [broadcastSync]);
+
+  const moveBrandToExtreme = useCallback((brandIdOrName, position) => {
+    setBrands(prev => {
+      const targetNorm = normalizeBrandName(brandIdOrName);
+      const targetIndex = prev.findIndex(b => {
+        const id = typeof b === 'object' ? String(b.id || b._id || '').toLowerCase().trim() : '';
+        const norm = normalizeBrandName(typeof b === 'object' ? b.name : b);
+        return id === targetNorm || norm === targetNorm;
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = position === 'TOP' ? 0 : (prev.length - 1);
+      if (targetIndex === newIndex) return prev;
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
+      });
+
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', rankedUpdated);
+      companyService.updateRanks(rankedUpdated).catch(() => {});
+
+      const brandDisplayName = typeof movedItem === 'object' ? movedItem.name : movedItem;
+      showToast(`Moved "${brandDisplayName}" to ${position === 'TOP' ? 'Rank #1 (Flagship Top)' : `Rank #${prev.length} (Bottom)`}`, 'success');
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
+  const autoRankByProductCount = useCallback(() => {
+    setBrands(prev => {
+      const counts = {};
+      products.forEach(p => {
+        const norm = normalizeBrandName(p.brand);
+        counts[norm] = (counts[norm] || 0) + 1;
+      });
+
+      const updated = [...prev].sort((a, b) => {
+        const aNorm = normalizeBrandName(typeof a === 'object' ? a.name : a);
+        const bNorm = normalizeBrandName(typeof b === 'object' ? b.name : b);
+        const aCount = counts[aNorm] || 0;
+        const bCount = counts[bNorm] || 0;
+        if (bCount !== aCount) return bCount - aCount;
+        return aNorm.localeCompare(bNorm);
+      }).map((b, idx) => {
+        if (typeof b === 'object') {
+          return { ...b, rank: idx + 1 };
+        }
+        return { id: `brand-${idx}`, name: b, rank: idx + 1 };
+      });
+
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', updated);
+      companyService.updateRanks(updated).catch(() => {});
+
+      showToast(`⚡ Auto-ranked ${updated.length} companies by product catalog volume!`, 'success');
+      return updated;
+    });
+  }, [products, broadcastSync]);
+
+  const resetBrandRanks = useCallback(() => {
+    const canonical = INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
+    setBrands(canonical);
+    try {
+      localStorage.setItem('anuj_brands_v3', JSON.stringify(canonical));
+    } catch (e) {}
+    broadcastSync('SYNC_BRANDS', canonical);
+    companyService.updateRanks(canonical).catch(() => {});
+    showToast('Restored standard factory company priority ranking', 'info');
   }, [broadcastSync]);
 
   // Inventory Management Functions
@@ -2789,6 +2909,9 @@ export const AppProvider = ({ children }) => {
       setBrandTopRank,
       moveBrandRank,
       updateBrandRank,
+      moveBrandToExtreme,
+      autoRankByProductCount,
+      resetBrandRanks,
       updateNormalUserPassword,
       updateAdminPassword,
       deliverySchedules,
