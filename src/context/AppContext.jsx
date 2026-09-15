@@ -147,23 +147,63 @@ export const AppProvider = ({ children }) => {
     return fallback !== undefined ? fallback : key;
   }, [language]);
 
+  const [deletedProductIds, setDeletedProductIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('anuj_deleted_product_ids_v1');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   const [products, setProducts] = useState(() => {
     try {
+      const savedDeleted = localStorage.getItem('anuj_deleted_product_ids_v1');
+      const deletedList = savedDeleted ? JSON.parse(savedDeleted) : [];
+      const deletedSet = new Set((deletedList || []).map(String));
+
+      const isNotDeleted = (p) => {
+        if (!p) return false;
+        if (p.id && deletedSet.has(String(p.id))) return false;
+        if (p._id && deletedSet.has(String(p._id))) return false;
+        if (p.productId && deletedSet.has(String(p.productId))) return false;
+        if (p.sku && deletedSet.has(String(p.sku))) return false;
+        return true;
+      };
+
       const saved = localStorage.getItem('anuj_products_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map(p => p.sku || p.id));
-          const missing = INITIAL_PRODUCTS.filter(p => !existingIds.has(p.sku) && !existingIds.has(p.id));
+          // Exclude any locally deleted products from existing cache
+          const activeParsed = parsed.filter(isNotDeleted);
+
+          const existingIds = new Set();
+          activeParsed.forEach(p => {
+            if (p.sku) existingIds.add(String(p.sku));
+            if (p.id) existingIds.add(String(p.id));
+            if (p._id) existingIds.add(String(p._id));
+            if (p.productId) existingIds.add(String(p.productId));
+          });
+
+          // Only re-add initial products that were NOT intentionally deleted
+          const missing = INITIAL_PRODUCTS.filter(p => 
+            !existingIds.has(String(p.sku)) && 
+            !existingIds.has(String(p.id)) &&
+            !existingIds.has(String(p._id)) &&
+            !existingIds.has(String(p.productId)) &&
+            isNotDeleted(p)
+          );
+
           if (missing.length > 0) {
-            const merged = [...parsed, ...missing];
+            const merged = [...activeParsed, ...missing];
             try { localStorage.setItem('anuj_products_v3', JSON.stringify(merged)); } catch (e) {}
             return merged;
           }
-          return parsed;
+          return activeParsed;
         }
       }
-      return INITIAL_PRODUCTS;
+      return INITIAL_PRODUCTS.filter(isNotDeleted);
     } catch (e) {
       return INITIAL_PRODUCTS;
     }
@@ -821,7 +861,20 @@ export const AppProvider = ({ children }) => {
       try {
         const prodRes = await productService.getProducts();
         if (prodRes.data?.products && prodRes.data.products.length > 0) {
-          setProducts(prodRes.data.products);
+          const deletedList = JSON.parse(localStorage.getItem('anuj_deleted_product_ids_v1') || '[]');
+          const deletedSet = new Set(deletedList.map(String));
+          const filtered = prodRes.data.products.filter(p => {
+            const pId = p.id ? String(p.id) : null;
+            const pMongoId = p._id ? String(p._id) : null;
+            const pProdId = p.productId ? String(p.productId) : null;
+            const pSku = p.sku ? String(p.sku) : null;
+            return !(pId && deletedSet.has(pId)) &&
+                   !(pMongoId && deletedSet.has(pMongoId)) &&
+                   !(pProdId && deletedSet.has(pProdId)) &&
+                   !(pSku && deletedSet.has(pSku));
+          });
+          setProducts(filtered);
+          try { localStorage.setItem('anuj_products_v3', JSON.stringify(filtered)); } catch (e) {}
         }
       } catch (e) {
         console.log('Using initial products cache');
@@ -1018,6 +1071,7 @@ export const AppProvider = ({ children }) => {
         syncChannel.onmessage = (event) => {
           const { type, payload } = event.data || {};
           if (type === 'SYNC_PRODUCTS' && payload) setProducts(payload);
+          if (type === 'SYNC_DELETED_PRODUCTS' && payload) setDeletedProductIds(payload);
           if (type === 'SYNC_HEADLINE' && payload) setHeadlineConfig(payload);
           if (type === 'SYNC_POLICIES' && payload) setLegalPolicies(payload);
           if (type === 'SYNC_CATEGORIES' && payload) setCategories(payload);
@@ -1038,6 +1092,7 @@ export const AppProvider = ({ children }) => {
       if (!e.newValue) return;
       try {
         if (e.key === 'anuj_products_v3') setProducts(JSON.parse(e.newValue));
+        if (e.key === 'anuj_deleted_product_ids_v1') setDeletedProductIds(JSON.parse(e.newValue || '[]'));
         if (e.key === 'anuj_headline_config_v2') setHeadlineConfig(JSON.parse(e.newValue));
         if (e.key === 'anuj_legal_policies_v2') setLegalPolicies(JSON.parse(e.newValue));
         if (e.key === 'anuj_categories_v3') setCategories(JSON.parse(e.newValue));
@@ -1919,9 +1974,24 @@ export const AppProvider = ({ children }) => {
   const addProduct = async (newProd) => {
     const formatted = formatRichProductData(newProd);
 
+    // If this product or SKU was previously deleted, un-blacklist it
+    const currentDeleted = JSON.parse(localStorage.getItem('anuj_deleted_product_ids_v1') || '[]');
+    const unblacklisted = currentDeleted.filter(id => 
+      id !== String(formatted.id) && 
+      id !== String(formatted.sku) && 
+      id !== String(formatted.productId) &&
+      (!formatted._id || id !== String(formatted._id))
+    );
+    try {
+      localStorage.setItem('anuj_deleted_product_ids_v1', JSON.stringify(unblacklisted));
+    } catch (e) {}
+    setDeletedProductIds(unblacklisted);
+    broadcastSync('SYNC_DELETED_PRODUCTS', unblacklisted);
+
     // 1. Instant local state update & cross-tab sync
     setProducts(prev => {
       const updated = [formatted, ...prev];
+      try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1948,6 +2018,7 @@ export const AppProvider = ({ children }) => {
                         (formatted._id && p._id && p._id === formatted._id);
         return isMatch ? { ...p, ...formatted } : p;
       });
+      try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
@@ -1961,18 +2032,82 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  const deleteProduct = async (productId) => {
-    // 1. Instant local delete & cross-tab sync
+  const deleteProduct = async (productOrId) => {
+    if (!productOrId) return;
+
+    // Identify target product and all possible ID keys
+    const targetId = typeof productOrId === 'object' 
+      ? (productOrId.id || productOrId._id || productOrId.productId || productOrId.sku) 
+      : String(productOrId);
+    
+    const existingProd = products.find(p => 
+      (targetId && (p.id === targetId || p._id === targetId || p.productId === targetId || p.sku === targetId)) ||
+      (typeof productOrId === 'object' && ((productOrId.id && p.id === productOrId.id) || (productOrId.sku && p.sku === productOrId.sku)))
+    );
+
+    const idsToBlacklist = new Set();
+    if (targetId) idsToBlacklist.add(String(targetId));
+    if (typeof productOrId === 'object') {
+      if (productOrId.id) idsToBlacklist.add(String(productOrId.id));
+      if (productOrId._id) idsToBlacklist.add(String(productOrId._id));
+      if (productOrId.productId) idsToBlacklist.add(String(productOrId.productId));
+      if (productOrId.sku) idsToBlacklist.add(String(productOrId.sku));
+    }
+    if (existingProd) {
+      if (existingProd.id) idsToBlacklist.add(String(existingProd.id));
+      if (existingProd._id) idsToBlacklist.add(String(existingProd._id));
+      if (existingProd.productId) idsToBlacklist.add(String(existingProd.productId));
+      if (existingProd.sku) idsToBlacklist.add(String(existingProd.sku));
+    }
+
+    const isMatch = (p) => {
+      if (!p) return false;
+      if (p.id && idsToBlacklist.has(String(p.id))) return true;
+      if (p._id && idsToBlacklist.has(String(p._id))) return true;
+      if (p.productId && idsToBlacklist.has(String(p.productId))) return true;
+      if (p.sku && idsToBlacklist.has(String(p.sku))) return true;
+      return false;
+    };
+
+    // 1. Update persistent deleted product blacklist
+    const currentDeleted = JSON.parse(localStorage.getItem('anuj_deleted_product_ids_v1') || '[]');
+    const updatedDeleted = Array.from(new Set([...currentDeleted, ...Array.from(idsToBlacklist)]));
+    try {
+      localStorage.setItem('anuj_deleted_product_ids_v1', JSON.stringify(updatedDeleted));
+    } catch (e) {}
+    setDeletedProductIds(updatedDeleted);
+    broadcastSync('SYNC_DELETED_PRODUCTS', updatedDeleted);
+
+    // 2. Instant local delete & cross-tab sync
     setProducts(prev => {
-      const updated = prev.filter(p => p.id !== productId && (!p._id || p._id !== productId));
+      const updated = prev.filter(p => !isMatch(p));
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(updated));
+      } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
-    showToast('Product removed from catalog', 'warning');
 
-    // 2. Background API Sync
+    // Clean up from active cart & wishlist
+    setCart(prev => prev.filter(item => !isMatch(item.product)));
+    setWishlist(prev => prev.filter(item => !isMatch(item)));
+
+    // Reset modals/routes if this product was open
+    setQuickViewProduct(prev => (prev && isMatch(prev) ? null : prev));
+    setIsQuickViewOpen(prev => (quickViewProduct && isMatch(quickViewProduct) ? false : prev));
+    if (selectedProductId && idsToBlacklist.has(String(selectedProductId))) {
+      setSelectedProductId(null);
+    }
+
+    const prodName = existingProd?.name || (typeof productOrId === 'object' ? productOrId.name : null) || 'Product';
+    showToast(`"${prodName.slice(0, 30)}" removed from catalogue & home`, 'warning');
+
+    // 3. Background API Sync
+    const apiId = existingProd?._id || existingProd?.productId || targetId;
     try {
-      await productService.deleteProduct(productId);
+      if (apiId) {
+        await productService.deleteProduct(apiId);
+      }
     } catch (e) {}
   };
 
@@ -2868,6 +3003,7 @@ export const AppProvider = ({ children }) => {
       addProduct,
       updateProduct,
       deleteProduct,
+      deletedProductIds,
       duplicateProduct,
       toggleProductFeatured,
       toggleProductNew,

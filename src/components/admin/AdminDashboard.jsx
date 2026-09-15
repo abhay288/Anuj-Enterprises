@@ -1559,7 +1559,15 @@ export const AdminDashboard = () => {
                             <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-slate-400 hover:text-amber-500" title="Edit Product">
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => deleteProduct(prod.id)} className="p-1.5 text-slate-400 hover:text-red-600" title="Delete Product">
+                            <button 
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete "${prod.name}" from the catalogue? This will immediately remove it from Home and Catalogue.`)) {
+                                  deleteProduct(prod);
+                                }
+                              }} 
+                              className="p-1.5 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40" 
+                              title="Delete Product"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
