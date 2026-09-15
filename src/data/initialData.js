@@ -4246,42 +4246,6 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Zesty green raw mango pickle bits infused with fenugreek, nigella seeds and pure mustard oil."
-  },
-  {
-    "id": "prod-alt-041",
-    "_id": "6aa85f7ad8bb3c307d5615b5",
-    "productId": "prod-alt-041",
-    "name": "All Time Pineapple Slice 800 Gm (Case of 24 Pcs)",
-    "brand": "All Time",
-    "company": "All Time",
-    "category": "Food & Beverages",
-    "sku": "ALT-PIN-SLC-800G-24",
-    "hsn": "19053100",
-    "price": 2640,
-    "mrp": 3360,
-    "stock": 90,
-    "lowStockThreshold": 20,
-    "unitType": "Piece",
-    "unitQuantity": "800 Gm",
-    "packSize": "800g Can / Tin",
-    "bundleSize": "",
-    "malaSize": "",
-    "boriSize": "",
-    "caseSize": "24 Pcs / Case",
-    "cartonSize": "",
-    "customPackaging": "1 Master Case = 24 Tins (800g each) • Sweet Sugar Syrup Rings",
-    "isFeatured": false,
-    "isNew": true,
-    "isNrp": false,
-    "status": "Published",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80",
-    "images": [
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"
-    ],
-    "gallery": [
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"
-    ],
-    "description": "Juicy golden pineapple rings preserved in sweet heavy sugar syrup, ready to top cakes, pastries, pizzas, and fruit sundaes."
   }
 ];
 

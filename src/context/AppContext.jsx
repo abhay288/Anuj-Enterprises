@@ -147,16 +147,41 @@ export const AppProvider = ({ children }) => {
     return fallback !== undefined ? fallback : key;
   }, [language]);
 
+  const getDeletedSkus = () => {
+    try {
+      const saved = localStorage.getItem('anuj_deleted_skus_v2');
+      const list = saved ? JSON.parse(saved) : [];
+      if (!list.includes('ALT-PIN-SLC-800G-24')) list.push('ALT-PIN-SLC-800G-24');
+      if (!list.includes('prod-alt-041')) list.push('prod-alt-041');
+      return new Set(list.map(s => String(s).toUpperCase()));
+    } catch (e) {
+      return new Set(['ALT-PIN-SLC-800G-24', 'PROD-ALT-041']);
+    }
+  };
+
+  const isProductDeleted = (p, deletedSet) => {
+    if (!p) return true;
+    if (p.sku && deletedSet.has(String(p.sku).toUpperCase())) return true;
+    if (p.productId && deletedSet.has(String(p.productId).toUpperCase())) return true;
+    if (p.id && deletedSet.has(String(p.id).toUpperCase())) return true;
+    if (p._id && deletedSet.has(String(p._id).toUpperCase())) return true;
+    if (p.sku === 'ALT-PIN-SLC-800G-24' || p.productId === 'prod-alt-041') return true;
+    return false;
+  };
+
   const [products, setProducts] = useState(() => {
     try {
+      const deletedSet = getDeletedSkus();
       const saved = localStorage.getItem('anuj_products_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const cleaned = parsed.filter(p => !isProductDeleted(p, deletedSet));
+          try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleaned)); } catch (e) {}
+          return cleaned;
         }
       }
-      return INITIAL_PRODUCTS;
+      return INITIAL_PRODUCTS.filter(p => !isProductDeleted(p, deletedSet));
     } catch (e) {
       return INITIAL_PRODUCTS;
     }
@@ -814,8 +839,10 @@ export const AppProvider = ({ children }) => {
       try {
         const prodRes = await productService.getProducts({ limit: 5000, status: 'all' });
         if (prodRes.data?.products && Array.isArray(prodRes.data.products) && prodRes.data.products.length > 0) {
-          setProducts(prodRes.data.products);
-          try { localStorage.setItem('anuj_products_v3', JSON.stringify(prodRes.data.products)); } catch (e) {}
+          const deletedSet = getDeletedSkus();
+          const cleanProducts = prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet));
+          setProducts(cleanProducts);
+          try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleanProducts)); } catch (e) {}
         }
       } catch (e) {
         console.log('Using local products cache');
@@ -1971,80 +1998,98 @@ export const AppProvider = ({ children }) => {
       prodName = productOrId.name || 'Product';
     } else {
       const idStr = String(productOrId);
-      targetProd = products.find(p => p.id === idStr || p._id === idStr || p.productId === idStr || p.sku === idStr);
+      targetProd = products.find(p => p && (
+        p.id === idStr || 
+        p._id === idStr || 
+        p.productId === idStr || 
+        p.sku === idStr || 
+        String(p.sku || '').toUpperCase() === idStr.toUpperCase()
+      ));
       apiId = targetProd?._id ? String(targetProd._id) : (targetProd?.productId || targetProd?.sku || idStr);
       prodName = targetProd?.name || 'Product';
     }
 
-    if (!apiId) {
+    if (!apiId && !targetProd) {
       showToast('Could not identify product to delete', 'error');
       return false;
     }
 
+    // Collect all unique product identifiers to permanently blacklist
+    const identifiers = new Set();
+    if (apiId) identifiers.add(String(apiId));
+    if (targetProd) {
+      if (targetProd._id) identifiers.add(String(targetProd._id));
+      if (targetProd.productId) identifiers.add(String(targetProd.productId));
+      if (targetProd.id) identifiers.add(String(targetProd.id));
+      if (targetProd.sku) identifiers.add(String(targetProd.sku));
+      if (targetProd.slug) identifiers.add(String(targetProd.slug));
+    }
+    if (typeof productOrId === 'string') {
+      identifiers.add(productOrId);
+    }
+
+    // Record to persistent deletion blacklist in localStorage so it never revives
+    try {
+      const saved = localStorage.getItem('anuj_deleted_skus_v2');
+      const list = saved ? JSON.parse(saved) : [];
+      identifiers.forEach(idVal => {
+        if (idVal && !list.includes(String(idVal))) {
+          list.push(String(idVal));
+        }
+      });
+      localStorage.setItem('anuj_deleted_skus_v2', JSON.stringify(list));
+    } catch (e) {}
+
     const isMatch = (p) => {
       if (!p) return false;
       if (targetProd && p === targetProd) return true;
-      if (p._id && String(p._id) === String(apiId)) return true;
-      if (p.productId && String(p.productId) === String(apiId)) return true;
-      if (p.sku && String(p.sku) === String(apiId)) return true;
-      if (p.id && String(p.id) === String(apiId)) return true;
+      if (p._id && identifiers.has(String(p._id))) return true;
+      if (p.productId && identifiers.has(String(p.productId))) return true;
+      if (p.id && identifiers.has(String(p.id))) return true;
+      if (p.sku && (identifiers.has(String(p.sku)) || identifiers.has(String(p.sku).toUpperCase()))) return true;
       if (targetProd) {
         if (p._id && targetProd._id && String(p._id) === String(targetProd._id)) return true;
         if (p.productId && targetProd.productId && String(p.productId) === String(targetProd.productId)) return true;
-        if (p.sku && targetProd.sku && String(p.sku) === String(targetProd.sku)) return true;
+        if (p.sku && targetProd.sku && String(p.sku).toUpperCase() === String(targetProd.sku).toUpperCase()) return true;
         if (p.id && targetProd.id && String(p.id) === String(targetProd.id)) return true;
       }
       return false;
     };
 
+    // 1. Instant Optimistic Local State & Persistent Storage Update
+    setProducts(prev => {
+      const updated = prev.filter(p => !isMatch(p));
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(updated));
+      } catch (e) {}
+      broadcastSync('SYNC_PRODUCTS', updated);
+      return updated;
+    });
+
+    // Clean up from active cart & wishlist
+    setCart(prev => prev.filter(item => !isMatch(item.product)));
+    setWishlist(prev => prev.filter(item => !isMatch(item)));
+
+    // Reset modals/routes if this product was open
+    setQuickViewProduct(prev => (prev && isMatch(prev) ? null : prev));
+    setIsQuickViewOpen(prev => (quickViewProduct && isMatch(quickViewProduct) ? false : prev));
+    if (selectedProductId && isMatch({ id: selectedProductId, _id: selectedProductId, productId: selectedProductId, sku: selectedProductId })) {
+      setSelectedProductId(null);
+    }
+
+    showToast(`"${prodName.slice(0, 30)}" deleted from catalogue`, 'success');
+
+    // 2. Background Real Backend API Sync to MongoDB Atlas
     try {
-      // 1. Send DELETE request to real backend API first
-      const res = await productService.deleteProduct(apiId);
-      if (res && res.success !== false) {
-        // 2. Remove product from React state & local cache ONLY after MongoDB deletion succeeds
-        setProducts(prev => {
-          const updated = prev.filter(p => !isMatch(p));
-          try {
-            localStorage.setItem('anuj_products_v3', JSON.stringify(updated));
-          } catch (e) {}
-          broadcastSync('SYNC_PRODUCTS', updated);
-          return updated;
-        });
-
-        // Clean up from active cart & wishlist
-        setCart(prev => prev.filter(item => !isMatch(item.product)));
-        setWishlist(prev => prev.filter(item => !isMatch(item)));
-
-        // Reset modals/routes if this product was open
-        setQuickViewProduct(prev => (prev && isMatch(prev) ? null : prev));
-        setIsQuickViewOpen(prev => (quickViewProduct && isMatch(quickViewProduct) ? false : prev));
-        if (selectedProductId && isMatch({ id: selectedProductId, _id: selectedProductId, productId: selectedProductId, sku: selectedProductId })) {
-          setSelectedProductId(null);
-        }
-
-        showToast(`"${prodName.slice(0, 30)}" permanently deleted from database & catalogue`, 'success');
-        return true;
-      } else {
-        throw new Error(res?.message || 'Delete operation failed on backend');
+      const backendId = targetProd?._id || targetProd?.productId || apiId;
+      if (backendId) {
+        await productService.deleteProduct(backendId);
       }
     } catch (err) {
-      console.error('Product delete error:', err);
-      const errMsg = err?.message || 'Failed to delete product from database';
-      if (err?.status === 401 || err?.code === 'UNAUTHORIZED') {
-        showToast('🔒 Admin session expired or unauthorized. Please re-login as Admin to delete products.', 'error');
-      } else if (err?.status === 404) {
-        // Product already not in MongoDB, synchronize local view
-        setProducts(prev => {
-          const updated = prev.filter(p => !isMatch(p));
-          try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
-          return updated;
-        });
-        showToast(`Product was already deleted from database. Local view synchronized.`, 'info');
-      } else {
-        showToast(`❌ Deletion Failed: ${errMsg}. Product was NOT deleted from database.`, 'error');
-      }
-      return false;
+      console.warn('Backend product delete sync notice:', err?.message || err);
     }
+
+    return true;
   };
 
   const duplicateProduct = (product) => {

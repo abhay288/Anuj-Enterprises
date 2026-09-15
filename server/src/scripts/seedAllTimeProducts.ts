@@ -616,21 +616,6 @@ export const allTimeProducts = [
     stock: 190,
     image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80',
     description: 'Zesty green raw mango pickle bits infused with fenugreek, nigella seeds and pure mustard oil.'
-  },
-  {
-    name: 'All Time Pineapple Slice 800 Gm (Case of 24 Pcs)',
-    particulars: 'PINEAPPLE SLICE',
-    sku: 'ALT-PIN-SLC-800G-24',
-    unitType: 'Piece',
-    unitQuantity: '800 Gm',
-    packSize: '800g Can / Tin',
-    caseSize: '24 Pcs / Case',
-    customPackaging: '1 Master Case = 24 Tins (800g each) • Sweet Sugar Syrup Rings',
-    price: 2640,
-    mrp: 3360,
-    stock: 90,
-    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-    description: 'Juicy golden pineapple rings preserved in sweet heavy sugar syrup, ready to top cakes, pastries, pizzas, and fruit sundaes.'
   }
 ];
 
