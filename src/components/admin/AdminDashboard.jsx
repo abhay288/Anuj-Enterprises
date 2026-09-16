@@ -62,6 +62,10 @@ export const AdminDashboard = () => {
     moveBrandToExtreme,
     autoRankByProductCount,
     resetBrandRanks,
+    moveProductRank,
+    updateProductRank,
+    moveProductToExtreme,
+    resetProductRanks,
     addProduct, 
     updateProduct, 
     deleteProduct, 
@@ -101,6 +105,8 @@ export const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'orders' | 'schedules' | 'tickets' | 'customers' | 'announcement' | 'policies' | 'products' | 'salesmen' | 'categories' | 'reports'
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
+  const [jumpRankProduct, setJumpRankProduct] = useState(null);
+  const [jumpRankValue, setJumpRankValue] = useState('');
 
   // Admin Direct Invoice Generation State
   const [isAdminCreateInvoiceOpen, setIsAdminCreateInvoiceOpen] = useState(false);
@@ -1483,10 +1489,49 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
+                {/* Real-Time Sequencing Banner */}
+                <div className="bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-emerald-500/10 border border-blue-200/70 dark:border-blue-800/50 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          Live Real-Time Product Ordering & Sequence
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px]">
+                          STOREFRONT SYNC ACTIVE
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Use the <strong>Up/Down arrows</strong> or click on any <strong>#Rank badge</strong> to move products. Products appear on the customer catalog and home page in this exact live order!
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Reset all product orders to alphabetical sequence?')) {
+                          resetProductRanks();
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-xl text-[11px] font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                      title="Reset sequence to A-Z"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Reset A-Z
+                    </button>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
                       <tr>
+                        <th className="py-3 px-4 text-center">Priority / Order</th>
                         <th className="py-3 px-4">Product & SKU</th>
                         <th className="py-3 px-4">Brand</th>
                         <th className="py-3 px-4">Packaging & Unit Info</th>
@@ -1496,86 +1541,230 @@ export const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {products.filter(p => !prodSearch || p.name.toLowerCase().includes(prodSearch.toLowerCase()) || p.sku.toLowerCase().includes(prodSearch.toLowerCase())).map(prod => (
-                        <tr key={prod.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <img src={prod.image} alt={prod.name} className="w-10 h-10 object-contain bg-slate-50 rounded-lg border shrink-0" />
-                              <div>
-                                <span className="font-bold text-slate-900 dark:text-white block line-clamp-1">{prod.name}</span>
-                                <span className="text-[10px] text-slate-400 font-mono">SKU: {prod.sku}</span>
+                      {products.filter(p => !prodSearch || p.name.toLowerCase().includes(prodSearch.toLowerCase()) || p.sku.toLowerCase().includes(prodSearch.toLowerCase()) || (p.brand && p.brand.toLowerCase().includes(prodSearch.toLowerCase()))).map((prod, index) => {
+                        const rankNum = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : (index + 1);
+                        const isTop = rankNum === 1;
+                        const isBottom = rankNum === products.length;
+
+                        return (
+                          <tr key={prod.id || prod._id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
+                            {/* Priority / Up Down Controls */}
+                            <td className="py-3 px-4 text-center shrink-0">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setJumpRankProduct(prod);
+                                    setJumpRankValue(String(rankNum));
+                                  }}
+                                  className={`px-2 py-1 rounded-xl text-xs font-black transition-all flex items-center gap-1 border shadow-xs ${
+                                    isTop
+                                      ? 'bg-amber-400 text-slate-950 border-amber-300 font-black ring-2 ring-amber-400/30'
+                                      : rankNum <= 3
+                                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
+                                  }`}
+                                  title="Click to jump directly to any priority position"
+                                >
+                                  {isTop && <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />}
+                                  <span>#{rankNum}</span>
+                                </button>
+
+                                <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs divide-x divide-slate-200 dark:divide-slate-700">
+                                  <button
+                                    type="button"
+                                    disabled={isTop}
+                                    onClick={() => moveProductToExtreme(prod.id || prod.sku, 'TOP')}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                    title="Move to Very Top (Rank #1 Flagship)"
+                                  >
+                                    <ChevronsUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isTop}
+                                    onClick={() => moveProductRank(prod.id || prod.sku, 'UP')}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                    title="Move Up 1 Position"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isBottom}
+                                    onClick={() => moveProductRank(prod.id || prod.sku, 'DOWN')}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                    title="Move Down 1 Position"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isBottom}
+                                    onClick={() => moveProductToExtreme(prod.id || prod.sku, 'BOTTOM')}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
+                                    title="Move to Very Bottom"
+                                  >
+                                    <ChevronsDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-bold">{prod.brand}</td>
-                          <td className="py-3 px-4 text-[10px] text-slate-500">
-                            {getPackagingLevels(prod).length > 0 ? (
-                              <div className="space-y-0.5 max-w-[180px]">
-                                {getPackagingLevels(prod).slice(0, 2).map((lvl) => (
-                                  <div key={lvl.key} className="truncate">
-                                    {lvl.label}: <strong className="text-slate-800 dark:text-slate-200">{lvl.value}</strong>
-                                  </div>
-                                ))}
-                                {getPackagingLevels(prod).length > 2 && (
-                                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold block">
-                                    +{getPackagingLevels(prod).length - 2} more packaging levels
-                                  </span>
-                                )}
+                            </td>
+
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <img src={prod.image} alt={prod.name} className="w-10 h-10 object-contain bg-slate-50 rounded-lg border shrink-0" />
+                                <div>
+                                  <span className="font-bold text-slate-900 dark:text-white block line-clamp-1">{prod.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">SKU: {prod.sku}</span>
+                                </div>
                               </div>
-                            ) : (
-                              <span className="text-slate-400 italic">No packaging set</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center space-x-1">
-                            <button
-                              onClick={() => toggleProductFeatured(prod.id)}
-                              className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isFeatured ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}
-                            >
-                              Featured
-                            </button>
-                            <button
-                              onClick={() => toggleProductNew(prod.id)}
-                              className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNew ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-600'}`}
-                            >
-                              New
-                            </button>
-                            <button
-                              onClick={() => toggleProductNrp(prod.id || prod._id)}
-                              className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}
-                              title="Toggle No Return Policy (NRP)"
-                            >
-                              NRP
-                            </button>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => toggleProductStatus(prod.id)}
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${prod.status === 'Published' ? 'bg-brand-100 text-brand-900' : 'bg-slate-200 text-slate-700'}`}
-                            >
-                              {prod.status || 'Published'}
-                            </button>
-                          </td>
-                          <td className="py-3 px-4 text-center space-x-1">
-                            <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-slate-400 hover:text-amber-500" title="Edit Product">
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => {
-                                if (window.confirm(`Are you sure you want to delete "${prod.name}" from the catalogue? This will immediately remove it from Home and Catalogue.`)) {
-                                  deleteProduct(prod);
-                                }
-                              }} 
-                              className="p-1.5 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40" 
-                              title="Delete Product"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="py-3 px-4 font-bold">{prod.brand}</td>
+                            <td className="py-3 px-4 text-[10px] text-slate-500">
+                              {getPackagingLevels(prod).length > 0 ? (
+                                <div className="space-y-0.5 max-w-[180px]">
+                                  {getPackagingLevels(prod).slice(0, 2).map((lvl) => (
+                                    <div key={lvl.key} className="truncate">
+                                      {lvl.label}: <strong className="text-slate-800 dark:text-slate-200">{lvl.value}</strong>
+                                    </div>
+                                  ))}
+                                  {getPackagingLevels(prod).length > 2 && (
+                                    <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold block">
+                                      +{getPackagingLevels(prod).length - 2} more packaging levels
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">No packaging set</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center space-x-1">
+                              <button
+                                onClick={() => toggleProductFeatured(prod.id)}
+                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isFeatured ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}
+                              >
+                                Featured
+                              </button>
+                              <button
+                                onClick={() => toggleProductNew(prod.id)}
+                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNew ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-600'}`}
+                              >
+                                New
+                              </button>
+                              <button
+                                onClick={() => toggleProductNrp(prod.id || prod._id)}
+                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}
+                                title="Toggle No Return Policy (NRP)"
+                              >
+                                NRP
+                              </button>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={() => toggleProductStatus(prod.id)}
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${prod.status === 'Published' ? 'bg-brand-100 text-brand-900' : 'bg-slate-200 text-slate-700'}`}
+                              >
+                                {prod.status || 'Published'}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4 text-center space-x-1">
+                              <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-slate-400 hover:text-amber-500" title="Edit Product">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (window.confirm(`Are you sure you want to delete "${prod.name}" from the catalogue? This will immediately remove it from Home and Catalogue.`)) {
+                                    deleteProduct(prod);
+                                  }
+                                }} 
+                                className="p-1.5 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40" 
+                                title="Delete Product"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Jump-to-Rank Modal */}
+                {jumpRankProduct && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                            <Crown className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white">Set Priority Position</h3>
+                            <p className="text-[11px] text-slate-500">Target rank in catalogue (1 - {products.length})</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setJumpRankProduct(null)}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                        <img src={jumpRankProduct.image} alt={jumpRankProduct.name} className="w-10 h-10 object-contain rounded-lg border bg-white shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">{jumpRankProduct.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">Current: #{jumpRankProduct.sortOrder || 1} • SKU: {jumpRankProduct.sku}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                          New Priority Position (1 - {products.length})
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={products.length}
+                          value={jumpRankValue}
+                          onChange={(e) => setJumpRankValue(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
+                          placeholder="e.g. 1"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateProductRank(jumpRankProduct.id || jumpRankProduct.sku, jumpRankValue);
+                              setJumpRankProduct(null);
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setJumpRankProduct(null)}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateProductRank(jumpRankProduct.id || jumpRankProduct.sku, jumpRankValue);
+                            setJumpRankProduct(null);
+                          }}
+                          className="flex-1 py-2 rounded-xl text-xs font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-500 shadow-sm"
+                        >
+                          Apply Position
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -3,6 +3,7 @@ import { Product } from '../models/Product.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { escapeRegex, sanitizeCsvFormula } from '../utils/securityUtils.js';
+import { sendRealtimeEvent } from '../utils/realtime.js';
 
 export const buildProductLookupQuery = (idParam: string) => {
   const cleanId = String(idParam || '').trim();
@@ -94,16 +95,24 @@ export const getProducts = async (req: Request, res: Response) => {
     const limitNum = Math.min(5000, Math.max(1, parseInt(String(limit)) || 50));
     const skip = (pageNum - 1) * limitNum;
 
+    const sortOption = String(sort || '').trim();
+    let sortObj: any = { sortOrder: 1, createdAt: -1 };
+    if (sortOption === 'sortOrder') {
+      sortObj = { sortOrder: 1 };
+    } else if (sortOption && sortOption !== 'createdAt') {
+      sortObj = { [sortOption]: -1 };
+    }
+
     const [products, total] = await Promise.all([
       Product.find(queryFilter)
-        .sort({ [String(sort)]: -1 })
+        .sort(sortObj)
         .skip(skip)
         .limit(limitNum)
         .lean(),
       Product.countDocuments(queryFilter)
     ]);
 
-    const formatted = products.map((p: any) => ({
+    const formatted = products.map((p: any, idx: number) => ({
       id: p.productId || p._id.toString(),
       _id: p._id,
       productId: p.productId,
@@ -130,6 +139,7 @@ export const getProducts = async (req: Request, res: Response) => {
       isNew: p.newProduct,
       isNrp: p.isNrp || false,
       status: p.status,
+      sortOrder: typeof p.sortOrder === 'number' && p.sortOrder > 0 ? p.sortOrder : (skip + idx + 1),
       image: p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
       gallery: p.images ? p.images.map((img: any) => img.url) : [],
       description: p.description
@@ -198,6 +208,7 @@ export const getProductById = async (req: Request, res: Response) => {
           isNew: product.newProduct,
           isNrp: product.isNrp || false,
           status: product.status,
+          sortOrder: product.sortOrder || 0,
           image: product.images && product.images.length > 0 ? product.images[0].url : '',
           gallery: product.images ? product.images.map((i: any) => i.url) : [],
           description: product.description
@@ -251,6 +262,11 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       }];
     }
 
+    const totalProds = await Product.countDocuments();
+    const assignedSortOrder = (req.body?.sortOrder !== undefined && Number(req.body.sortOrder) > 0)
+      ? Number(req.body.sortOrder)
+      : totalProds + 1;
+
     const newProdId = `prod-ae-${Date.now()}`;
     const product = new Product({
       productId: newProdId,
@@ -277,11 +293,14 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       featured: isFeatured ?? true,
       newProduct: isNew ?? true,
       status: status || 'Published',
+      sortOrder: assignedSortOrder,
       images: finalImages,
       createdBy: req.user?.id || 'ADMIN'
     });
 
     await product.save();
+
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'CREATED', productId: product.productId });
 
     await AdminActivity.create({
       action: 'PRODUCT_CREATED',
@@ -332,6 +351,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     if (updates.isFeatured !== undefined) product.featured = updates.isFeatured;
     if (updates.isNew !== undefined) product.newProduct = updates.isNew;
     if (updates.status) product.status = updates.status;
+    if (updates.sortOrder !== undefined) product.sortOrder = Number(updates.sortOrder);
     if (updates.description !== undefined) product.description = updates.description;
 
     const incomingImgs = (Array.isArray(updates.images) && updates.images.length > 0 
@@ -348,6 +368,8 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     }
 
     await product.save();
+
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'UPDATED', productId: product.productId });
 
     await AdminActivity.create({
       action: 'PRODUCT_UPDATED',
@@ -386,6 +408,8 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
       console.warn('Could not record AdminActivity for product deletion:', actErr.message);
     }
 
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'DELETED', productId: product.productId });
+
     return res.json({ 
       success: true, 
       message: 'Product deleted successfully',
@@ -410,6 +434,8 @@ export const toggleStatus = async (req: AuthRequest, res: Response) => {
     product.status = product.status === 'Published' ? 'Draft' : 'Published';
     await product.save();
 
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'STATUS_TOGGLED', productId: product.productId, status: product.status });
+
     return res.json({ success: true, data: { status: product.status }, message: `Product status updated to ${product.status}` });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -425,6 +451,8 @@ export const toggleFeatured = async (req: AuthRequest, res: Response) => {
 
     product.featured = !product.featured;
     await product.save();
+
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'FEATURED_TOGGLED', productId: product.productId, featured: product.featured });
 
     return res.json({ success: true, data: { featured: product.featured }, message: 'Product featured status updated' });
   } catch (error: any) {
@@ -442,9 +470,58 @@ export const toggleNew = async (req: AuthRequest, res: Response) => {
     product.newProduct = !product.newProduct;
     await product.save();
 
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'NEW_TOGGLED', productId: product.productId, newProduct: product.newProduct });
+
     return res.json({ success: true, data: { newProduct: product.newProduct }, message: 'Product new arrival status updated' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateProductRanks = async (req: AuthRequest, res: Response) => {
+  try {
+    const { ranks } = req.body || {};
+    if (!Array.isArray(ranks) || ranks.length === 0) {
+      return res.status(400).json({ success: false, message: 'Valid ranks array is required' });
+    }
+
+    const bulkOps = ranks.map((item: any, idx: number) => {
+      const orderNum = typeof item.sortOrder === 'number' 
+        ? item.sortOrder 
+        : (typeof item.rank === 'number' ? item.rank : idx + 1);
+
+      const itemId = String(item.id || item._id || item.productId || '').trim();
+      const itemSku = String(item.sku || '').trim().toUpperCase();
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(itemId);
+
+      const orConditions: any[] = [];
+      if (isObjectId) orConditions.push({ _id: itemId });
+      if (itemId) orConditions.push({ productId: itemId });
+      if (itemSku) orConditions.push({ sku: itemSku });
+
+      return {
+        updateOne: {
+          filter: orConditions.length > 0 ? { $or: orConditions } : { productId: itemId },
+          update: { $set: { sortOrder: orderNum } },
+          upsert: false
+        }
+      };
+    });
+
+    if (bulkOps.length > 0) {
+      await Product.bulkWrite(bulkOps);
+    }
+
+    // Broadcast instant real-time event to all connected browsers & devices
+    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'REORDER', count: bulkOps.length, timestamp: Date.now() });
+
+    return res.json({
+      success: true,
+      message: 'Product sequence synchronized successfully',
+      data: { count: bulkOps.length }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to update product order' });
   }
 };
 

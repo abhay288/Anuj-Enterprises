@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { 
   getProducts, getProductById, createProduct, updateProduct, deleteProduct, 
-  toggleStatus, toggleFeatured, toggleNew, validateBulkCsv, importBulkCsv 
+  toggleStatus, toggleFeatured, toggleNew, updateProductRanks, validateBulkCsv, importBulkCsv 
 } from '../controllers/productController.js';
 import { authenticateJWT, requireAuth, requireRoles } from '../middleware/authMiddleware.js';
 
 const router = Router();
+
+// Reorder ranks (Admin Only) - Placed before /:id route
+router.put('/ranks', authenticateJWT, requireAuth, requireRoles('ADMIN'), updateProductRanks);
 
 router.get('/', authenticateJWT, getProducts);
 router.get('/:id', authenticateJWT, getProductById);

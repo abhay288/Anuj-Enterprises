@@ -50,5 +50,12 @@ export const productService = {
 
   toggleNew: async (id) => {
     return apiClient(`/products/${id}/new`, { method: 'PATCH' });
+  },
+
+  updateProductRanks: async (ranks) => {
+    return apiClient('/products/ranks', {
+      method: 'PUT',
+      body: JSON.stringify({ ranks })
+    });
   }
 };

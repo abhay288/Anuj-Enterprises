@@ -92,7 +92,11 @@ const defaultAppContext = {
   addCustomerDeliveryDate: () => {},
   removeCustomerDeliveryDate: () => {},
   setCustomerDeliveryDates: () => {},
-  bulkSetAreaDeliveryDates: () => {}
+  bulkSetAreaDeliveryDates: () => {},
+  moveProductRank: () => {},
+  updateProductRank: () => {},
+  moveProductToExtreme: () => {},
+  resetProductRanks: () => {}
 };
 
 const AppContext = createContext(defaultAppContext);
@@ -169,6 +173,17 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
+  const normalizeProductRanks = (prodList) => {
+    if (!Array.isArray(prodList) || prodList.length === 0) return [];
+    return prodList
+      .map((p, idx) => ({
+        ...p,
+        sortOrder: (typeof p.sortOrder === 'number' && p.sortOrder > 0) ? p.sortOrder : (idx + 1)
+      }))
+      .sort((a, b) => (a.sortOrder || 999999) - (b.sortOrder || 999999))
+      .map((p, idx) => ({ ...p, sortOrder: idx + 1 }));
+  };
+
   const [products, setProducts] = useState(() => {
     try {
       const deletedSet = getDeletedSkus();
@@ -176,14 +191,14 @@ export const AppProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter(p => !isProductDeleted(p, deletedSet));
+          const cleaned = normalizeProductRanks(parsed.filter(p => !isProductDeleted(p, deletedSet)));
           try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleaned)); } catch (e) {}
           return cleaned;
         }
       }
-      return INITIAL_PRODUCTS.filter(p => !isProductDeleted(p, deletedSet));
+      return normalizeProductRanks(INITIAL_PRODUCTS.filter(p => !isProductDeleted(p, deletedSet)));
     } catch (e) {
-      return INITIAL_PRODUCTS;
+      return normalizeProductRanks(INITIAL_PRODUCTS);
     }
   });
 
@@ -840,7 +855,7 @@ export const AppProvider = ({ children }) => {
         const prodRes = await productService.getProducts({ limit: 5000, status: 'all' });
         if (prodRes.data?.products && Array.isArray(prodRes.data.products) && prodRes.data.products.length > 0) {
           const deletedSet = getDeletedSkus();
-          const cleanProducts = prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet));
+          const cleanProducts = normalizeProductRanks(prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet)));
           setProducts(cleanProducts);
           try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleanProducts)); } catch (e) {}
         }
@@ -1055,6 +1070,30 @@ export const AppProvider = ({ children }) => {
       }
     } catch (e) {}
 
+    // Cross-Device Server-Sent Events (SSE) Real-Time Synchronization
+    let eventSource;
+    try {
+      if (typeof window !== 'undefined' && window.EventSource) {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const apiBase = isLocal ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
+        eventSource = new EventSource(`${apiBase}/events`);
+        eventSource.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data?.type === 'SYNC_PRODUCTS') {
+              const res = await productService.getProducts({ limit: 5000, status: 'all' });
+              if (res.data?.products && Array.isArray(res.data.products)) {
+                const delSet = getDeletedSkus();
+                const fresh = normalizeProductRanks(res.data.products.filter(p => !isProductDeleted(p, delSet)));
+                setProducts(fresh);
+                try { localStorage.setItem('anuj_products_v3', JSON.stringify(fresh)); } catch (e) {}
+              }
+            }
+          } catch (e) {}
+        };
+      }
+    } catch (e) {}
+
     const handleStorageChange = (e) => {
       if (!e.newValue) return;
       try {
@@ -1078,6 +1117,7 @@ export const AppProvider = ({ children }) => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       if (syncChannel) syncChannel.close();
+      if (eventSource) eventSource.close();
     };
   }, []);
 
@@ -2538,6 +2578,148 @@ export const AppProvider = ({ children }) => {
     showToast('Restored standard factory company priority ranking', 'info');
   }, [broadcastSync]);
 
+  // Product Master Live Sequence & Ordering Functions
+  const moveProductRank = useCallback((productIdOrSku, direction) => {
+    setProducts(prev => {
+      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
+      const targetIndex = prev.findIndex(p => {
+        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
+        const sku = String(p.sku || '').toLowerCase().trim();
+        return id === targetQuery || sku === targetQuery;
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = direction === 'UP' ? targetIndex - 1 : targetIndex + 1;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((p, idx) => ({
+        ...p,
+        sortOrder: idx + 1
+      }));
+
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_PRODUCTS', rankedUpdated);
+
+      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+        id: p.id || p._id || p.productId,
+        sku: p.sku,
+        sortOrder: i + 1
+      }))).catch(() => {});
+
+      const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
+      showToast(`Updated "${prodName}" priority to Rank #${newIndex + 1}`, 'success');
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
+  const updateProductRank = useCallback((productIdOrSku, targetRank) => {
+    const rankNum = parseInt(targetRank, 10);
+    if (isNaN(rankNum) || rankNum < 1) return;
+
+    setProducts(prev => {
+      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
+      const targetIndex = prev.findIndex(p => {
+        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
+        const sku = String(p.sku || '').toLowerCase().trim();
+        return id === targetQuery || sku === targetQuery;
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = Math.min(Math.max(0, rankNum - 1), prev.length - 1);
+      if (targetIndex === newIndex) return prev;
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((p, idx) => ({
+        ...p,
+        sortOrder: idx + 1
+      }));
+
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_PRODUCTS', rankedUpdated);
+
+      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+        id: p.id || p._id || p.productId,
+        sku: p.sku,
+        sortOrder: i + 1
+      }))).catch(() => {});
+
+      const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
+      showToast(`Set "${prodName}" to Rank #${newIndex + 1} in catalog`, 'success');
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
+  const moveProductToExtreme = useCallback((productIdOrSku, position) => {
+    setProducts(prev => {
+      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
+      const targetIndex = prev.findIndex(p => {
+        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
+        const sku = String(p.sku || '').toLowerCase().trim();
+        return id === targetQuery || sku === targetQuery;
+      });
+
+      if (targetIndex === -1) return prev;
+      const newIndex = position === 'TOP' ? 0 : (prev.length - 1);
+      if (targetIndex === newIndex) return prev;
+
+      const updated = [...prev];
+      const [movedItem] = updated.splice(targetIndex, 1);
+      updated.splice(newIndex, 0, movedItem);
+
+      const rankedUpdated = updated.map((p, idx) => ({
+        ...p,
+        sortOrder: idx + 1
+      }));
+
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_PRODUCTS', rankedUpdated);
+
+      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+        id: p.id || p._id || p.productId,
+        sku: p.sku,
+        sortOrder: i + 1
+      }))).catch(() => {});
+
+      const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
+      showToast(`Moved "${prodName}" to ${position === 'TOP' ? 'Rank #1 (Flagship Top)' : `Rank #${prev.length} (Bottom)`}`, 'success');
+
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
+  const resetProductRanks = useCallback(() => {
+    setProducts(prev => {
+      const sorted = [...prev].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const rankedUpdated = sorted.map((p, idx) => ({ ...p, sortOrder: idx + 1 }));
+      try {
+        localStorage.setItem('anuj_products_v3', JSON.stringify(rankedUpdated));
+      } catch (e) {}
+      broadcastSync('SYNC_PRODUCTS', rankedUpdated);
+      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+        id: p.id || p._id || p.productId,
+        sku: p.sku,
+        sortOrder: i + 1
+      }))).catch(() => {});
+      showToast('Reset all product orders to alphabetical sequence', 'info');
+      return rankedUpdated;
+    });
+  }, [broadcastSync]);
+
   // Inventory Management Functions
   const restockProduct = async (productId, quantity, reason = 'Warehouse Procurement Restock') => {
     const qty = parseInt(quantity, 10);
@@ -3029,6 +3211,10 @@ export const AppProvider = ({ children }) => {
       moveBrandToExtreme,
       autoRankByProductCount,
       resetBrandRanks,
+      moveProductRank,
+      updateProductRank,
+      moveProductToExtreme,
+      resetProductRanks,
       updateNormalUserPassword,
       updateAdminPassword,
       deliverySchedules,

@@ -23,6 +23,7 @@ import invoiceRoutes from './routes/invoiceRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import { addSSEClient, getConnectedClientsCount } from './utils/realtime.js';
 
 dotenv.config();
 
@@ -94,7 +95,35 @@ app.get('/api/v1/health', (req, res) => {
     status: 'ONLINE',
     database: isDbConnected ? 'CONNECTED' : 'DISCONNECTED',
     environment: process.env.NODE_ENV || 'development',
+    sseClients: getConnectedClientsCount(),
     timestamp: new Date().toISOString()
+  });
+});
+
+// Server-Sent Events (SSE) stream for real-time frontend updates
+app.get('/api/v1/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for Nginx/proxies
+  res.flushHeaders?.();
+
+  // Send initial handshake
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: Date.now() })}\n\n`);
+
+  addSSEClient(res);
+
+  // Keep-alive heartbeat ping every 25 seconds
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': heartbeat\n\n');
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
   });
 });
 

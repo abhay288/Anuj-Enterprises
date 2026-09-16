@@ -36,6 +36,7 @@ export interface IProduct extends Document {
   featured: boolean;
   newProduct: boolean;
   status: 'Published' | 'Draft';
+  sortOrder?: number;
   createdBy?: string;
   updatedBy?: string;
   createdAt: Date;
@@ -79,6 +80,7 @@ const ProductSchema: Schema = new Schema(
     featured: { type: Boolean, default: false, index: true },
     newProduct: { type: Boolean, default: false, index: true },
     status: { type: String, enum: ['Published', 'Draft'], default: 'Published', index: true },
+    sortOrder: { type: Number, default: 0, index: true },
     createdBy: { type: String, default: 'ADMIN' },
     updatedBy: { type: String, default: 'ADMIN' }
   },
@@ -87,6 +89,7 @@ const ProductSchema: Schema = new Schema(
 
 // Indexes
 ProductSchema.index({ name: 'text', sku: 'text', companyName: 'text', categoryName: 'text' });
+ProductSchema.index({ status: 1, sortOrder: 1 });
 ProductSchema.index({ status: 1, companyName: 1, categoryName: 1 });
 ProductSchema.index({ status: 1, featured: 1 });
 ProductSchema.index({ status: 1, newProduct: 1 });
