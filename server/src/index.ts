@@ -86,6 +86,32 @@ app.use('/api/', apiLimiter);
 app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/auth/register', authLimiter);
 
+// Reverse Geocoding Proxy Endpoint (to bypass browser CORS/User-Agent restrictions and get complete street address)
+app.get(['/api/geocode/reverse', '/api/v1/geocode/reverse'], async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) {
+    return res.status(400).json({ error: 'Latitude and Longitude are required' });
+  }
+  try {
+    const osmRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+      {
+        headers: {
+          'User-Agent': 'AnujEnterprisesApp/1.0 (contact@anujenterprises.com)',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    if (!osmRes.ok) {
+      return res.status(osmRes.status).json({ error: `Upstream error ${osmRes.status}` });
+    }
+    const data = await osmRes.json();
+    return res.json(data);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Geocoding failed' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
