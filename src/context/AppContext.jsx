@@ -1636,6 +1636,8 @@ export const AppProvider = ({ children }) => {
       customerAddress: safeCustomerDetails.customerAddress || safeUser.address || "Kanpur Wholesale Market",
       customerCity: safeCustomerDetails.customerCity || safeUser.city || "Kanpur",
       customerState: safeCustomerDetails.customerState || safeUser.state || "Uttar Pradesh",
+      customerPincode: safeCustomerDetails.customerPincode || safeUser.pincode || "",
+      customerLiveLocation: safeCustomerDetails.customerLiveLocation || null,
       customerEmail: safeCustomerDetails.customerEmail || safeUser.email || "",
       customerType: safeCustomerDetails.customerType || "Normal Customer",
       salesmanId: safeCustomerDetails.salesmanId || safeUser.salesmanId || "AE-SM-001",
@@ -1682,6 +1684,11 @@ export const AppProvider = ({ children }) => {
         const orderData = res.data?.order || res.order;
         const fullOrderWithProof = {
           ...orderData,
+          customerAddress: orderData.customerAddress || payload.customerAddress,
+          customerCity: orderData.customerCity || payload.customerCity,
+          customerState: orderData.customerState || payload.customerState,
+          customerPincode: orderData.customerPincode || payload.customerPincode,
+          customerLiveLocation: orderData.customerLiveLocation || payload.customerLiveLocation,
           expiredItems: safeCustomerDetails.expiredItems || [],
           returnItems: safeCustomerDetails.returnItems || []
         };
@@ -1737,6 +1744,8 @@ export const AppProvider = ({ children }) => {
       customerAddress: payload.customerAddress,
       customerCity: payload.customerCity,
       customerState: payload.customerState,
+      customerPincode: payload.customerPincode,
+      customerLiveLocation: payload.customerLiveLocation,
       customerEmail: payload.customerEmail,
       customerType: payload.customerType,
       salesmanId: payload.salesmanId,

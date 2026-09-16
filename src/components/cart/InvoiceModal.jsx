@@ -4,7 +4,7 @@ import {
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
   Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Truck
+  ChevronLeft, ChevronRight, Truck, MapPin, ExternalLink
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
@@ -244,7 +244,27 @@ export const InvoiceModal = () => {
                 <p className="font-extrabold text-slate-900 text-sm">{inv.customerName}</p>
                 {inv.customerMobile && <p className="text-slate-600">Contact: {inv.customerMobile}</p>}
                 {inv.customerAddress && <p className="text-slate-600">Address: {inv.customerAddress}</p>}
-                {inv.customerCity && <p className="text-slate-600">Location: {inv.customerCity}, {inv.customerState || 'Uttar Pradesh'}</p>}
+                {(inv.customerCity || inv.customerState || inv.customerPincode) && (
+                  <p className="text-slate-600">
+                    Location: {[inv.customerCity, inv.customerState || 'Uttar Pradesh'].filter(Boolean).join(', ')}
+                    {inv.customerPincode ? ` - ${inv.customerPincode}` : ''}
+                  </p>
+                )}
+                {inv.customerLiveLocation && (
+                  <div className="pt-1">
+                    <a
+                      href={inv.customerLiveLocation.mapsUrl || `https://www.google.com/maps?q=${inv.customerLiveLocation.lat},${inv.customerLiveLocation.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold hover:bg-emerald-100 transition-colors"
+                      title="Open Live GPS Location in Google Maps"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 animate-bounce" />
+                      <span>Live GPS: {inv.customerLiveLocation.lat?.toFixed(4)}°, {inv.customerLiveLocation.lng?.toFixed(4)}°</span>
+                      <ExternalLink className="w-2.5 h-2.5 text-emerald-500" />
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="md:text-right border-t md:border-t-0 md:border-l border-slate-200 pt-3 md:pt-0 md:pl-6 space-y-1">

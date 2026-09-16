@@ -5,13 +5,14 @@ import {
   Building2, ArrowRight, AlertTriangle, CheckCircle2, User, Phone, MapPin, Mail, Sparkles, Tag,
   Zap, RotateCcw, Plus, AlertOctagon, PackageX, ChevronDown, ChevronUp, ShieldAlert,
   Edit2, Calendar, Check, Layers, Box, LogIn, Camera, Eye, Image as ImageIcon, X,
-  ChevronLeft, ChevronRight, UploadCloud
+  ChevronLeft, ChevronRight, UploadCloud, Navigation, Loader2, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InvoiceModal } from './InvoiceModal';
 import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
 import { getPackagingLevels } from '../../utils/packagingUtils';
 import { checkUnwantedContent } from '../../utils/securityUtils';
+import { getCurrentLivePosition, reverseGeocodeCoordinates } from '../../utils/locationUtils';
 
 // 🛡️ Security & Performance Constants for Docket Photo Attachments
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
@@ -123,6 +124,17 @@ export const CartView = () => {
     if (user?.role === 'customer') return user.email || '';
     return '';
   });
+  const [customerPincode, setCustomerPincode] = useState(() => {
+    if (selectedCustomerForOrder?.pincode) return selectedCustomerForOrder.pincode;
+    if (user?.role === 'customer') return user.pincode || '';
+    return '';
+  });
+  const [customerLiveLocation, setCustomerLiveLocation] = useState(() => {
+    if (selectedCustomerForOrder?.liveLocation) return selectedCustomerForOrder.liveLocation;
+    return null;
+  });
+  const [isLocating, setIsLocating] = useState(false);
+  const [customerType, setCustomerType] = useState('Retail Store');
 
   // Expired Products Claim System State
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
@@ -535,6 +547,10 @@ export const CartView = () => {
       setCustomerCity(selectedCustomerForOrder.city || '');
       setCustomerState(selectedCustomerForOrder.state || '');
       setCustomerEmail(selectedCustomerForOrder.email || '');
+      setCustomerPincode(selectedCustomerForOrder.pincode || '');
+      if (selectedCustomerForOrder.liveLocation) {
+        setCustomerLiveLocation(selectedCustomerForOrder.liveLocation);
+      }
       if (selectedCustomerForOrder.ownerName || selectedCustomerForOrder.shopOwnerName) {
         setSalesmanNameInput(selectedCustomerForOrder.ownerName || selectedCustomerForOrder.shopOwnerName || '');
       }
@@ -548,6 +564,7 @@ export const CartView = () => {
       setCustomerCity(user.city || 'Kanpur');
       setCustomerState(user.state || 'Uttar Pradesh');
       setCustomerEmail(user.email || '');
+      setCustomerPincode(user.pincode || '');
       setSalesmanNameInput(user.ownerName || user.shopOwnerName || user.name || '');
       setSalesmanAreaInput(user.area || user.city || 'Kanpur');
     }
@@ -569,6 +586,61 @@ export const CartView = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Live GPS Geolocation & Auto-Address Reverse Geocoding Handler
+  const handleSetLiveLocation = async () => {
+    setIsLocating(true);
+    try {
+      showToast('🛰️ Fetching GPS coordinates...', 'info');
+      const pos = await getCurrentLivePosition();
+
+      showToast('📍 Pinpointing address & territory details...', 'info');
+      const geoResult = await reverseGeocodeCoordinates(pos.latitude, pos.longitude);
+
+      if (geoResult.address) {
+        setCustomerAddress(geoResult.address);
+      }
+      if (geoResult.city) {
+        setCustomerCity(geoResult.city);
+      }
+      if (geoResult.state) {
+        setCustomerState(geoResult.state);
+      }
+      if (geoResult.pincode) {
+        setCustomerPincode(geoResult.pincode);
+      }
+
+      // Auto-suggest area in shop territory if currently default or empty
+      if ((!salesmanAreaInput || salesmanAreaInput === 'South Kanpur Central' || salesmanAreaInput === 'Kanpur') && (geoResult.area || geoResult.city)) {
+        setSalesmanAreaInput(geoResult.area ? `${geoResult.area}, ${geoResult.city}` : geoResult.city);
+      }
+
+      const liveLocObj = {
+        lat: pos.latitude,
+        lng: pos.longitude,
+        accuracy: pos.accuracy,
+        address: geoResult.address,
+        city: geoResult.city,
+        state: geoResult.state,
+        pincode: geoResult.pincode,
+        mapsUrl: geoResult.mapsUrl,
+        timestamp: new Date().toISOString()
+      };
+      setCustomerLiveLocation(liveLocObj);
+
+      showToast(`✓ Live location set! Address auto-filled (Accuracy: ±${pos.accuracy}m)`, 'success');
+    } catch (err) {
+      console.error('Error setting live location:', err);
+      showToast(`⚠️ ${err.message || 'Could not fetch live location. Please enter address manually.'}`, 'warning');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleClearLiveLocation = () => {
+    setCustomerLiveLocation(null);
+    showToast('Live GPS location detached', 'info');
+  };
+
   const priorityCount = cart.filter(i => i.isPriority).length;
 
   const handleCheckoutClick = () => {
@@ -589,7 +661,7 @@ export const CartView = () => {
       ? salesmanAreaInput.trim()
       : (user?.area || user?.region || user?.city || 'Kanpur Central Mandi');
 
-    const fullTextToTest = `${finalShopName} ${finalMobile} ${customerAddress} ${customerCity} ${customerEmail} ${finalOwnerName} ${finalArea} ${salesmanRouteInput}`;
+    const fullTextToTest = `${finalShopName} ${finalMobile} ${customerAddress} ${customerCity} ${customerState} ${customerPincode} ${customerEmail} ${finalOwnerName} ${finalArea} ${salesmanRouteInput}`;
     const check = checkUnwantedContent(fullTextToTest);
     if (check.hasUnwanted) {
       showToast(`🚫 Checkout Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter valid business details.`, 'error');
@@ -606,6 +678,8 @@ export const CartView = () => {
           customerAddress: (customerAddress || 'Kanpur Wholesale Market').trim(),
           customerCity: (customerCity || 'Kanpur').trim(),
           customerState: (customerState || 'Uttar Pradesh').trim(),
+          customerPincode: (customerPincode || '').trim(),
+          customerLiveLocation: customerLiveLocation || null,
           customerEmail: (customerEmail || '').trim(),
           customerType: customerType || 'Retail Store',
           shopOwnerName: finalOwnerName,
@@ -941,6 +1015,162 @@ export const CartView = () => {
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         placeholder={t('enter_email', 'e.g. shop.billing@gmail.com')}
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Store Address & Delivery Location Section with Live GPS Option */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {t('store_delivery_address', 'Store Address & Delivery Location')}
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {t('live_location_hint', 'Click "Set Live Location" to detect GPS location and automatically fill address')}
+                      </p>
+                    </div>
+
+                    {/* Set Live Location Button */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        id="set-live-location-btn"
+                        disabled={isLocating}
+                        onClick={handleSetLiveLocation}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm shrink-0 ${
+                          isLocating
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 cursor-wait animate-pulse'
+                            : customerLiveLocation
+                            ? 'bg-emerald-500/10 dark:bg-emerald-950/50 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                            : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-amber-500/20 active:scale-95'
+                        }`}
+                      >
+                        {isLocating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
+                            <span>Detecting Live GPS...</span>
+                          </>
+                        ) : customerLiveLocation ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Update Live Location</span>
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="w-4 h-4" />
+                            <span>Set Live Location</span>
+                          </>
+                        )}
+                      </button>
+
+                      {customerLiveLocation && (
+                        <button
+                          type="button"
+                          onClick={handleClearLiveLocation}
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 transition-colors"
+                          title="Remove pinned live location"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Active Live Location GPS Banner */}
+                  {customerLiveLocation && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-300 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="font-extrabold flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          Live GPS Attached:
+                        </span>
+                        <span className="font-mono text-[11px] bg-white/60 dark:bg-slate-900/60 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                          {customerLiveLocation.lat?.toFixed(5)}°, {customerLiveLocation.lng?.toFixed(5)}°
+                        </span>
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                          (±{customerLiveLocation.accuracy}m accuracy)
+                        </span>
+                      </div>
+
+                      <a
+                        href={customerLiveLocation.mapsUrl || `https://www.google.com/maps?q=${customerLiveLocation.lat},${customerLiveLocation.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline text-[11px]"
+                      >
+                        <span>View on Google Maps</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Address Form Inputs Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+                    {/* Street Address / Premises / Shop Landmark */}
+                    <div className="sm:col-span-6">
+                      <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        {t('shop_street_address', 'Shop / Store Address')} <span className="text-rose-500 font-black text-sm">*</span>
+                      </label>
+                      <div className="relative">
+                        <MapPin className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                          placeholder={t('enter_shop_address', 'e.g. Shop #12, Kidwai Nagar Wholesale Market')}
+                          className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* City / District */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        {t('city', 'City / District')} <span className="text-rose-500 font-black text-sm">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customerCity}
+                        onChange={(e) => setCustomerCity(e.target.value)}
+                        placeholder="e.g. Kanpur"
+                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    {/* State Dropdown */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        {t('state', 'State')} <span className="text-rose-500 font-black text-sm">*</span>
+                      </label>
+                      <select
+                        value={customerState}
+                        onChange={(e) => setCustomerState(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                      >
+                        {ALL_INDIAN_STATES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Pincode */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                        {t('pincode', 'Pincode')} <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional')})</span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={customerPincode}
+                        onChange={(e) => setCustomerPincode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="e.g. 208012"
+                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   </div>
