@@ -8,8 +8,8 @@ export const NewArrivalsBanner = () => {
   const { products, brands, navigateTo, addToCart } = useApp();
 
   // Find New Companies & New Products
-  const newCompanies = brands.filter(b => b.isNew || b.name === 'ABC Industries');
-  const newProducts = products.filter(p => p.isNew || p.brand === 'ABC Industries');
+  const newCompanies = brands.filter(b => b.isNew);
+  const newProducts = products.filter(p => p.isNew);
 
   if (newProducts.length === 0 && newCompanies.length === 0) return null;
 
@@ -35,11 +35,11 @@ export const NewArrivalsBanner = () => {
               </div>
 
               <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-                ABC Industries — <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">New Product Range</span>
+                New Arrivals — <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">Featured Products</span>
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Direct wholesale B2B launch of ABC Industries' newly certified organic protein bars and industrial consumer supply line with exclusive tier pricing & sales invoice fulfillment.
+                Direct wholesale B2B launch of certified consumer product lines with exclusive tier pricing & sales invoice fulfillment.
               </p>
 
               <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -47,7 +47,7 @@ export const NewArrivalsBanner = () => {
                   onClick={() => navigateTo('catalogue')}
                   className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
                 >
-                  <span>Explore ABC Range</span>
+                  <span>Explore New Arrivals</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-slate-950/60 px-3 py-2 rounded-xl border border-amber-500/20">

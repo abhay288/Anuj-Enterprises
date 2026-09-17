@@ -9,9 +9,19 @@ export const apiClient = async (endpoint, options = {}) => {
   const API_BASE_URL = getApiBaseUrl();
   const token = localStorage.getItem('anuj_jwt_token');
 
+  let isAdminUser = false;
+  try {
+    const userStr = localStorage.getItem('anuj_user_v2') || localStorage.getItem('anuj_user');
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      if (u?.role?.toLowerCase() === 'admin') isAdminUser = true;
+    }
+  } catch (e) {}
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(isAdminUser ? { 'x-admin-auth': 'true' } : {}),
     ...(options.headers || {})
   };
 

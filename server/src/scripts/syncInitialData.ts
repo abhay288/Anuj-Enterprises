@@ -50,7 +50,6 @@ const syncInitialData = async () => {
     }));
 
     const companies = [
-      { id: 'b0', name: 'ABC Industries', logo: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=300&q=80', count: 1, country: 'India', isNew: true },
       { id: 'b-anand', name: 'Anand Bakery', logo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80', count: 30, country: 'India', isNew: true },
       { id: 'b-alltime', name: 'All Time', logo: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80', count: 41, country: 'India', isNew: true },
       { id: 'b-vtc', name: 'VTC', logo: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=300&q=80', count: 11, country: 'India', isNew: true },

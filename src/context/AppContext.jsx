@@ -852,7 +852,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const loadBackendData = async () => {
       try {
-        const prodRes = await productService.getProducts({ limit: 5000, status: 'all' });
+        const prodRes = await productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' });
         if (prodRes.data?.products && Array.isArray(prodRes.data.products) && prodRes.data.products.length > 0) {
           const deletedSet = getDeletedSkus();
           const cleanProducts = normalizeProductRanks(prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet)));
@@ -1081,7 +1081,7 @@ export const AppProvider = ({ children }) => {
           try {
             const data = JSON.parse(event.data);
             if (data?.type === 'SYNC_PRODUCTS') {
-              const res = await productService.getProducts({ limit: 5000, status: 'all' });
+              const res = await productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' });
               if (res.data?.products && Array.isArray(res.data.products)) {
                 const delSet = getDeletedSkus();
                 const fresh = normalizeProductRanks(res.data.products.filter(p => !isProductDeleted(p, delSet)));
@@ -2108,16 +2108,44 @@ export const AppProvider = ({ children }) => {
     // 1. Instant Optimistic Local State & Persistent Storage Update
     setProducts(prev => {
       const updated = prev.filter(p => !isMatch(p));
+      const rankedUpdated = updated.map((p, idx) => ({ ...p, sortOrder: idx + 1 }));
       try {
-        localStorage.setItem('anuj_products_v3', JSON.stringify(updated));
+        localStorage.setItem('anuj_products_v3', JSON.stringify(rankedUpdated));
       } catch (e) {}
-      broadcastSync('SYNC_PRODUCTS', updated);
-      return updated;
+      broadcastSync('SYNC_PRODUCTS', rankedUpdated);
+      return rankedUpdated;
     });
 
+    // Decrement company/brand product count in brands state
+    if (targetProd?.brand || targetProd?.company) {
+      const bName = normalizeBrandName(targetProd.brand || targetProd.company);
+      setBrands(prev => {
+        const updatedBrands = prev.map(b => {
+          if (normalizeBrandName(b.name) === bName) {
+            return { ...b, count: Math.max(0, (b.count || 1) - 1) };
+          }
+          return b;
+        });
+        try { localStorage.setItem('anuj_brands_v3', JSON.stringify(updatedBrands)); } catch (e) {}
+        return updatedBrands;
+      });
+    }
+
     // Clean up from active cart & wishlist
-    setCart(prev => prev.filter(item => !isMatch(item.product)));
-    setWishlist(prev => prev.filter(item => !isMatch(item)));
+    setCart(prev => {
+      const cleanedCart = prev.filter(item => !isMatch(item.product));
+      try {
+        localStorage.setItem('anuj_cart', JSON.stringify(cleanedCart));
+      } catch (e) {}
+      return cleanedCart;
+    });
+    setWishlist(prev => {
+      const cleanedWish = prev.filter(item => !isMatch(item));
+      try {
+        localStorage.setItem('anuj_wishlist', JSON.stringify(cleanedWish));
+      } catch (e) {}
+      return cleanedWish;
+    });
 
     // Reset modals/routes if this product was open
     setQuickViewProduct(prev => (prev && isMatch(prev) ? null : prev));
@@ -2126,13 +2154,19 @@ export const AppProvider = ({ children }) => {
       setSelectedProductId(null);
     }
 
-    showToast(`"${prodName.slice(0, 30)}" deleted from catalogue`, 'success');
+    showToast(`"${prodName.slice(0, 30)}" permanently deleted from catalogue`, 'success');
 
-    // 2. Background Real Backend API Sync to MongoDB Atlas
+    // 2. Real Backend API Sync to MongoDB Atlas and backend file storage
     try {
       const backendId = targetProd?._id || targetProd?.productId || apiId;
       if (backendId) {
-        await productService.deleteProduct(backendId);
+        await productService.deleteProduct(backendId, {
+          sku: targetProd?.sku,
+          productId: targetProd?.productId || targetProd?.id,
+          name: targetProd?.name,
+          _id: targetProd?._id,
+          id: targetProd?.id
+        });
       }
     } catch (err) {
       console.warn('Backend product delete sync notice:', err?.message || err);
@@ -2590,8 +2624,15 @@ export const AppProvider = ({ children }) => {
   // Product Master Live Sequence & Ordering Functions
   const moveProductRank = useCallback((productIdOrSku, direction) => {
     setProducts(prev => {
+      // 1. Guarantee array is sorted by current sortOrder before finding indices
+      const sorted = [...prev].sort((a, b) => {
+        const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
+        const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
+        return ordA - ordB;
+      });
+
       const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = prev.findIndex(p => {
+      const targetIndex = sorted.findIndex(p => {
         const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
         const sku = String(p.sku || '').toLowerCase().trim();
         return id === targetQuery || sku === targetQuery;
@@ -2599,13 +2640,12 @@ export const AppProvider = ({ children }) => {
 
       if (targetIndex === -1) return prev;
       const newIndex = direction === 'UP' ? targetIndex - 1 : targetIndex + 1;
-      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      if (newIndex < 0 || newIndex >= sorted.length) return prev;
 
-      const updated = [...prev];
-      const [movedItem] = updated.splice(targetIndex, 1);
-      updated.splice(newIndex, 0, movedItem);
+      const [movedItem] = sorted.splice(targetIndex, 1);
+      sorted.splice(newIndex, 0, movedItem);
 
-      const rankedUpdated = updated.map((p, idx) => ({
+      const rankedUpdated = sorted.map((p, idx) => ({
         ...p,
         sortOrder: idx + 1
       }));
@@ -2619,7 +2659,9 @@ export const AppProvider = ({ children }) => {
         id: p.id || p._id || p.productId,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch(() => {});
+      }))).catch((err) => {
+        console.warn('Backend rank sync notice:', err?.message || err);
+      });
 
       const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
       showToast(`Updated "${prodName}" priority to Rank #${newIndex + 1}`, 'success');
@@ -2633,22 +2675,27 @@ export const AppProvider = ({ children }) => {
     if (isNaN(rankNum) || rankNum < 1) return;
 
     setProducts(prev => {
+      const sorted = [...prev].sort((a, b) => {
+        const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
+        const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
+        return ordA - ordB;
+      });
+
       const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = prev.findIndex(p => {
+      const targetIndex = sorted.findIndex(p => {
         const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
         const sku = String(p.sku || '').toLowerCase().trim();
         return id === targetQuery || sku === targetQuery;
       });
 
       if (targetIndex === -1) return prev;
-      const newIndex = Math.min(Math.max(0, rankNum - 1), prev.length - 1);
+      const newIndex = Math.min(Math.max(0, rankNum - 1), sorted.length - 1);
       if (targetIndex === newIndex) return prev;
 
-      const updated = [...prev];
-      const [movedItem] = updated.splice(targetIndex, 1);
-      updated.splice(newIndex, 0, movedItem);
+      const [movedItem] = sorted.splice(targetIndex, 1);
+      sorted.splice(newIndex, 0, movedItem);
 
-      const rankedUpdated = updated.map((p, idx) => ({
+      const rankedUpdated = sorted.map((p, idx) => ({
         ...p,
         sortOrder: idx + 1
       }));
@@ -2662,7 +2709,9 @@ export const AppProvider = ({ children }) => {
         id: p.id || p._id || p.productId,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch(() => {});
+      }))).catch((err) => {
+        console.warn('Backend rank sync notice:', err?.message || err);
+      });
 
       const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
       showToast(`Set "${prodName}" to Rank #${newIndex + 1} in catalog`, 'success');
@@ -2673,22 +2722,27 @@ export const AppProvider = ({ children }) => {
 
   const moveProductToExtreme = useCallback((productIdOrSku, position) => {
     setProducts(prev => {
+      const sorted = [...prev].sort((a, b) => {
+        const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
+        const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
+        return ordA - ordB;
+      });
+
       const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = prev.findIndex(p => {
+      const targetIndex = sorted.findIndex(p => {
         const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
         const sku = String(p.sku || '').toLowerCase().trim();
         return id === targetQuery || sku === targetQuery;
       });
 
       if (targetIndex === -1) return prev;
-      const newIndex = position === 'TOP' ? 0 : (prev.length - 1);
+      const newIndex = position === 'TOP' ? 0 : (sorted.length - 1);
       if (targetIndex === newIndex) return prev;
 
-      const updated = [...prev];
-      const [movedItem] = updated.splice(targetIndex, 1);
-      updated.splice(newIndex, 0, movedItem);
+      const [movedItem] = sorted.splice(targetIndex, 1);
+      sorted.splice(newIndex, 0, movedItem);
 
-      const rankedUpdated = updated.map((p, idx) => ({
+      const rankedUpdated = sorted.map((p, idx) => ({
         ...p,
         sortOrder: idx + 1
       }));
@@ -2702,10 +2756,12 @@ export const AppProvider = ({ children }) => {
         id: p.id || p._id || p.productId,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch(() => {});
+      }))).catch((err) => {
+        console.warn('Backend rank sync notice:', err?.message || err);
+      });
 
       const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
-      showToast(`Moved "${prodName}" to ${position === 'TOP' ? 'Rank #1 (Flagship Top)' : `Rank #${prev.length} (Bottom)`}`, 'success');
+      showToast(`Moved "${prodName}" to ${position === 'TOP' ? 'Rank #1 (Flagship Top)' : `Rank #${sorted.length} (Bottom)`}`, 'success');
 
       return rankedUpdated;
     });
@@ -2723,7 +2779,9 @@ export const AppProvider = ({ children }) => {
         id: p.id || p._id || p.productId,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch(() => {});
+      }))).catch((err) => {
+        console.warn('Backend rank sync notice:', err?.message || err);
+      });
       showToast('Reset all product orders to alphabetical sequence', 'info');
       return rankedUpdated;
     });

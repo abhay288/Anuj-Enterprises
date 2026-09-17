@@ -34,9 +34,10 @@ export const productService = {
     });
   },
 
-  deleteProduct: async (id) => {
+  deleteProduct: async (id, extra = {}) => {
     return apiClient(`/products/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      body: JSON.stringify(extra)
     });
   },
 

@@ -1,22 +1,108 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Product } from '../models/Product.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { escapeRegex, sanitizeCsvFormula } from '../utils/securityUtils.js';
 import { sendRealtimeEvent } from '../utils/realtime.js';
 
-export const buildProductLookupQuery = (idParam: string) => {
+export const syncInitialDataFile = async () => {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const targetPath = path.resolve(__dirname, '../../../src/data/initialData.js');
+    if (!fs.existsSync(targetPath)) return;
+
+    const allProducts = await Product.find({}).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    if (!allProducts || allProducts.length === 0) return;
+
+    const formatted = allProducts.map((p: any, idx: number) => ({
+      id: p.productId || p._id.toString(),
+      _id: p._id.toString(),
+      productId: p.productId,
+      name: p.name,
+      brand: p.companyName,
+      company: p.companyName,
+      category: p.categoryName,
+      sku: p.sku,
+      hsn: p.hsn || '19053100',
+      price: p.price,
+      mrp: p.mrp || Math.round(p.price * 1.2),
+      stock: p.stock,
+      lowStockThreshold: p.lowStockThreshold || 20,
+      unitType: p.unitType || 'Piece',
+      unitQuantity: p.unitQuantity || '',
+      packSize: p.packSize || '',
+      bundleSize: p.bundleSize || '',
+      malaSize: p.malaSize || '',
+      boriSize: p.boriSize || '',
+      caseSize: p.caseSize || '',
+      cartonSize: p.cartonSize || '',
+      customPackaging: p.customPackaging || '',
+      isFeatured: Boolean(p.featured),
+      isNew: Boolean(p.newProduct),
+      isNrp: Boolean(p.isNrp),
+      status: p.status || 'Published',
+      sortOrder: typeof p.sortOrder === 'number' && p.sortOrder > 0 ? p.sortOrder : (idx + 1),
+      image: p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      images: p.images ? p.images.map((i: any) => i.url) : [],
+      gallery: p.images ? p.images.map((i: any) => i.url) : [],
+      description: p.description || ''
+    }));
+
+    let content = fs.readFileSync(targetPath, 'utf8');
+    content = content.replace(
+      /export const INITIAL_PRODUCTS = \[[\s\S]*?\];/,
+      'export const INITIAL_PRODUCTS = ' + JSON.stringify(formatted, null, 2) + ';'
+    );
+    fs.writeFileSync(targetPath, content, 'utf8');
+  } catch (err: any) {
+    console.warn('[SyncNotice] initialData.js sync:', err.message);
+  }
+};
+
+export const buildProductLookupQuery = (idParam: string, extra?: any) => {
   const cleanId = String(idParam || '').trim();
   const isObjectId = /^[0-9a-fA-F]{24}$/.test(cleanId);
-  const orConditions: any[] = [
-    { productId: cleanId },
-    { sku: cleanId },
-    { sku: cleanId.toUpperCase() }
-  ];
-  if (isObjectId) {
-    orConditions.push({ _id: cleanId });
+  const orConditions: any[] = [];
+
+  if (cleanId) {
+    orConditions.push({ productId: cleanId });
+    orConditions.push({ sku: cleanId });
+    orConditions.push({ sku: cleanId.toUpperCase() });
+    if (isObjectId) {
+      orConditions.push({ _id: new mongoose.Types.ObjectId(cleanId) });
+    }
   }
-  return { $or: orConditions };
+
+  if (extra && typeof extra === 'object') {
+    if (extra.sku) {
+      const s = String(extra.sku).trim();
+      orConditions.push({ sku: s });
+      orConditions.push({ sku: s.toUpperCase() });
+    }
+    if (extra.productId) {
+      orConditions.push({ productId: String(extra.productId).trim() });
+    }
+    if (extra.id) {
+      const idStr = String(extra.id).trim();
+      orConditions.push({ productId: idStr });
+      if (/^[0-9a-fA-F]{24}$/.test(idStr)) {
+        orConditions.push({ _id: new mongoose.Types.ObjectId(idStr) });
+      }
+    }
+    if (extra._id && /^[0-9a-fA-F]{24}$/.test(String(extra._id).trim())) {
+      orConditions.push({ _id: new mongoose.Types.ObjectId(String(extra._id).trim()) });
+    }
+    if (extra.name) {
+      orConditions.push({ name: String(extra.name).trim() });
+    }
+  }
+
+  return orConditions.length > 0 ? { $or: orConditions } : { productId: cleanId };
 };
 
 export const getProducts = async (req: Request, res: Response) => {
@@ -91,14 +177,30 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     }
 
+    // Filter out blacklisted/permanently deleted products
+    const db = mongoose.connection.db;
+    if (db) {
+      const deletedDocs = await db.collection('deleted_products').find({}).toArray().catch(() => []);
+      if (deletedDocs && deletedDocs.length > 0) {
+        const deletedSkus = deletedDocs.map((d: any) => String(d.sku || '').toUpperCase()).filter(Boolean);
+        const deletedIds = deletedDocs.map((d: any) => String(d.productId || '')).filter(Boolean);
+        if (deletedSkus.length > 0) {
+          queryFilter.sku = { ...(queryFilter.sku || {}), $nin: deletedSkus };
+        }
+        if (deletedIds.length > 0) {
+          queryFilter.productId = { ...(queryFilter.productId || {}), $nin: deletedIds };
+        }
+      }
+    }
+
     const pageNum = Math.max(1, parseInt(String(page)) || 1);
     const limitNum = Math.min(5000, Math.max(1, parseInt(String(limit)) || 50));
     const skip = (pageNum - 1) * limitNum;
 
     const sortOption = String(sort || '').trim();
     let sortObj: any = { sortOrder: 1, createdAt: -1 };
-    if (sortOption === 'sortOrder') {
-      sortObj = { sortOrder: 1 };
+    if (sortOption === 'sortOrder' || !sortOption) {
+      sortObj = { sortOrder: 1, createdAt: -1 };
     } else if (sortOption && sortOption !== 'createdAt') {
       sortObj = { [sortOption]: -1 };
     }
@@ -386,37 +488,70 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
     const idStr = String(req.params.id || '').trim();
-    if (!idStr) {
-      return res.status(400).json({ success: false, message: 'Product ID is required for deletion' });
+    const bodyData = req.body || {};
+
+    if (!idStr && !bodyData.sku && !bodyData.productId) {
+      return res.status(400).json({ success: false, message: 'Product ID or SKU is required for deletion' });
     }
 
-    const query = buildProductLookupQuery(idStr);
-    const product = await Product.findOneAndDelete(query);
+    const query = buildProductLookupQuery(idStr, bodyData);
+    const existing = await Product.find(query);
 
-    if (!product) {
-      return res.status(404).json({ success: false, message: `Product not found with ID ${idStr}` });
+    if (existing && existing.length > 0) {
+      // 1. Delete all matching records from MongoDB
+      await Product.deleteMany(query);
+
+      // 2. Permanently record in deleted_products collection in MongoDB
+      const db = mongoose.connection.db;
+      if (db) {
+        for (const p of existing) {
+          const skuKey = String(p.sku || bodyData.sku || '').toUpperCase();
+          if (skuKey) {
+            await db.collection('deleted_products').updateOne(
+              { sku: skuKey },
+              { 
+                $set: { 
+                  sku: skuKey, 
+                  productId: p.productId || idStr, 
+                  name: p.name,
+                  deletedAt: new Date(),
+                  deletedBy: req.user?.email || req.user?.id || 'ADMIN'
+                } 
+              },
+              { upsert: true }
+            ).catch(() => {});
+          }
+        }
+      }
+
+      try {
+        await AdminActivity.create({
+          action: 'PRODUCT_DELETED',
+          adminId: req.user?.id || 'ADMIN',
+          adminName: req.user?.name || 'Administrator',
+          details: `Permanently deleted product "${existing[0]?.name}" (SKU: ${existing[0]?.sku}, ID: ${existing[0]?.productId || existing[0]?._id})`
+        });
+      } catch (actErr: any) {}
     }
 
-    try {
-      await AdminActivity.create({
-        action: 'PRODUCT_DELETED',
-        adminId: req.user?.id || 'ADMIN',
-        adminName: req.user?.name || 'Administrator',
-        details: `Deleted product "${product.name}" (SKU: ${product.sku}, ID: ${product.productId || product._id})`
-      });
-    } catch (actErr: any) {
-      console.warn('Could not record AdminActivity for product deletion:', actErr.message);
-    }
+    // 3. Synchronize local initialData.js so client bundle has it deleted everywhere
+    await syncInitialDataFile();
 
-    sendRealtimeEvent('SYNC_PRODUCTS', { action: 'DELETED', productId: product.productId });
+    // 4. Send realtime broadcast event to all clients
+    sendRealtimeEvent('SYNC_PRODUCTS', { 
+      action: 'DELETED', 
+      productId: idStr, 
+      sku: bodyData.sku || existing?.[0]?.sku 
+    });
 
     return res.json({ 
       success: true, 
-      message: 'Product deleted successfully',
+      message: 'Product permanently deleted from everywhere',
       data: {
-        id: product.productId || product._id.toString(),
-        sku: product.sku,
-        name: product.name
+        id: idStr,
+        sku: bodyData.sku || existing?.[0]?.sku,
+        name: bodyData.name || existing?.[0]?.name,
+        deletedCount: existing?.length || 1
       }
     });
   } catch (error: any) {
@@ -495,12 +630,12 @@ export const updateProductRanks = async (req: AuthRequest, res: Response) => {
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(itemId);
 
       const orConditions: any[] = [];
-      if (isObjectId) orConditions.push({ _id: itemId });
+      if (isObjectId) orConditions.push({ _id: new mongoose.Types.ObjectId(itemId) });
       if (itemId) orConditions.push({ productId: itemId });
       if (itemSku) orConditions.push({ sku: itemSku });
 
       return {
-        updateOne: {
+        updateMany: {
           filter: orConditions.length > 0 ? { $or: orConditions } : { productId: itemId },
           update: { $set: { sortOrder: orderNum } },
           upsert: false
@@ -512,12 +647,15 @@ export const updateProductRanks = async (req: AuthRequest, res: Response) => {
       await Product.bulkWrite(bulkOps);
     }
 
+    // Always synchronize initialData.js with new sequence so all clients receive updated order
+    await syncInitialDataFile();
+
     // Broadcast instant real-time event to all connected browsers & devices
     sendRealtimeEvent('SYNC_PRODUCTS', { action: 'REORDER', count: bulkOps.length, timestamp: Date.now() });
 
     return res.json({
       success: true,
-      message: 'Product sequence synchronized successfully',
+      message: 'Product sequence synchronized successfully everywhere',
       data: { count: bulkOps.length }
     });
   } catch (error: any) {

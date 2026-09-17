@@ -582,6 +582,25 @@ export const AdminDashboard = () => {
   };
 
   const [prodSearch, setProdSearch] = useState('');
+
+  const orderedAdminProducts = useMemo(() => {
+    return [...products]
+      .sort((a, b) => {
+        const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
+        const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
+        return ordA - ordB;
+      })
+      .filter(p => {
+        if (!prodSearch) return true;
+        const q = prodSearch.toLowerCase().trim();
+        return (
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.sku && p.sku.toLowerCase().includes(q)) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.company && p.company.toLowerCase().includes(q))
+        );
+      });
+  }, [products, prodSearch]);
   const [salesmanSearch, setSalesmanSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderTypeFilter, setOrderTypeFilter] = useState('ALL'); // 'ALL' | 'URGENT' | 'EXPIRED' | 'RETURN'
@@ -1541,7 +1560,7 @@ export const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {products.filter(p => !prodSearch || p.name.toLowerCase().includes(prodSearch.toLowerCase()) || p.sku.toLowerCase().includes(prodSearch.toLowerCase()) || (p.brand && p.brand.toLowerCase().includes(prodSearch.toLowerCase()))).map((prod, index) => {
+                      {orderedAdminProducts.map((prod, index) => {
                         const rankNum = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : (index + 1);
                         const isTop = rankNum === 1;
                         const isBottom = rankNum === products.length;
