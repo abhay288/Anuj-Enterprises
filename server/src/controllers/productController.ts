@@ -13,8 +13,14 @@ export const syncInitialDataFile = async () => {
   try {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const targetPath = path.resolve(__dirname, '../../../src/data/initialData.js');
-    if (!fs.existsSync(targetPath)) return;
+    const candidatePaths = [
+      path.resolve(__dirname, '../../../src/data/initialData.js'),
+      path.resolve(__dirname, '../../src/data/initialData.js'),
+      path.resolve(process.cwd(), 'src/data/initialData.js'),
+      path.resolve(process.cwd(), '../src/data/initialData.js')
+    ];
+    const targetPath = candidatePaths.find(p => fs.existsSync(p));
+    if (!targetPath) return;
 
     const allProducts = await Product.find({}).sort({ sortOrder: 1, createdAt: -1 }).lean();
     if (!allProducts || allProducts.length === 0) return;
@@ -243,6 +249,7 @@ export const getProducts = async (req: Request, res: Response) => {
       status: p.status,
       sortOrder: typeof p.sortOrder === 'number' && p.sortOrder > 0 ? p.sortOrder : (skip + idx + 1),
       image: p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      images: p.images ? p.images.map((img: any) => img.url) : [],
       gallery: p.images ? p.images.map((img: any) => img.url) : [],
       description: p.description
     }));
@@ -312,6 +319,7 @@ export const getProductById = async (req: Request, res: Response) => {
           status: product.status,
           sortOrder: product.sortOrder || 0,
           image: product.images && product.images.length > 0 ? product.images[0].url : '',
+          images: product.images ? product.images.map((i: any) => i.url) : [],
           gallery: product.images ? product.images.map((i: any) => i.url) : [],
           description: product.description
         }
@@ -351,7 +359,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     let finalImages = [];
     const incomingImgs = (Array.isArray(images) && images.length > 0 ? images : (Array.isArray(gallery) && gallery.length > 0 ? gallery : (image ? [image] : []))).filter(Boolean);
     if (incomingImgs.length > 0) {
-      finalImages = incomingImgs.slice(0, 3).map((url: string, idx: number) => ({
+      finalImages = incomingImgs.slice(0, 5).map((url: string, idx: number) => ({
         url,
         isPrimary: idx === 0,
         whiteBackground: true
@@ -402,6 +410,9 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
 
     await product.save();
 
+    // Synchronize local initialData.js so client bundle has it updated everywhere
+    await syncInitialDataFile();
+
     sendRealtimeEvent('SYNC_PRODUCTS', { action: 'CREATED', productId: product.productId });
 
     await AdminActivity.create({
@@ -424,7 +435,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
     const idStr = String(req.params.id || '').trim();
     const updates = req.body || {};
-    const query = buildProductLookupQuery(idStr);
+    const query = buildProductLookupQuery(idStr, updates);
 
     const product = await Product.findOne(query);
     if (!product) {
@@ -462,7 +473,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
         ? updates.gallery 
         : (updates.image ? [updates.image] : null)));
     if (incomingImgs && incomingImgs.length > 0) {
-      product.images = incomingImgs.slice(0, 3).map((url: string, idx: number) => ({
+      product.images = incomingImgs.slice(0, 5).map((url: string, idx: number) => ({
         url,
         isPrimary: idx === 0,
         whiteBackground: true
@@ -470,6 +481,60 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     }
 
     await product.save();
+
+    // 1. Directly update initialData.js on disk so bundle serves new photos everywhere
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const candidatePaths = [
+        path.resolve(__dirname, '../../../src/data/initialData.js'),
+        path.resolve(__dirname, '../../src/data/initialData.js'),
+        path.resolve(process.cwd(), 'src/data/initialData.js'),
+        path.resolve(process.cwd(), '../src/data/initialData.js')
+      ];
+      const targetPath = candidatePaths.find(p => fs.existsSync(p));
+      if (targetPath) {
+        let content = fs.readFileSync(targetPath, 'utf8');
+        const match = content.match(/export const INITIAL_PRODUCTS = (\[[\s\S]*?\]);/);
+        if (match) {
+          const prods = JSON.parse(match[1]);
+          const targetSku = String(updates.sku || product.sku || '').toUpperCase().trim();
+          const targetProdId = String(updates.productId || product.productId || idStr || '').trim();
+          const targetMongoId = String(product._id || '').trim();
+
+          const finalImgUrls = incomingImgs && incomingImgs.length > 0 
+            ? incomingImgs.slice(0, 5).map((u: any) => typeof u === 'object' ? (u.url || u.secure_url || '') : String(u).trim()).filter(Boolean)
+            : null;
+
+          const updatedList = prods.map((p: any) => {
+            const isMatch = (targetSku && String(p.sku || '').toUpperCase().trim() === targetSku) ||
+                            (targetProdId && (p.productId === targetProdId || p.id === targetProdId || p._id === targetProdId)) ||
+                            (targetMongoId && (p._id === targetMongoId || p.id === targetMongoId)) ||
+                            (idStr && (p.id === idStr || p._id === idStr || p.productId === idStr));
+            if (!isMatch) return p;
+
+            return {
+              ...p,
+              ...updates,
+              image: finalImgUrls ? (finalImgUrls[0] || p.image) : p.image,
+              images: finalImgUrls || p.images || (p.image ? [p.image] : []),
+              gallery: finalImgUrls || p.gallery || (p.image ? [p.image] : [])
+            };
+          });
+
+          content = content.replace(
+            /export const INITIAL_PRODUCTS = \[[\s\S]*?\];/,
+            'export const INITIAL_PRODUCTS = ' + JSON.stringify(updatedList, null, 2) + ';'
+          );
+          fs.writeFileSync(targetPath, content, 'utf8');
+        }
+      }
+    } catch (fErr) {
+      console.warn('[UpdateNotice] Failed to directly update initialData.js:', fErr);
+    }
+
+    // 2. Synchronize local initialData.js from DB if DB is populated
+    await syncInitialDataFile();
 
     sendRealtimeEvent('SYNC_PRODUCTS', { action: 'UPDATED', productId: product.productId });
 
@@ -534,7 +599,43 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
       } catch (actErr: any) {}
     }
 
-    // 3. Synchronize local initialData.js so client bundle has it deleted everywhere
+    // 3. Directly purge from initialData.js file on disk so the static code bundle is cleaned immediately
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const candidatePaths = [
+        path.resolve(__dirname, '../../../src/data/initialData.js'),
+        path.resolve(__dirname, '../../src/data/initialData.js'),
+        path.resolve(process.cwd(), 'src/data/initialData.js'),
+        path.resolve(process.cwd(), '../src/data/initialData.js')
+      ];
+      const targetPath = candidatePaths.find(p => fs.existsSync(p));
+      if (targetPath) {
+        let content = fs.readFileSync(targetPath, 'utf8');
+        const match = content.match(/export const INITIAL_PRODUCTS = (\[[\s\S]*?\]);/);
+        if (match) {
+          const prods = JSON.parse(match[1]);
+          const targetSku = String(bodyData.sku || existing?.[0]?.sku || '').toUpperCase().trim();
+          const targetProdId = String(bodyData.productId || idStr || '').trim();
+          const filtered = prods.filter((p: any) => {
+            if (targetSku && String(p.sku || '').toUpperCase().trim() === targetSku) return false;
+            if (targetProdId && (p.productId === targetProdId || p.id === targetProdId || p._id === targetProdId)) return false;
+            if (idStr && (p.id === idStr || p._id === idStr || p.productId === idStr)) return false;
+            return true;
+          });
+          const reordered = filtered.map((p: any, idx: number) => ({ ...p, sortOrder: idx + 1 }));
+          content = content.replace(
+            /export const INITIAL_PRODUCTS = \[[\s\S]*?\];/,
+            'export const INITIAL_PRODUCTS = ' + JSON.stringify(reordered, null, 2) + ';'
+          );
+          fs.writeFileSync(targetPath, content, 'utf8');
+        }
+      }
+    } catch (fErr) {
+      console.warn('[DeleteNotice] Failed to directly remove from initialData.js:', fErr);
+    }
+
+    // Also synchronize MongoDB database records with initialData.js if DB is populated
     await syncInitialDataFile();
 
     // 4. Send realtime broadcast event to all clients
@@ -625,18 +726,28 @@ export const updateProductRanks = async (req: AuthRequest, res: Response) => {
         ? item.sortOrder 
         : (typeof item.rank === 'number' ? item.rank : idx + 1);
 
-      const itemId = String(item.id || item._id || item.productId || '').trim();
-      const itemSku = String(item.sku || '').trim().toUpperCase();
-      const isObjectId = /^[0-9a-fA-F]{24}$/.test(itemId);
-
       const orConditions: any[] = [];
-      if (isObjectId) orConditions.push({ _id: new mongoose.Types.ObjectId(itemId) });
-      if (itemId) orConditions.push({ productId: itemId });
-      if (itemSku) orConditions.push({ sku: itemSku });
+      const itemObjectId = item._id || (/^[0-9a-fA-F]{24}$/.test(String(item.id || '')) ? item.id : null);
+      if (itemObjectId) {
+        try {
+          orConditions.push({ _id: new mongoose.Types.ObjectId(String(itemObjectId)) });
+        } catch (e) {}
+      }
+      if (item.productId) {
+        orConditions.push({ productId: String(item.productId).trim() });
+      }
+      if (item.id) {
+        orConditions.push({ productId: String(item.id).trim() });
+      }
+      if (item.sku) {
+        const skuStr = String(item.sku).trim();
+        orConditions.push({ sku: skuStr });
+        orConditions.push({ sku: skuStr.toUpperCase() });
+      }
 
       return {
         updateMany: {
-          filter: orConditions.length > 0 ? { $or: orConditions } : { productId: itemId },
+          filter: orConditions.length > 0 ? { $or: orConditions } : { productId: String(item.productId || item.id) },
           update: { $set: { sortOrder: orderNum } },
           upsert: false
         }

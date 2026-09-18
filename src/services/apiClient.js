@@ -18,10 +18,12 @@ export const apiClient = async (endpoint, options = {}) => {
     }
   } catch (e) {}
 
+  const isAdmin = isAdminUser || Boolean(localStorage.getItem('anuj_admin_pwd'));
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(isAdminUser ? { 'x-admin-auth': 'true' } : {}),
+    ...(isAdmin ? { 'x-admin-auth': 'true', 'x-admin-key': 'anuj_admin_master' } : {}),
     ...(options.headers || {})
   };
 

@@ -153,13 +153,33 @@ export const AppProvider = ({ children }) => {
 
   const getDeletedSkus = () => {
     try {
+      const defaultRemoved = [
+        'ALT-PIN-SLC-800G-24', 
+        'prod-alt-041',
+        'AML-GLD-1L-12',
+        'prod-fmcg-101',
+        'BRT-NTR-DIG-24',
+        'prod-fmcg-102',
+        'NST-MAG-70G-96',
+        'prod-fmcg-103'
+      ];
       const saved = localStorage.getItem('anuj_deleted_skus_v2');
       const list = saved ? JSON.parse(saved) : [];
-      if (!list.includes('ALT-PIN-SLC-800G-24')) list.push('ALT-PIN-SLC-800G-24');
-      if (!list.includes('prod-alt-041')) list.push('prod-alt-041');
+      defaultRemoved.forEach(item => {
+        if (!list.includes(item)) list.push(item);
+      });
       return new Set(list.map(s => String(s).toUpperCase()));
     } catch (e) {
-      return new Set(['ALT-PIN-SLC-800G-24', 'PROD-ALT-041']);
+      return new Set([
+        'ALT-PIN-SLC-800G-24', 
+        'PROD-ALT-041',
+        'AML-GLD-1L-12',
+        'PROD-FMCG-101',
+        'BRT-NTR-DIG-24',
+        'PROD-FMCG-102',
+        'NST-MAG-70G-96',
+        'PROD-FMCG-103'
+      ]);
     }
   };
 
@@ -428,7 +448,7 @@ export const AppProvider = ({ children }) => {
       const found = findProductBySlugOrId(INITIAL_PRODUCTS, initialRoute.slug);
       if (found) return found.id;
     }
-    return 'prod-fmcg-101';
+    return INITIAL_PRODUCTS[0]?.id || null;
   });
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1053,7 +1073,10 @@ export const AppProvider = ({ children }) => {
         syncChannel = new BroadcastChannel('anuj_enterprise_sync_v1');
         syncChannel.onmessage = (event) => {
           const { type, payload } = event.data || {};
-          if (type === 'SYNC_PRODUCTS' && payload) setProducts(payload);
+          if (type === 'SYNC_PRODUCTS' && payload) {
+            setProducts(payload);
+            try { localStorage.setItem('anuj_products_v3', JSON.stringify(payload)); } catch (e) {}
+          }
           if (type === 'SYNC_HEADLINE' && payload) setHeadlineConfig(payload);
           if (type === 'SYNC_POLICIES' && payload) setLegalPolicies(payload);
           if (type === 'SYNC_CATEGORIES' && payload) setCategories(payload);
@@ -1901,16 +1924,50 @@ export const AppProvider = ({ children }) => {
     return updatedOrder;
   };
 
+  // Robust matcher to reliably link products across Mongo ObjectIds, custom IDs, and SKUs
+  const checkProductMatch = useCallback((p, candidate) => {
+    if (!p || !candidate) return false;
+    if (p === candidate) return true;
+
+    const getKeys = (item) => {
+      if (!item) return [];
+      if (typeof item === 'string' || typeof item === 'number') {
+        const str = String(item).trim().toLowerCase();
+        return str ? [str] : [];
+      }
+      const keys = [];
+      if (item.id) keys.push(String(item.id).trim().toLowerCase());
+      if (item._id) keys.push(String(item._id).trim().toLowerCase());
+      if (item.productId) keys.push(String(item.productId).trim().toLowerCase());
+      if (item.sku) keys.push(String(item.sku).trim().toLowerCase());
+      return keys.filter(Boolean);
+    };
+
+    const pKeys = getKeys(p);
+    const candKeys = getKeys(candidate);
+    return pKeys.some(k => candKeys.includes(k));
+  }, []);
+
   // Helper to ensure every newly added or edited product has a clean B2B Details Card (No FSSAI, No Tier pricing)
   const formatRichProductData = (prod) => {
     const price = Math.max(1, parseFloat(prod.price) || 500);
-    const imgUrl = prod.image || (prod.images && prod.images[0]) || "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
-    
-    const imagesList = (prod.gallery && prod.gallery.length > 0)
-      ? prod.gallery
-      : (prod.images && prod.images.length > 0 ? prod.images : [imgUrl]);
+    const extractUrl = (it) => {
+      if (!it) return '';
+      if (typeof it === 'string') return it.trim();
+      if (typeof it === 'object') return (it.url || it.secure_url || it.src || '').trim();
+      return '';
+    };
 
-    const finalGallery = imagesList.length === 1 ? [imagesList[0], imagesList[0]] : imagesList;
+    const incomingImgs = (Array.isArray(prod.images) && prod.images.length > 0)
+      ? prod.images
+      : ((Array.isArray(prod.gallery) && prod.gallery.length > 0)
+        ? prod.gallery
+        : (prod.image ? [prod.image] : []));
+    
+    const cleanImgs = incomingImgs.map(extractUrl).filter(Boolean);
+    const defaultPlaceholder = "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
+    const imgUrl = cleanImgs[0] || extractUrl(prod.image) || defaultPlaceholder;
+    const finalGallery = cleanImgs.length > 0 ? cleanImgs : [defaultPlaceholder];
 
     const unitType = prod.unitType || 'Piece';
     const unitQuantity = (prod.unitQuantity !== undefined && prod.unitQuantity !== null) ? String(prod.unitQuantity).trim() : (prod.unitDetail ? String(prod.unitDetail).trim() : '');
@@ -1991,7 +2048,8 @@ export const AppProvider = ({ children }) => {
 
     // 1. Instant local state update & cross-tab sync
     setProducts(prev => {
-      const updated = [formatted, ...prev];
+      const withNew = [{ ...formatted, sortOrder: 1 }, ...prev];
+      const updated = normalizeProductRanks(withNew);
       try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
@@ -2002,35 +2060,78 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await productService.createProduct(formatted);
       if (res.data?.product) {
-        setProducts(prev => prev.map(p => p.id === formatted.id ? { ...formatted, ...res.data.product } : p));
+        setProducts(prev => prev.map(p => checkProductMatch(p, formatted) ? { ...formatted, ...res.data.product } : p));
       }
     } catch (e) {}
   };
 
   const updateProduct = async (updatedProd) => {
     const formatted = formatRichProductData(updatedProd);
-    const targetId = formatted.id || formatted._id;
+    const targetId = formatted._id || formatted.productId || formatted.id || formatted.sku;
 
-    // 1. Instant local update & cross-tab sync
+    // 1. Instant local products update & cross-tab sync
     setProducts(prev => {
-      const updated = prev.map(p => {
-        const isMatch = (targetId && (p.id === targetId || (p._id && p._id === targetId))) ||
-                        (formatted.id && p.id === formatted.id) ||
-                        (formatted._id && p._id && p._id === formatted._id);
-        return isMatch ? { ...p, ...formatted } : p;
-      });
+      const updated = prev.map(p => checkProductMatch(p, formatted) ? { ...p, ...formatted } : p);
       try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
-    showToast(`Product details updated live on website`, 'success');
 
-    // 2. Background API Sync
+    // 2. Instant Cart update across all storage keys (so items reflect new photos/prices immediately)
+    setCart(prev => {
+      const updatedCart = prev.map(item => {
+        if (checkProductMatch(item.product, formatted)) {
+          return {
+            ...item,
+            product: { ...item.product, ...formatted }
+          };
+        }
+        return item;
+      });
+      try {
+        const activeKey = getCartStorageKey(user);
+        localStorage.setItem(activeKey, JSON.stringify(updatedCart));
+        localStorage.setItem('anuj_cart', JSON.stringify(updatedCart));
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('anuj_cart')) {
+            try {
+              const raw = localStorage.getItem(k);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  const mapped = parsed.map(it => checkProductMatch(it.product, formatted) ? { ...it, product: { ...it.product, ...formatted } } : it);
+                  localStorage.setItem(k, JSON.stringify(mapped));
+                }
+              }
+            } catch (err) {}
+          }
+        }
+      } catch (e) {}
+      broadcastSync('SYNC_CART', { cart: updatedCart, key: activeCartKeyRef.current });
+      return updatedCart;
+    });
+
+    // 3. Instant Wishlist update
+    setWishlist(prev => {
+      const updatedWish = prev.map(item => checkProductMatch(item, formatted) ? { ...item, ...formatted } : item);
+      try { localStorage.setItem('anuj_wishlist', JSON.stringify(updatedWish)); } catch (e) {}
+      return updatedWish;
+    });
+
+    // 4. Instant QuickView & Selected Product update
+    setQuickViewProduct(prev => (prev && checkProductMatch(prev, formatted) ? { ...prev, ...formatted } : prev));
+
+    showToast(`Product details updated live across website`, 'success');
+
+    // 5. Background API Sync
     try {
       if (targetId) {
         await productService.updateProduct(targetId, formatted);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Backend product update sync notice:', e?.message || e);
+    }
   };
 
   const deleteProduct = async (productOrId) => {
@@ -2065,16 +2166,23 @@ export const AppProvider = ({ children }) => {
 
     // Collect all unique product identifiers to permanently blacklist
     const identifiers = new Set();
-    if (apiId) identifiers.add(String(apiId));
+    if (apiId) {
+      identifiers.add(String(apiId));
+      identifiers.add(String(apiId).toUpperCase());
+    }
     if (targetProd) {
       if (targetProd._id) identifiers.add(String(targetProd._id));
       if (targetProd.productId) identifiers.add(String(targetProd.productId));
       if (targetProd.id) identifiers.add(String(targetProd.id));
-      if (targetProd.sku) identifiers.add(String(targetProd.sku));
+      if (targetProd.sku) {
+        identifiers.add(String(targetProd.sku));
+        identifiers.add(String(targetProd.sku).toUpperCase());
+      }
       if (targetProd.slug) identifiers.add(String(targetProd.slug));
     }
     if (typeof productOrId === 'string') {
       identifiers.add(productOrId);
+      identifiers.add(productOrId.toUpperCase());
     }
 
     // Record to persistent deletion blacklist in localStorage so it never revives
@@ -2091,7 +2199,7 @@ export const AppProvider = ({ children }) => {
 
     const isMatch = (p) => {
       if (!p) return false;
-      if (targetProd && p === targetProd) return true;
+      if (targetProd && checkProductMatch(p, targetProd)) return true;
       if (p._id && identifiers.has(String(p._id))) return true;
       if (p.productId && identifiers.has(String(p.productId))) return true;
       if (p.id && identifiers.has(String(p.id))) return true;
@@ -2131,14 +2239,34 @@ export const AppProvider = ({ children }) => {
       });
     }
 
-    // Clean up from active cart & wishlist
+    // Clean up from active cart and ALL user cart storage keys
     setCart(prev => {
       const cleanedCart = prev.filter(item => !isMatch(item.product));
       try {
+        const activeKey = getCartStorageKey(user);
+        localStorage.setItem(activeKey, JSON.stringify(cleanedCart));
         localStorage.setItem('anuj_cart', JSON.stringify(cleanedCart));
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('anuj_cart')) {
+            try {
+              const raw = localStorage.getItem(k);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  const filtered = parsed.filter(item => !isMatch(item.product));
+                  localStorage.setItem(k, JSON.stringify(filtered));
+                }
+              }
+            } catch (err) {}
+          }
+        }
       } catch (e) {}
+      broadcastSync('SYNC_CART', { cart: cleanedCart, key: activeCartKeyRef.current });
       return cleanedCart;
     });
+
+    // Clean up from wishlist
     setWishlist(prev => {
       const cleanedWish = prev.filter(item => !isMatch(item));
       try {
@@ -2154,7 +2282,7 @@ export const AppProvider = ({ children }) => {
       setSelectedProductId(null);
     }
 
-    showToast(`"${prodName.slice(0, 30)}" permanently deleted from catalogue`, 'success');
+    showToast(`"${prodName.slice(0, 30)}" permanently deleted from everywhere`, 'success');
 
     // 2. Real Backend API Sync to MongoDB Atlas and backend file storage
     try {
@@ -2211,13 +2339,14 @@ export const AppProvider = ({ children }) => {
 
   const toggleProductNrp = async (productId) => {
     setProducts(prev => {
-      const updated = prev.map(p => (p.id === productId || (p._id && p._id === productId)) ? { ...p, isNrp: !p.isNrp } : p);
+      const updated = prev.map(p => checkProductMatch(p, productId) ? { ...p, isNrp: !p.isNrp } : p);
+      try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', updated);
       return updated;
     });
     showToast('Updated NRP Status live', 'info');
     try {
-      const current = products.find(p => p.id === productId || (p._id && p._id === productId));
+      const current = products.find(p => checkProductMatch(p, productId));
       if (current) {
         await productService.updateProduct(productId, { ...current, isNrp: !current.isNrp });
       }
@@ -2622,28 +2751,46 @@ export const AppProvider = ({ children }) => {
   }, [broadcastSync]);
 
   // Product Master Live Sequence & Ordering Functions
-  const moveProductRank = useCallback((productIdOrSku, direction) => {
+  const moveProductRank = useCallback((productIdOrCandidate, direction, visibleList) => {
     setProducts(prev => {
-      // 1. Guarantee array is sorted by current sortOrder before finding indices
+      // 1. Guarantee array is cleanly sorted by current sortOrder before finding indices
       const sorted = [...prev].sort((a, b) => {
         const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
         const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
-        return ordA - ordB;
+        if (ordA !== ordB) return ordA - ordB;
+        return (a.name || '').localeCompare(b.name || '');
       });
 
-      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = sorted.findIndex(p => {
-        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
-        const sku = String(p.sku || '').toLowerCase().trim();
-        return id === targetQuery || sku === targetQuery;
-      });
+      const fromIndex = sorted.findIndex(p => checkProductMatch(p, productIdOrCandidate));
+      if (fromIndex === -1) return prev;
 
-      if (targetIndex === -1) return prev;
-      const newIndex = direction === 'UP' ? targetIndex - 1 : targetIndex + 1;
-      if (newIndex < 0 || newIndex >= sorted.length) return prev;
+      let targetIndex = -1;
 
-      const [movedItem] = sorted.splice(targetIndex, 1);
-      sorted.splice(newIndex, 0, movedItem);
+      // If a visible filtered list was provided, determine swap target based on what user sees
+      if (Array.isArray(visibleList) && visibleList.length > 0) {
+        const visIndex = visibleList.findIndex(p => checkProductMatch(p, productIdOrCandidate));
+        if (visIndex !== -1) {
+          if (direction === 'UP' && visIndex > 0) {
+            const prevItem = visibleList[visIndex - 1];
+            targetIndex = sorted.findIndex(p => checkProductMatch(p, prevItem));
+          } else if (direction === 'DOWN' && visIndex < visibleList.length - 1) {
+            const nextItem = visibleList[visIndex + 1];
+            targetIndex = sorted.findIndex(p => checkProductMatch(p, nextItem));
+          }
+        }
+      }
+
+      // Default relative shift in master array
+      if (targetIndex === -1) {
+        targetIndex = direction === 'UP' ? fromIndex - 1 : fromIndex + 1;
+      }
+
+      if (targetIndex < 0 || targetIndex >= sorted.length || targetIndex === fromIndex) {
+        return prev;
+      }
+
+      const [movedItem] = sorted.splice(fromIndex, 1);
+      sorted.splice(targetIndex, 0, movedItem);
 
       const rankedUpdated = sorted.map((p, idx) => ({
         ...p,
@@ -2657,6 +2804,8 @@ export const AppProvider = ({ children }) => {
 
       productService.updateProductRanks(rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
+        _id: p._id,
+        productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
       }))).catch((err) => {
@@ -2664,13 +2813,13 @@ export const AppProvider = ({ children }) => {
       });
 
       const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
-      showToast(`Updated "${prodName}" priority to Rank #${newIndex + 1}`, 'success');
+      showToast(`Updated "${prodName}" priority to Rank #${targetIndex + 1}`, 'success');
 
       return rankedUpdated;
     });
-  }, [broadcastSync]);
+  }, [broadcastSync, checkProductMatch]);
 
-  const updateProductRank = useCallback((productIdOrSku, targetRank) => {
+  const updateProductRank = useCallback((productIdOrCandidate, targetRank) => {
     const rankNum = parseInt(targetRank, 10);
     if (isNaN(rankNum) || rankNum < 1) return;
 
@@ -2678,21 +2827,17 @@ export const AppProvider = ({ children }) => {
       const sorted = [...prev].sort((a, b) => {
         const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
         const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
-        return ordA - ordB;
+        if (ordA !== ordB) return ordA - ordB;
+        return (a.name || '').localeCompare(b.name || '');
       });
 
-      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = sorted.findIndex(p => {
-        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
-        const sku = String(p.sku || '').toLowerCase().trim();
-        return id === targetQuery || sku === targetQuery;
-      });
+      const fromIndex = sorted.findIndex(p => checkProductMatch(p, productIdOrCandidate));
+      if (fromIndex === -1) return prev;
 
-      if (targetIndex === -1) return prev;
       const newIndex = Math.min(Math.max(0, rankNum - 1), sorted.length - 1);
-      if (targetIndex === newIndex) return prev;
+      if (fromIndex === newIndex) return prev;
 
-      const [movedItem] = sorted.splice(targetIndex, 1);
+      const [movedItem] = sorted.splice(fromIndex, 1);
       sorted.splice(newIndex, 0, movedItem);
 
       const rankedUpdated = sorted.map((p, idx) => ({
@@ -2707,6 +2852,8 @@ export const AppProvider = ({ children }) => {
 
       productService.updateProductRanks(rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
+        _id: p._id,
+        productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
       }))).catch((err) => {
@@ -2718,29 +2865,40 @@ export const AppProvider = ({ children }) => {
 
       return rankedUpdated;
     });
-  }, [broadcastSync]);
+  }, [broadcastSync, checkProductMatch]);
 
-  const moveProductToExtreme = useCallback((productIdOrSku, position) => {
+  const moveProductToExtreme = useCallback((productIdOrCandidate, position, visibleList) => {
     setProducts(prev => {
       const sorted = [...prev].sort((a, b) => {
         const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
         const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
-        return ordA - ordB;
+        if (ordA !== ordB) return ordA - ordB;
+        return (a.name || '').localeCompare(b.name || '');
       });
 
-      const targetQuery = String(productIdOrSku || '').toLowerCase().trim();
-      const targetIndex = sorted.findIndex(p => {
-        const id = String(p.id || p._id || p.productId || '').toLowerCase().trim();
-        const sku = String(p.sku || '').toLowerCase().trim();
-        return id === targetQuery || sku === targetQuery;
-      });
+      const fromIndex = sorted.findIndex(p => checkProductMatch(p, productIdOrCandidate));
+      if (fromIndex === -1) return prev;
 
-      if (targetIndex === -1) return prev;
-      const newIndex = position === 'TOP' ? 0 : (sorted.length - 1);
-      if (targetIndex === newIndex) return prev;
+      let targetIndex = -1;
 
-      const [movedItem] = sorted.splice(targetIndex, 1);
-      sorted.splice(newIndex, 0, movedItem);
+      if (Array.isArray(visibleList) && visibleList.length > 0) {
+        if (position === 'TOP') {
+          const topItem = visibleList[0];
+          targetIndex = sorted.findIndex(p => checkProductMatch(p, topItem));
+        } else {
+          const botItem = visibleList[visibleList.length - 1];
+          targetIndex = sorted.findIndex(p => checkProductMatch(p, botItem));
+        }
+      }
+
+      if (targetIndex === -1) {
+        targetIndex = position === 'TOP' ? 0 : (sorted.length - 1);
+      }
+
+      if (fromIndex === targetIndex || targetIndex < 0 || targetIndex >= sorted.length) return prev;
+
+      const [movedItem] = sorted.splice(fromIndex, 1);
+      sorted.splice(targetIndex, 0, movedItem);
 
       const rankedUpdated = sorted.map((p, idx) => ({
         ...p,
@@ -2754,6 +2912,8 @@ export const AppProvider = ({ children }) => {
 
       productService.updateProductRanks(rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
+        _id: p._id,
+        productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
       }))).catch((err) => {
@@ -2765,7 +2925,7 @@ export const AppProvider = ({ children }) => {
 
       return rankedUpdated;
     });
-  }, [broadcastSync]);
+  }, [broadcastSync, checkProductMatch]);
 
   const resetProductRanks = useCallback(() => {
     setProducts(prev => {
@@ -2777,6 +2937,8 @@ export const AppProvider = ({ children }) => {
       broadcastSync('SYNC_PRODUCTS', rankedUpdated);
       productService.updateProductRanks(rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
+        _id: p._id,
+        productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
       }))).catch((err) => {

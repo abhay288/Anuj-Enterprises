@@ -34,7 +34,8 @@ import {
   UNIT_TYPES, 
   validatePackagingInputs, 
   getPackagingLevels, 
-  formatPackagingSummary 
+  formatPackagingSummary,
+  getProductImageUrl 
 } from '../../utils/packagingUtils';
 import { uploadToCloudinary } from '../../services/cloudinaryService';
 
@@ -503,7 +504,7 @@ export const AdminDashboard = () => {
   const [customSalesmanPassword, setCustomSalesmanPassword] = useState('');
   const [salesmanToDelete, setSalesmanToDelete] = useState(null);
 
-  // Cloudinary Image Upload State (Max 3 Photos, Max 5MB per photo)
+  // Cloudinary Image Upload State (Max 5 Photos, Max 6MB per photo)
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -516,18 +517,18 @@ export const AdminDashboard = () => {
       ? prodForm.images 
       : (prodForm.image ? [prodForm.image] : []);
     
-    // 1. Strict 3 Photos Boundation
-    if (currentImages.length >= 3) {
-      showToast('Maximum 3 photos allowed per product. Please delete or replace a photo.', 'warning');
+    // 1. Strict 5 Photos Boundation
+    if (currentImages.length >= 5) {
+      showToast('Maximum 5 photos allowed per product. Please delete or replace a photo.', 'warning');
       if (inputEl) inputEl.value = '';
       return;
     }
 
-    const availableSlots = 3 - currentImages.length;
+    const availableSlots = 5 - currentImages.length;
     const filesToUpload = files.slice(0, availableSlots);
 
     // 2. Validation
-    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB max before client optimization
+    const MAX_SIZE_BYTES = 6 * 1024 * 1024; // 6 MB max before client optimization
     for (const file of filesToUpload) {
       if (!file.type.startsWith('image/')) {
         showToast(`"${file.name}" is not a valid image. Please select PNG, JPG, or WEBP.`, 'error');
@@ -536,7 +537,7 @@ export const AdminDashboard = () => {
       }
       if (file.size > MAX_SIZE_BYTES) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 5MB. Please select a smaller file.`, 'error');
+        showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 6MB. Please select a smaller file.`, 'error');
         if (inputEl) inputEl.value = '';
         return;
       }
@@ -559,7 +560,7 @@ export const AdminDashboard = () => {
       }
 
       if (uploadedUrls.length > 0) {
-        const combined = [...currentImages, ...uploadedUrls].slice(0, 3);
+        const combined = [...currentImages, ...uploadedUrls].slice(0, 5);
         setProdForm(prev => ({
           ...prev,
           images: combined,
@@ -583,7 +584,7 @@ export const AdminDashboard = () => {
     if (!files.length) return;
 
     const file = files[0];
-    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    const MAX_SIZE_BYTES = 6 * 1024 * 1024;
     if (!file.type.startsWith('image/')) {
       showToast(`"${file.name}" is not a valid image. Please select PNG, JPG, or WEBP.`, 'error');
       if (inputEl) inputEl.value = '';
@@ -591,7 +592,7 @@ export const AdminDashboard = () => {
     }
     if (file.size > MAX_SIZE_BYTES) {
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 5MB.`, 'error');
+      showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 6MB.`, 'error');
       if (inputEl) inputEl.value = '';
       return;
     }
@@ -643,7 +644,8 @@ export const AdminDashboard = () => {
       .sort((a, b) => {
         const ordA = (typeof a.sortOrder === 'number' && a.sortOrder > 0) ? a.sortOrder : 999999;
         const ordB = (typeof b.sortOrder === 'number' && b.sortOrder > 0) ? b.sortOrder : 999999;
-        return ordA - ordB;
+        if (ordA !== ordB) return ordA - ordB;
+        return (a.name || '').localeCompare(b.name || '');
       })
       .filter(p => {
         if (!prodSearch) return true;
@@ -1060,7 +1062,7 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const finalImages = (prodForm.images && prodForm.images.length > 0 ? prodForm.images : [prodForm.image]).filter(Boolean).slice(0, 3);
+    const finalImages = (prodForm.images && prodForm.images.length > 0 ? prodForm.images : [prodForm.image]).filter(Boolean).slice(0, 5);
     const finalForm = {
       ...prodForm,
       image: finalImages[0] || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
@@ -1083,7 +1085,7 @@ export const AdminDashboard = () => {
     const productImages = (product.gallery && product.gallery.length > 0 
       ? product.gallery 
       : (product.images && product.images.length > 0 ? product.images : [product.image])
-    ).filter(Boolean).slice(0, 3);
+    ).filter(Boolean).slice(0, 5);
 
     setProdForm({
       name: product.name || '',
@@ -1617,8 +1619,9 @@ export const AdminDashboard = () => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {orderedAdminProducts.map((prod, index) => {
                         const rankNum = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : (index + 1);
-                        const isTop = rankNum === 1;
-                        const isBottom = rankNum === products.length;
+                        const isTop = index === 0;
+                        const isBottom = index === orderedAdminProducts.length - 1;
+                        const isGlobalTop = (typeof prod.sortOrder === 'number' && prod.sortOrder === 1) || (index === 0 && !prodSearch);
 
                         return (
                           <tr key={prod.id || prod._id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
@@ -1632,7 +1635,7 @@ export const AdminDashboard = () => {
                                     setJumpRankValue(String(rankNum));
                                   }}
                                   className={`px-2 py-1 rounded-xl text-xs font-black transition-all flex items-center gap-1 border shadow-xs ${
-                                    isTop
+                                    isGlobalTop
                                       ? 'bg-amber-400 text-slate-950 border-amber-300 font-black ring-2 ring-amber-400/30'
                                       : rankNum <= 3
                                       ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
@@ -1640,7 +1643,7 @@ export const AdminDashboard = () => {
                                   }`}
                                   title="Click to jump directly to any priority position"
                                 >
-                                  {isTop && <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />}
+                                  {isGlobalTop && <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />}
                                   <span>#{rankNum}</span>
                                 </button>
 
@@ -1648,7 +1651,7 @@ export const AdminDashboard = () => {
                                   <button
                                     type="button"
                                     disabled={isTop}
-                                    onClick={() => moveProductToExtreme(prod.id || prod.sku, 'TOP')}
+                                    onClick={() => moveProductToExtreme(prod, 'TOP', orderedAdminProducts)}
                                     className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
                                     title="Move to Very Top (Rank #1 Flagship)"
                                   >
@@ -1657,7 +1660,7 @@ export const AdminDashboard = () => {
                                   <button
                                     type="button"
                                     disabled={isTop}
-                                    onClick={() => moveProductRank(prod.id || prod.sku, 'UP')}
+                                    onClick={() => moveProductRank(prod, 'UP', orderedAdminProducts)}
                                     className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
                                     title="Move Up 1 Position"
                                   >
@@ -1666,7 +1669,7 @@ export const AdminDashboard = () => {
                                   <button
                                     type="button"
                                     disabled={isBottom}
-                                    onClick={() => moveProductRank(prod.id || prod.sku, 'DOWN')}
+                                    onClick={() => moveProductRank(prod, 'DOWN', orderedAdminProducts)}
                                     className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
                                     title="Move Down 1 Position"
                                   >
@@ -1675,7 +1678,7 @@ export const AdminDashboard = () => {
                                   <button
                                     type="button"
                                     disabled={isBottom}
-                                    onClick={() => moveProductToExtreme(prod.id || prod.sku, 'BOTTOM')}
+                                    onClick={() => moveProductToExtreme(prod, 'BOTTOM', orderedAdminProducts)}
                                     className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
                                     title="Move to Very Bottom"
                                   >
@@ -1687,7 +1690,14 @@ export const AdminDashboard = () => {
 
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
-                                <img src={prod.image} alt={prod.name} className="w-10 h-10 object-contain bg-slate-50 rounded-lg border shrink-0" />
+                                <img 
+                                  src={getProductImageUrl(prod)} 
+                                  alt={prod.name} 
+                                  className="w-10 h-10 object-contain bg-slate-50 rounded-lg border shrink-0" 
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                                  }}
+                                />
                                 <div>
                                   <span className="font-bold text-slate-900 dark:text-white block line-clamp-1">{prod.name}</span>
                                   <span className="text-[10px] text-slate-400 font-mono">SKU: {prod.sku}</span>
@@ -1713,25 +1723,13 @@ export const AdminDashboard = () => {
                                 <span className="text-slate-400 italic">No packaging set</span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-center space-x-1">
-                              <button
-                                onClick={() => toggleProductFeatured(prod.id)}
-                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isFeatured ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}
-                              >
-                                Featured
-                              </button>
-                              <button
-                                onClick={() => toggleProductNew(prod.id)}
-                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNew ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-600'}`}
-                              >
-                                New
-                              </button>
+                            <td className="py-3 px-4 text-center">
                               <button
                                 onClick={() => toggleProductNrp(prod.id || prod._id)}
-                                className={`px-2 py-0.5 rounded text-[9px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${prod.isNrp ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}
                                 title="Toggle No Return Policy (NRP)"
                               >
-                                NRP
+                                {prod.isNrp ? '🚫 NRP Active' : 'Standard Return'}
                               </button>
                             </td>
                             <td className="py-3 px-4 text-center">
@@ -1788,7 +1786,14 @@ export const AdminDashboard = () => {
                       </div>
 
                       <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
-                        <img src={jumpRankProduct.image} alt={jumpRankProduct.name} className="w-10 h-10 object-contain rounded-lg border bg-white shrink-0" />
+                        <img 
+                          src={getProductImageUrl(jumpRankProduct)} 
+                          alt={jumpRankProduct.name} 
+                          className="w-10 h-10 object-contain rounded-lg border bg-white shrink-0" 
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                          }}
+                        />
                         <div className="min-w-0 flex-1">
                           <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">{jumpRankProduct.name}</span>
                           <span className="text-[10px] text-slate-400 font-mono">Current: #{jumpRankProduct.sortOrder || 1} • SKU: {jumpRankProduct.sku}</span>
@@ -1810,7 +1815,7 @@ export const AdminDashboard = () => {
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              updateProductRank(jumpRankProduct.id || jumpRankProduct.sku, jumpRankValue);
+                              updateProductRank(jumpRankProduct, jumpRankValue);
                               setJumpRankProduct(null);
                             }
                           }}
@@ -1828,7 +1833,7 @@ export const AdminDashboard = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            updateProductRank(jumpRankProduct.id || jumpRankProduct.sku, jumpRankValue);
+                            updateProductRank(jumpRankProduct, jumpRankValue);
                             setJumpRankProduct(null);
                           }}
                           className="flex-1 py-2 rounded-xl text-xs font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-500 shadow-sm"
@@ -4904,16 +4909,16 @@ export const AdminDashboard = () => {
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <UploadCloud className="w-4 h-4 text-amber-500" />
-                      <span>Product Photos ({(prodForm.images || []).length}/3)</span>
+                      <span>Product Photos ({(prodForm.images || []).length}/5)</span>
                     </label>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
-                      Max 3 Photos • Max 5MB each
+                      Max 5 Photos • Max 6MB each
                     </span>
                   </div>
 
-                  {/* 3 Photos Grid Slots */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {[0, 1, 2].map((slotIdx) => {
+                  {/* 5 Photos Grid Slots */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {[0, 1, 2, 3, 4].map((slotIdx) => {
                       const imgUrl = (prodForm.images || [])[slotIdx];
                       return (
                         <div
@@ -4979,7 +4984,7 @@ export const AdminDashboard = () => {
                               <span className="text-[10px] font-bold text-slate-500">
                                 {slotIdx === 0 ? '+ Cover Photo' : `+ Photo ${slotIdx + 1}`}
                               </span>
-                              <span className="text-[8px] text-slate-400">Max 5MB</span>
+                              <span className="text-[8px] text-slate-400">Max 6MB</span>
                             </label>
                           )}
                         </div>
@@ -4988,7 +4993,7 @@ export const AdminDashboard = () => {
                   </div>
 
                   {/* Upload Dropzone / Action Bar */}
-                  {(prodForm.images || []).length < 3 ? (
+                  {(prodForm.images || []).length < 5 ? (
                     <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-amber-500/40 hover:border-amber-500 dark:border-amber-500/30 dark:hover:border-amber-500 rounded-2xl cursor-pointer bg-white/60 dark:bg-slate-900/60 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all text-center group">
                       <input
                         type="file"
@@ -5006,21 +5011,21 @@ export const AdminDashboard = () => {
                         ) : (
                           <>
                             <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            <span>Click to Upload Photo (Slot {(prodForm.images || []).length + 1} of 3)</span>
+                            <span>Click to Upload Photo (Slot {(prodForm.images || []).length + 1} of 5)</span>
                           </>
                         )}
                       </div>
                       <span className="text-[10px] text-slate-500 mt-0.5">
-                        PNG, JPG, WEBP • Max 5MB per photo • Automatic Compression & Optimization
+                        PNG, JPG, WEBP • Max 6MB per photo • Cloudinary CDN Saved
                       </span>
                     </label>
                   ) : (
                     <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
                       <div className="flex items-center gap-2 font-bold">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>Maximum 3 product photos uploaded & active</span>
+                        <span>Maximum 5 product photos uploaded & active</span>
                       </div>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">3 / 3 Photos</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">5 / 5 Photos</span>
                     </div>
                   )}
                 </div>
@@ -5041,26 +5046,6 @@ export const AdminDashboard = () => {
 
                 {/* 6. Display Toggles */}
                 <div className="flex items-center gap-6 pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={prodForm.isFeatured}
-                      onChange={(e) => setProdForm({ ...prodForm, isFeatured: e.target.checked })}
-                      className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"
-                    />
-                    <span>⭐ Featured on Homepage</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={prodForm.isNew}
-                      onChange={(e) => setProdForm({ ...prodForm, isNew: e.target.checked })}
-                      className="w-4 h-4 rounded text-blue-500 focus:ring-blue-500"
-                    />
-                    <span>✨ Mark as New Arrival</span>
-                  </label>
-
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"

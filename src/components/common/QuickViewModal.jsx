@@ -4,8 +4,7 @@ import {
   X, ShoppingCart, ArrowRight, Sparkles, ShieldAlert, 
   ChevronLeft, ChevronRight, Layers, ArrowLeftRight 
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { getPackagingLevels } from '../../utils/packagingUtils';
+import { getPackagingLevels, getProductImageUrl, getProductImages } from '../../utils/packagingUtils';
 
 export const QuickViewModal = () => {
   const { 
@@ -20,6 +19,18 @@ export const QuickViewModal = () => {
   } = useApp();
   
   const [qty, setQty] = useState(1);
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
+  // Reset selected image when active product changes
+  useEffect(() => {
+    setSelectedImgIdx(0);
+  }, [quickViewProduct?.id, quickViewProduct?.sku]);
+
+  const qvImages = useMemo(() => {
+    return getProductImages(quickViewProduct);
+  }, [quickViewProduct]);
+
+  const activeImgUrl = qvImages[selectedImgIdx] || qvImages[0] || getProductImageUrl(quickViewProduct);
 
   // Find index of current product in catalogue
   const currentIndex = useMemo(() => {
@@ -256,17 +267,48 @@ export const QuickViewModal = () => {
                 )}
               </div>
 
-              <div className="w-full h-60 md:h-72 flex items-center justify-center p-4 my-auto relative group">
+              <div className="w-full h-56 md:h-64 flex items-center justify-center p-3 my-auto relative group">
                 <img
-                  src={quickViewProduct.image}
+                  src={activeImgUrl}
                   alt={quickViewProduct.name}
                   className="max-h-full max-w-full object-contain cursor-pointer hover:scale-105 transition-transform duration-300"
                   onClick={() => {
                     closeQuickView();
                     navigateTo('product-detail', quickViewProduct.id);
                   }}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                  }}
                 />
               </div>
+
+              {/* Gallery Thumbnails (Up to 5 Photos) */}
+              {qvImages.length > 1 && (
+                <div className="w-full flex items-center justify-center gap-2 overflow-x-auto py-2 px-1 max-w-full z-10">
+                  {qvImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImgIdx(idx)}
+                      className={`w-11 h-11 rounded-lg bg-white dark:bg-slate-900 border p-1 overflow-hidden transition-all shrink-0 ${
+                        selectedImgIdx === idx
+                          ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-md scale-105'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 opacity-70 hover:opacity-100'
+                      }`}
+                      title={`Photo ${idx + 1}`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Bottom Quick Switch Controls for Mobile / Compact view */}
               <div className="w-full flex md:hidden items-center justify-between py-2 border-t border-slate-200 dark:border-slate-800">

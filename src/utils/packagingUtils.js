@@ -191,3 +191,51 @@ export const validatePackagingInputs = (form) => {
 
   return { isValid: true };
 };
+
+/**
+ * Safe Image Resolution for Products
+ * Extracts clean string image URL whether stored as string, array, or object
+ */
+export const getProductImageUrl = (product) => {
+  if (!product) return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+  const extract = (it) => {
+    if (!it) return '';
+    if (typeof it === 'string') return it.trim();
+    if (typeof it === 'object') return (it.url || it.secure_url || it.src || '').trim();
+    return '';
+  };
+
+  const primary = extract(product.image);
+  if (primary) return primary;
+
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const first = extract(product.images[0]);
+    if (first) return first;
+  }
+
+  if (Array.isArray(product.gallery) && product.gallery.length > 0) {
+    const first = extract(product.gallery[0]);
+    if (first) return first;
+  }
+
+  return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+};
+
+export const getProductImages = (product) => {
+  if (!product) return ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'];
+  const extract = (it) => {
+    if (!it) return '';
+    if (typeof it === 'string') return it.trim();
+    if (typeof it === 'object') return (it.url || it.secure_url || it.src || '').trim();
+    return '';
+  };
+
+  const raw = (Array.isArray(product.images) && product.images.length > 0)
+    ? product.images
+    : ((Array.isArray(product.gallery) && product.gallery.length > 0)
+      ? product.gallery
+      : (product.image ? [product.image] : []));
+
+  const clean = raw.map(extract).filter(Boolean);
+  return clean.length > 0 ? clean : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'];
+};

@@ -40,8 +40,8 @@ export const uploadCloudinaryImage = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate Image Payload format, MIME type, and size limit (Requirement 5)
-    const validation = validateImagePayload(image, 5 * 1024 * 1024); // 5MB limit
+    // Validate Image Payload format, MIME type, and size limit (6MB limit)
+    const validation = validateImagePayload(image, 6 * 1024 * 1024); // 6MB limit
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,

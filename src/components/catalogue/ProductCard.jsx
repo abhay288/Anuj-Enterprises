@@ -2,7 +2,7 @@ import React, { useState, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Sparkles, ShieldAlert, Crown } from 'lucide-react';
 import { useApp, normalizeBrandName } from '../../context/AppContext';
-import { getPackagingLevels } from '../../utils/packagingUtils';
+import { getPackagingLevels, getProductImageUrl } from '../../utils/packagingUtils';
 
 export const ProductCard = memo(({ product }) => {
   const { addToCart, openQuickView, navigateTo, brands, t } = useApp();
@@ -94,12 +94,15 @@ export const ProductCard = memo(({ product }) => {
 
         {/* Product Image */}
         <img
-          src={product.image}
+          src={getProductImageUrl(product)}
           alt={product.name}
           loading="lazy"
           decoding="async"
           className="max-h-44 max-w-full object-contain group-hover:scale-105 transition-transform duration-500 cursor-pointer"
           onClick={() => navigateTo('product-detail', product.id)}
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+          }}
         />
 
         {/* Quick View Overlay Button for Hover Screens */}

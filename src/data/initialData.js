@@ -1,116 +1,5 @@
 export const INITIAL_PRODUCTS = [
   {
-    "id": "prod-fmcg-101",
-    "_id": "6a7e088d819811425683bf05",
-    "productId": "prod-fmcg-101",
-    "name": "Amul Gold Full Cream Milk 1L Tetra Pack (Master Case of 12)",
-    "brand": "Amul",
-    "company": "Amul",
-    "category": "Dairy & Frozen Foods",
-    "sku": "AML-GLD-1L-12",
-    "hsn": "19053100",
-    "price": 890,
-    "mrp": 960,
-    "stock": 450,
-    "lowStockThreshold": 20,
-    "unitType": "Piece",
-    "unitQuantity": "",
-    "packSize": "1 Litre",
-    "bundleSize": "6 Units",
-    "malaSize": "",
-    "boriSize": "",
-    "caseSize": "12 Units",
-    "cartonSize": "",
-    "customPackaging": "",
-    "isFeatured": true,
-    "isNew": false,
-    "isNrp": false,
-    "status": "Published",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80",
-    "images": [
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"
-    ],
-    "gallery": [
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80"
-    ],
-    "description": "Pasteurized homogenized full cream milk with 6.0% fat and 9.0% SNF. Long shelf life 180-day packaging.",
-    "sortOrder": 1
-  },
-  {
-    "id": "prod-fmcg-102",
-    "_id": "6a7e088d819811425683bf06",
-    "productId": "prod-fmcg-102",
-    "name": "Britannia NutriChoice Digestive Biscuits 1kg (Carton of 24)",
-    "brand": "Britannia",
-    "company": "Britannia",
-    "category": "Confectionery & Snacks",
-    "sku": "BRT-NTR-DIG-24",
-    "hsn": "19053100",
-    "price": 1680,
-    "mrp": 1920,
-    "stock": 280,
-    "lowStockThreshold": 20,
-    "unitType": "Piece",
-    "unitQuantity": "",
-    "packSize": "200g Pack",
-    "bundleSize": "6 Packs",
-    "malaSize": "",
-    "boriSize": "",
-    "caseSize": "24 Packs",
-    "cartonSize": "",
-    "customPackaging": "",
-    "isFeatured": true,
-    "isNew": false,
-    "isNrp": false,
-    "status": "Published",
-    "image": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80",
-    "images": [
-      "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
-    ],
-    "gallery": [
-      "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
-    ],
-    "description": "High fibre digestive biscuits packed with 100% wholewheat goodness for corporate pantries.",
-    "sortOrder": 2
-  },
-  {
-    "id": "prod-fmcg-103",
-    "_id": "6a7e088d819811425683bf07",
-    "productId": "prod-fmcg-103",
-    "name": "Nestle Maggi 2-Minute Masala Noodles 70g (Master Carton of 96)",
-    "brand": "Nestle",
-    "company": "Nestle",
-    "category": "Food & Beverages",
-    "sku": "NST-MAG-70G-96",
-    "hsn": "19053100",
-    "price": 1280,
-    "mrp": 1440,
-    "stock": 600,
-    "lowStockThreshold": 20,
-    "unitType": "Piece",
-    "unitQuantity": "",
-    "packSize": "70g Single",
-    "bundleSize": "12 Singles",
-    "malaSize": "",
-    "boriSize": "",
-    "caseSize": "96 Singles",
-    "cartonSize": "",
-    "customPackaging": "",
-    "isFeatured": true,
-    "isNew": false,
-    "isNrp": false,
-    "status": "Published",
-    "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80",
-    "images": [
-      "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
-    ],
-    "gallery": [
-      "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
-    ],
-    "description": "India favourite instant noodles infused with roasted spices. Bulk commercial poly-pack casing.",
-    "sortOrder": 3
-  },
-  {
     "id": "prod-anand-001",
     "_id": "6aa85ad1a0196323ab2f5ae1",
     "productId": "prod-anand-001",
@@ -145,7 +34,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Crisp, golden-baked mini puff pastry khari made with pure vegetable fats for perfect crunch and tea-time pairings.",
-    "sortOrder": 4
+    "sortOrder": 1
   },
   {
     "id": "prod-anand-002",
@@ -182,7 +71,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Signature layered bow-tie shaped puff khari biscuits, light, flaky and baked fresh for wholesale distribution.",
-    "sortOrder": 5
+    "sortOrder": 2
   },
   {
     "id": "prod-anand-003",
@@ -219,7 +108,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Delicate fine-baked bakery biscuits made with refined flour and subtle aromatic spices for premium institutional tea stalls.",
-    "sortOrder": 6
+    "sortOrder": 3
   },
   {
     "id": "prod-anand-004",
@@ -256,7 +145,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Traditional savoury carom seed (Ajwain) cookies infused with digestive herbs and light butter richness.",
-    "sortOrder": 7
+    "sortOrder": 4
   },
   {
     "id": "prod-anand-005",
@@ -293,7 +182,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Crispy salted cookies toasted with roasted cumin seeds (Jeera) delivering an authentic aromatic flavour.",
-    "sortOrder": 8
+    "sortOrder": 5
   },
   {
     "id": "prod-anand-006",
@@ -330,7 +219,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Classic round-cut savoury cumin biscuits, perfectly portioned and baked to crisp perfection.",
-    "sortOrder": 9
+    "sortOrder": 6
   },
   {
     "id": "prod-anand-007",
@@ -367,7 +256,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Distinctive nigella seed (Kalonji) bakery cookies offering herbal aroma and savoury tea accompaniment.",
-    "sortOrder": 10
+    "sortOrder": 7
   },
   {
     "id": "prod-anand-008",
@@ -404,7 +293,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1548848221-0c2e497ed557?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Rich desiccated shredded coconut (Gari Laccha) cookies baked with sweet milky aroma and crunchy texture.",
-    "sortOrder": 11
+    "sortOrder": 8
   },
   {
     "id": "prod-anand-009",
@@ -441,7 +330,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Wholesome bakery cookies packed with nutritious roasted edible seeds providing crisp bite and wholesome energy.",
-    "sortOrder": 12
+    "sortOrder": 9
   },
   {
     "id": "prod-anand-010",
@@ -478,7 +367,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Crunchy golden cookies studded with roasted groundnuts delivering rich nutty flavour in every bite.",
-    "sortOrder": 13
+    "sortOrder": 10
   },
   {
     "id": "prod-anand-011",
@@ -515,7 +404,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Delightful sweet butter cookies topped with glazed candied cherry bits for kids and festive occasions.",
-    "sortOrder": 14
+    "sortOrder": 11
   },
   {
     "id": "prod-anand-012",
@@ -552,7 +441,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Nutritious 100% wholewheat atta cookies formulated with low sugar and wholesome dietary fibre.",
-    "sortOrder": 15
+    "sortOrder": 12
   },
   {
     "id": "prod-anand-013",
@@ -589,7 +478,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1548848221-0c2e497ed557?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Exotic fruit-infused biscuits featuring sweet tropical litchi essence and delicate bakery sweetness.",
-    "sortOrder": 16
+    "sortOrder": 13
   },
   {
     "id": "prod-anand-014",
@@ -626,7 +515,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Irresistible balance of creamery butter and sea salt crystals for the classic sweet-and-salty bakery crunch.",
-    "sortOrder": 17
+    "sortOrder": 14
   },
   {
     "id": "prod-anand-015",
@@ -663,7 +552,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Authentic Indian-style wheat nankhatai shortbread cookies melting smoothly in the mouth with cardamom hints.",
-    "sortOrder": 18
+    "sortOrder": 15
   },
   {
     "id": "prod-anand-016",
@@ -700,7 +589,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Royal desi bakery nankhatai cookies prepared with besan, sooji and aromatic cardamom for festive delight.",
-    "sortOrder": 19
+    "sortOrder": 16
   },
   {
     "id": "prod-anand-017",
@@ -737,7 +626,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Velvety shortbread khatai crowned with rich ruby candied cherry morsels for enticing retail shelves.",
-    "sortOrder": 20
+    "sortOrder": 17
   },
   {
     "id": "prod-anand-018",
@@ -774,7 +663,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1548848221-0c2e497ed557?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Colourful tutti-frutti infused nankhatai biscuits blending buttery crumb with sweet chewy fruit bites.",
-    "sortOrder": 21
+    "sortOrder": 18
   },
   {
     "id": "prod-anand-019",
@@ -811,7 +700,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Artisanal flower-shaped cookies topped with sliced California almonds and delicate saffron-rose essence.",
-    "sortOrder": 22
+    "sortOrder": 19
   },
   {
     "id": "prod-anand-020",
@@ -848,7 +737,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Enriched dairy cookies baked with real milk solids and roasted almond flakes for nutritious tea-time crunch.",
-    "sortOrder": 23
+    "sortOrder": 20
   },
   {
     "id": "prod-anand-021",
@@ -885,7 +774,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Traditional slow-roasted gram flour (besan) cookies loaded with toasted almond bits and pure ghee aroma.",
-    "sortOrder": 24
+    "sortOrder": 21
   },
   {
     "id": "prod-anand-022",
@@ -922,7 +811,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Premium savoury cashew biscuits garnished with whole crushed cashews and mild black pepper.",
-    "sortOrder": 25
+    "sortOrder": 22
   },
   {
     "id": "prod-anand-023",
@@ -959,7 +848,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Flaky spiralled butter lachcha pastries baked crisp and tender with mouthwatering rich aroma.",
-    "sortOrder": 26
+    "sortOrder": 23
   },
   {
     "id": "prod-anand-024",
@@ -996,7 +885,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1548848221-0c2e497ed557?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Tropical crunchy biscuits coated with pure sun-dried desiccated coconut flakes for authentic island coconut flavour.",
-    "sortOrder": 27
+    "sortOrder": 24
   },
   {
     "id": "prod-anand-025",
@@ -1033,7 +922,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Double-baked crispy golden bread rusks, convenient 135g pack size ideal for quick tea dips and travel snacking.",
-    "sortOrder": 28
+    "sortOrder": 25
   },
   {
     "id": "prod-anand-026",
@@ -1070,7 +959,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Popular family pack crispy wheat bread rusks with crunchy texture, mild sweetness, and cardamom essence.",
-    "sortOrder": 29
+    "sortOrder": 26
   },
   {
     "id": "prod-anand-027",
@@ -1107,7 +996,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Premium semolina (Suji) rusks infused with real saunf (fennel) and elaichi, double-baked to super-crunchy perfection.",
-    "sortOrder": 30
+    "sortOrder": 27
   },
   {
     "id": "prod-anand-028",
@@ -1144,7 +1033,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Creamy milk-enriched golden toast rusks designed to absorb hot tea while retaining satisfying crunchiness.",
-    "sortOrder": 31
+    "sortOrder": 28
   },
   {
     "id": "prod-anand-029",
@@ -1181,7 +1070,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Luxurious dry fruit toast loaded with crushed cashews, almonds and pistachio chunks in generous 400g boxes.",
-    "sortOrder": 32
+    "sortOrder": 29
   },
   {
     "id": "prod-anand-030",
@@ -1218,7 +1107,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Heritage style twice-baked vanilla sponge cake slices with airy, sweet crunch that melts effortlessly in hot milk or chai.",
-    "sortOrder": 33
+    "sortOrder": 30
   },
   {
     "id": "prod-cat-vtc-001",
@@ -1255,7 +1144,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Premium durum wheat semolina elbow macaroni, non-sticky and rich in fibre for quick cooking.",
-    "sortOrder": 34
+    "sortOrder": 31
   },
   {
     "id": "prod-cat-vtc-002",
@@ -1292,7 +1181,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Commercial wholesale bulk bag of durum wheat macaroni suited for hotels, caterers, and canteens.",
-    "sortOrder": 35
+    "sortOrder": 32
   },
   {
     "id": "prod-cat-vtc-003",
@@ -1329,7 +1218,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Italian-style spirali fusilli pasta holding sauces and flavours perfectly for cafe menus.",
-    "sortOrder": 36
+    "sortOrder": 33
   },
   {
     "id": "prod-cat-vtc-004",
@@ -1366,7 +1255,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Bulk 20 kg catering sack of spiral fusilli pasta for cloud kitchens and banquet catering.",
-    "sortOrder": 37
+    "sortOrder": 34
   },
   {
     "id": "prod-cat-vtc-005",
@@ -1403,7 +1292,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Ridged cylindrical penne rigate pasta crafted from golden semolina for authentic Italian dishes.",
-    "sortOrder": 38
+    "sortOrder": 35
   },
   {
     "id": "prod-cat-vtc-006",
@@ -1440,7 +1329,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "20 Kg master burlap / woven sack of ridged penne pasta for commercial foodservice applications.",
-    "sortOrder": 39
+    "sortOrder": 36
   },
   {
     "id": "prod-cat-vtc-007",
@@ -1477,7 +1366,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Finely extruded cut vermicelli sewai, perfect for instant kheer, upma, and festive sweets.",
-    "sortOrder": 40
+    "sortOrder": 37
   },
   {
     "id": "prod-cat-vtc-008",
@@ -1514,7 +1403,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Family-size vermicelli cut sewai pack made from pure wheat for delicious sweet and savoury dishes.",
-    "sortOrder": 41
+    "sortOrder": 38
   },
   {
     "id": "prod-cat-vtc-009",
@@ -1551,7 +1440,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Pre-roasted long strand wheat vermicelli with nutty golden aroma, saving preparation time for sheer khurma.",
-    "sortOrder": 42
+    "sortOrder": 39
   },
   {
     "id": "prod-cat-vtc-010",
@@ -1588,7 +1477,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "High-protein defatted soya chunks in medium size, delivering 52% plant protein for healthy family curries.",
-    "sortOrder": 43
+    "sortOrder": 40
   },
   {
     "id": "prod-cat-vtc-011",
@@ -1625,7 +1514,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Mini bite-sized soya nuggets designed to absorb spicy gravies quickly with spongy, tender bite.",
-    "sortOrder": 44
+    "sortOrder": 41
   },
   {
     "id": "prod-cat-coo-012",
@@ -1662,7 +1551,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Stone-cracked nutritious wheat daliya rich in natural bran fibre for wholesome, energizing morning porridge.",
-    "sortOrder": 45
+    "sortOrder": 42
   },
   {
     "id": "prod-cat-coo-013",
@@ -1699,7 +1588,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Half-kilogram family pack of cleaned cracked wheat daliya, unpolished and loaded with dietary fibre.",
-    "sortOrder": 46
+    "sortOrder": 43
   },
   {
     "id": "prod-cat-coo-014",
@@ -1736,7 +1625,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Double-refined, coarse-grained semolina (Suji) milled from select wheat kernels for halwa, idli and upma.",
-    "sortOrder": 47
+    "sortOrder": 44
   },
   {
     "id": "prod-cat-coo-015",
@@ -1773,7 +1662,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Super-fine refined all-purpose flour (Maida) with high elasticity, ideal for bhature, parathas, and bakery goods.",
-    "sortOrder": 48
+    "sortOrder": 45
   },
   {
     "id": "prod-cat-coo-016",
@@ -1810,7 +1699,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Thick-pressed, dust-free flattened rice flakes (Poha) that remain light and fluffy when soaked.",
-    "sortOrder": 49
+    "sortOrder": 46
   },
   {
     "id": "prod-cat-kay-017",
@@ -1847,7 +1736,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Aromatic dried Mediterranean oregano herb seasoning flakes in hanging mala sachets for pizza and fast food outlets.",
-    "sortOrder": 50
+    "sortOrder": 47
   },
   {
     "id": "prod-cat-kay-018",
@@ -1884,7 +1773,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Coarsely crushed dried red chilli flakes packed in retail hanging display malas for pizza and pasta toppings.",
-    "sortOrder": 51
+    "sortOrder": 48
   },
   {
     "id": "prod-cat-kay-019",
@@ -1921,7 +1810,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "FSSAI certified food-grade edible orange powder colour for jalebi, biryani, tandoori marinades, and sweets.",
-    "sortOrder": 52
+    "sortOrder": 49
   },
   {
     "id": "prod-cat-kay-020",
@@ -1958,7 +1847,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Commercial 100g container of food-grade orange culinary coloring for commercial confectioners and caterers.",
-    "sortOrder": 53
+    "sortOrder": 50
   },
   {
     "id": "prod-cat-kay-021",
@@ -1995,7 +1884,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Pure certified edible lemon yellow food colour powder for laddus, halwa, pulao, and confectionery baking.",
-    "sortOrder": 54
+    "sortOrder": 51
   },
   {
     "id": "prod-cat-kay-022",
@@ -2032,7 +1921,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "100g bulk canister of food-grade lemon yellow colouring powder for commercial sweet shops and caterers.",
-    "sortOrder": 55
+    "sortOrder": 52
   },
   {
     "id": "prod-cat-kay-023",
@@ -2069,7 +1958,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Brilliant green edible powder colouring for pista barfi, mocktails, bakery frosting and savouries.",
-    "sortOrder": 56
+    "sortOrder": 53
   },
   {
     "id": "prod-cat-kay-024",
@@ -2106,7 +1995,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "100g food-grade green colour powder suited for commercial bakery production and commercial restaurant kitchens.",
-    "sortOrder": 57
+    "sortOrder": 54
   },
   {
     "id": "prod-cat-kay-025",
@@ -2143,7 +2032,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Smooth and creamy vanilla-flavoured dessert custard powder that thickens flawlessly without lumps.",
-    "sortOrder": 58
+    "sortOrder": 55
   },
   {
     "id": "prod-cat-kay-026",
@@ -2180,7 +2069,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Bulk 500g bags of creamy vanilla custard powder for catering banquets, ice cream makers and fruit salad vendors.",
-    "sortOrder": 59
+    "sortOrder": 56
   },
   {
     "id": "prod-cat-kay-027",
@@ -2217,7 +2106,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Pure white non-GMO corn flour starch, excellent for clear soup thickening, crisp fried batters and gravies.",
-    "sortOrder": 60
+    "sortOrder": 57
   },
   {
     "id": "prod-cat-kay-028",
@@ -2254,7 +2143,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "1 Kg bulk packaging of corn starch flour for Indo-Chinese restaurants, manchurian batters and thick gravies.",
-    "sortOrder": 61
+    "sortOrder": 58
   },
   {
     "id": "prod-cat-kay-029",
@@ -2291,7 +2180,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Food grade crystalline citric acid (Nimbu Sat / Tatri) souring agent and natural preservative for beverages, syrups and namkeens.",
-    "sortOrder": 62
+    "sortOrder": 59
   },
   {
     "id": "prod-cat-kay-030",
@@ -2328,7 +2217,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "High-grade 99% pure monosodium glutamate flavour enhancer providing rich umami taste for Indo-Chinese cuisine.",
-    "sortOrder": 63
+    "sortOrder": 60
   },
   {
     "id": "prod-cat-kay-031",
@@ -2365,7 +2254,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Cost-effective blended umami seasoning mix formulated for fast-food restaurants, chowmein stalls and snack manufacturing.",
-    "sortOrder": 64
+    "sortOrder": 61
   },
   {
     "id": "prod-cat-oth-032",
@@ -2402,7 +2291,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Crisp, spicy fried gram-flour masala pearls (Boondi) packed in ₹5 convenience pouches for raita and snacking.",
-    "sortOrder": 65
+    "sortOrder": 62
   },
   {
     "id": "prod-cat-oth-033",
@@ -2439,7 +2328,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Generous 200g family pack seasoned masala boondi with mint and chatpata spices for curd raita and snacks.",
-    "sortOrder": 66
+    "sortOrder": 63
   },
   {
     "id": "prod-cat-oth-034",
@@ -2476,7 +2365,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Thin street-style chowmein noodles (Maheen) that boil fast and never turn mushy, popular among fast-food vendors.",
-    "sortOrder": 67
+    "sortOrder": 64
   },
   {
     "id": "prod-cat-oth-035",
@@ -2513,7 +2402,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Super fine commercial chowmein noodles offering superior elongation and springy texture when wok-fried.",
-    "sortOrder": 68
+    "sortOrder": 65
   },
   {
     "id": "prod-cat-oth-036",
@@ -2550,7 +2439,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "High-potency aromatic vanilla essence extract for bakery cakes, pastries, shakes, ice creams and puddings.",
-    "sortOrder": 69
+    "sortOrder": 66
   },
   {
     "id": "prod-cat-oth-037",
@@ -2587,7 +2476,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Soft layered sweet swiss rolls filled with sweet vanilla confectionery cream, popular fast-selling tea snack.",
-    "sortOrder": 70
+    "sortOrder": 67
   },
   {
     "id": "prod-cat-oth-038",
@@ -2624,7 +2513,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Individual soft sponge cake bites packed in countertop display jars for kirana impulse purchase checkout counters.",
-    "sortOrder": 71
+    "sortOrder": 68
   },
   {
     "id": "prod-cat-too-039",
@@ -2661,7 +2550,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Ghost pepper infused fiery spicy potato chips, baked to crunch with bold flaming seasoning.",
-    "sortOrder": 72
+    "sortOrder": 69
   },
   {
     "id": "prod-cat-too-040",
@@ -2698,7 +2587,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Twisted crunchy corn curls loaded with smoking hot bhoot jholokia chilli seasoning.",
-    "sortOrder": 73
+    "sortOrder": 70
   },
   {
     "id": "prod-cat-too-041",
@@ -2735,7 +2624,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Tangy Indian mango pickle & mustard spiced crunchy karare curls with irresistible zesty kick.",
-    "sortOrder": 74
+    "sortOrder": 71
   },
   {
     "id": "prod-cat-too-042",
@@ -2772,7 +2661,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Classic sea salted golden potato chips, light and crispy with 40% less saturated fat.",
-    "sortOrder": 75
+    "sortOrder": 72
   },
   {
     "id": "prod-cat-too-043",
@@ -2809,7 +2698,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Authentic street-style sweet dahi papdi chaat seasoning on crispy multigrain chips.",
-    "sortOrder": 76
+    "sortOrder": 73
   },
   {
     "id": "prod-cat-too-044",
@@ -2846,7 +2735,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Trendsetting Korean BBQ style sweet and spicy gochujang glazed crunchy corn karare.",
-    "sortOrder": 77
+    "sortOrder": 74
   },
   {
     "id": "prod-alt-001",
@@ -2883,7 +2772,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Concentrated food-grade acetic acid for commercial pickling, food processing, curdling and preservation.",
-    "sortOrder": 78
+    "sortOrder": 75
   },
   {
     "id": "prod-alt-002",
@@ -2920,7 +2809,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Authentic coarse-ground pickling spice blend with fennel, mustard seeds, fenugreek, and spicy red chillies.",
-    "sortOrder": 79
+    "sortOrder": 76
   },
   {
     "id": "prod-alt-003",
@@ -2957,7 +2846,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "High-viability instant active dried baker yeast for fluffy breads, pizza dough, kulchas, and bhaturas.",
-    "sortOrder": 80
+    "sortOrder": 77
   },
   {
     "id": "prod-alt-004",
@@ -2994,7 +2883,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Pure crystal monosodium glutamate for enhancing umami flavour in chowmein, fried rice, and soups.",
-    "sortOrder": 81
+    "sortOrder": 78
   },
   {
     "id": "prod-alt-005",
@@ -3031,7 +2920,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Traditional steam-distilled pudina / mint water (Arq-e-Nana) soothing for digestion, acidity and cool mocktails.",
-    "sortOrder": 82
+    "sortOrder": 79
   },
   {
     "id": "prod-alt-006",
@@ -3068,7 +2957,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Food grade pure sodium bicarbonate for fast rising, batter fluffing, chana tenderizing, and domestic cleaning.",
-    "sortOrder": 83
+    "sortOrder": 80
   },
   {
     "id": "prod-alt-007",
@@ -3105,7 +2994,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Double action leavening baking powder providing uniform aerated rise for cakes, cookies, and tea rolls.",
-    "sortOrder": 84
+    "sortOrder": 81
   },
   {
     "id": "prod-alt-008",
@@ -3142,7 +3031,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Commercial bakery 400g canister pack of double acting baking powder for high volume bakeries and confectioneries.",
-    "sortOrder": 85
+    "sortOrder": 82
   },
   {
     "id": "prod-alt-009",
@@ -3179,7 +3068,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Convenient single-serve 8g green chilli sauce portion packs for takeaways, samosas, burgers and street carts.",
-    "sortOrder": 86
+    "sortOrder": 83
   },
   {
     "id": "prod-alt-010",
@@ -3216,7 +3105,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "100-sachet packet bundle of tangy green chilli dip sauce, perfect for high-traffic food courts and canteens.",
-    "sortOrder": 87
+    "sortOrder": 84
   },
   {
     "id": "prod-alt-011",
@@ -3253,7 +3142,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Zesty green chilli sauce made with fresh garden chillies, garlic and spices for table tops and fast-food counters.",
-    "sortOrder": 88
+    "sortOrder": 85
   },
   {
     "id": "prod-alt-012",
@@ -3290,7 +3179,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Large 640g squeezy/glass bottle green chilli sauce for Chinese cooking, rolls, chowmein and snacks.",
-    "sortOrder": 89
+    "sortOrder": 86
   },
   {
     "id": "prod-alt-013",
@@ -3327,7 +3216,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Bulk 5-litre restaurant jar of spicy green chilli sauce for fast-food chefs, roll corners, and banquet catering.",
-    "sortOrder": 90
+    "sortOrder": 87
   },
   {
     "id": "prod-alt-014",
@@ -3364,7 +3253,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Pure food-grade tartaric citric acid crystals in retail sachets for home pickling, syrups, and rasgulla curdling.",
-    "sortOrder": 91
+    "sortOrder": 88
   },
   {
     "id": "prod-alt-015",
@@ -3401,7 +3290,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Rich dark unsweetened Dutch-processed cocoa powder for baking chocolate cakes, brownies, and hot chocolate.",
-    "sortOrder": 92
+    "sortOrder": 89
   },
   {
     "id": "prod-alt-016",
@@ -3438,7 +3327,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Silky smooth vanilla custard powder for fruit salads, puddings, pies, and dessert creams.",
-    "sortOrder": 93
+    "sortOrder": 90
   },
   {
     "id": "prod-alt-017",
@@ -3475,7 +3364,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Finely milled pure corn starch flour for lump-free soup thickening, frying crispy manchurian and sauce gloss.",
-    "sortOrder": 94
+    "sortOrder": 91
   },
   {
     "id": "prod-alt-018",
@@ -3512,7 +3401,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Instant rich drinking chocolate mix with real milk solids and cocoa for comforting hot cocoa and cold chocolate shakes.",
-    "sortOrder": 95
+    "sortOrder": 92
   },
   {
     "id": "prod-alt-019",
@@ -3549,7 +3438,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Single portion 8g sweet and tangy tomato ketchup sachets for takeout burgers, fries, samosas and snacks.",
-    "sortOrder": 96
+    "sortOrder": 93
   },
   {
     "id": "prod-alt-020",
@@ -3586,7 +3475,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "100-sachet economy bundle of ripe red tomato sauce for canteen counters, tiffin deliveries and delivery parcels.",
-    "sortOrder": 97
+    "sortOrder": 94
   },
   {
     "id": "prod-alt-021",
@@ -3623,7 +3512,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Thick, tangy and spiced ripe red tomato sauce in standard household and cafe tabletop glass bottles.",
-    "sortOrder": 98
+    "sortOrder": 95
   },
   {
     "id": "prod-alt-022",
@@ -3660,7 +3549,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Family size 670g bottle of delicious sweet and savoury tomato sauce with vibrant aroma and rich consistency.",
-    "sortOrder": 99
+    "sortOrder": 96
   },
   {
     "id": "prod-alt-023",
@@ -3697,7 +3586,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "1 kg economy bottle of thick rich tomato ketchup for fast food restaurants, snack bars and large families.",
-    "sortOrder": 100
+    "sortOrder": 97
   },
   {
     "id": "prod-alt-024",
@@ -3734,7 +3623,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Bulk 5-litre commercial food-grade canister of rich red tomato sauce for restaurant kitchens and snack franchises.",
-    "sortOrder": 101
+    "sortOrder": 98
   },
   {
     "id": "prod-alt-025",
@@ -3771,7 +3660,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Concentrated natural tomato puree cooked from vine-ripened tomatoes, with no artificial preservatives, for rich makhani gravies.",
-    "sortOrder": 102
+    "sortOrder": 99
   },
   {
     "id": "prod-alt-026",
@@ -3808,7 +3697,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Clear synthetic white vinegar offering crisp 4% acidity for Indo-Chinese chowmein, marinades and salads.",
-    "sortOrder": 103
+    "sortOrder": 100
   },
   {
     "id": "prod-alt-027",
@@ -3845,7 +3734,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "600g family pack bottle of distilled white cooking vinegar, ideal for pickles, Chinese sauces, and cleaning.",
-    "sortOrder": 104
+    "sortOrder": 101
   },
   {
     "id": "prod-alt-028",
@@ -3882,7 +3771,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Naturally fermented dark rich soya sauce giving deep golden-brown glaze and savoury saltiness to noodles and momos.",
-    "sortOrder": 105
+    "sortOrder": 102
   },
   {
     "id": "prod-alt-029",
@@ -3919,7 +3808,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "800g large chef-size bottle of dark soya sauce for heavy commercial wok tossing in fast food establishments.",
-    "sortOrder": 106
+    "sortOrder": 103
   },
   {
     "id": "prod-alt-030",
@@ -3956,7 +3845,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Traditional desi fermented sugarcane juice vinegar (Ganne Ka Sirka) packed with natural enzymes and rustic punchy tang.",
-    "sortOrder": 107
+    "sortOrder": 104
   },
   {
     "id": "prod-alt-031",
@@ -3993,7 +3882,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Raw unfiltered fermented Indian black plum (Jamun Sirka) vinegar valued in Ayurveda for diabetes management and gut health.",
-    "sortOrder": 108
+    "sortOrder": 105
   },
   {
     "id": "prod-alt-032",
@@ -4030,7 +3919,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Spicy fiery red chilli dip sauce made with ripe red chillies and garlic for Indo-Chinese chowmein and street snack dips.",
-    "sortOrder": 109
+    "sortOrder": 106
   },
   {
     "id": "prod-alt-033",
@@ -4067,7 +3956,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Large 640g bottle of spicy red chilli sauce for commercial food cooking, wok preparations and condiment counters.",
-    "sortOrder": 110
+    "sortOrder": 107
   },
   {
     "id": "prod-alt-034",
@@ -4104,7 +3993,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Thick-gauge wheat vermicelli (Moti Sewai) ideal for street-style boiled noodles, kheer, and sweet savouries.",
-    "sortOrder": 111
+    "sortOrder": 108
   },
   {
     "id": "prod-alt-035",
@@ -4141,7 +4030,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Extra-fine strand extruded noodles (Maheen Sewai) that hold firmness and texture when tossed in hot chilli garlic sauces.",
-    "sortOrder": 112
+    "sortOrder": 109
   },
   {
     "id": "prod-alt-036",
@@ -4178,7 +4067,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Convenient 80g snack size pack of fine chowmein vermicelli sewai for quick single-plate cooking.",
-    "sortOrder": 113
+    "sortOrder": 110
   },
   {
     "id": "prod-alt-037",
@@ -4215,7 +4104,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "350g family-size pack of fine chow vermicelli sewai with high wheat elasticity for delicious homemade chowmein.",
-    "sortOrder": 114
+    "sortOrder": 111
   },
   {
     "id": "prod-alt-038",
@@ -4252,7 +4141,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Handy retail pack of mixed vegetable pickle with mango, carrot, lime, and chillies soaked in mustard oil.",
-    "sortOrder": 115
+    "sortOrder": 112
   },
   {
     "id": "prod-alt-039",
@@ -4289,7 +4178,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Traditional desi mixed pickle jar filled with crunchy vegetables, aromatic mustard seeds, and whole spices in mustard oil.",
-    "sortOrder": 116
+    "sortOrder": 113
   },
   {
     "id": "prod-alt-040",
@@ -4326,7 +4215,7 @@ export const INITIAL_PRODUCTS = [
       "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80"
     ],
     "description": "Zesty green raw mango pickle bits infused with fenugreek, nigella seeds and pure mustard oil.",
-    "sortOrder": 117
+    "sortOrder": 114
   }
 ];
 

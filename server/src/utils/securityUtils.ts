@@ -55,7 +55,7 @@ export const parsePagination = (
  */
 export const validateImagePayload = (
   image: string,
-  maxSizeInBytes = 5 * 1024 * 1024 // 5MB
+  maxSizeInBytes = 6 * 1024 * 1024 // 6MB
 ): { isValid: boolean; error?: string; mimeType?: string } => {
   if (!image || typeof image !== 'string') {
     return { isValid: false, error: 'Image data is required' };

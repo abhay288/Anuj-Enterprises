@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ShoppingCart, ArrowLeft, ChevronRight, Maximize2, 
+  ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, Maximize2, 
   Phone, Box, Check, X, Layers, Building2, 
-  ZoomIn, Info, Share2, Copy, MessageCircle, Send, Mail, Globe, ShieldAlert
+  Info, Share2, Copy, MessageCircle, Send, Mail, Globe, ShieldAlert
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
@@ -15,6 +15,7 @@ export const ProductDetailView = () => {
   const { 
     selectedProductId, 
     products, 
+    checkProductMatch,
     addToCart, 
     navigateTo,
     setIsSalesmanModalOpen,
@@ -22,19 +23,34 @@ export const ProductDetailView = () => {
     t
   } = useApp();
 
-  const product = products.find(p => p.id === selectedProductId || p.productId === selectedProductId) || products[0];
+  const product = products.find(p => (
+    checkProductMatch 
+      ? checkProductMatch(p, selectedProductId) 
+      : (p.id === selectedProductId || p.productId === selectedProductId || p._id === selectedProductId || p.sku === selectedProductId)
+  )) || products[0];
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
-  const [qty, setQty] = useState(product.minOrderQty || 1);
+  const [qty, setQty] = useState(product?.minOrderQty || 1);
 
-  // Modal & Zoom States
+  // Modal States
   const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isHoverZooming, setIsHoverZooming] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
   const imageContainerRef = useRef(null);
-  const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
+  const rawImages = (Array.isArray(product?.images) && product.images.length > 0)
+    ? product.images
+    : ((Array.isArray(product?.gallery) && product.gallery.length > 0)
+      ? product.gallery
+      : (product?.image ? [product.image] : []));
+  const cleanImages = rawImages
+    .map(img => typeof img === 'object' ? (img?.url || img?.secure_url || '') : String(img || ''))
+    .filter(Boolean);
+  const images = cleanImages.length > 0 ? cleanImages : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'];
+
+  // Reset to primary image whenever the product photo or product changes
+  useEffect(() => {
+    setSelectedImgIndex(0);
+  }, [product?.id, product?.image]);
 
   // Dynamic SEO on Product Page Mount / Selection
   useEffect(() => {
@@ -81,14 +97,6 @@ export const ProductDetailView = () => {
   const handleQtyInput = (e) => {
     const val = parseInt(e.target.value, 10);
     setQty(isNaN(val) || val <= 0 ? '' : val);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!imageContainerRef.current) return;
-    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
   };
 
   const calculateTierPrice = (quantity) => {
@@ -156,13 +164,10 @@ export const ProductDetailView = () => {
             {/* Left Column: Image Gallery & Interactive Zoom */}
             <div className="lg:col-span-6 space-y-4">
               
-              {/* Main Interactive Image Viewport */}
+              {/* Main Image Viewport */}
               <div 
                 ref={imageContainerRef}
-                onMouseEnter={() => setIsHoverZooming(true)}
-                onMouseLeave={() => setIsHoverZooming(false)}
-                onMouseMove={handleMouseMove}
-                className="relative h-80 md:h-[420px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 transition-all p-6 flex items-center justify-center overflow-hidden group cursor-crosshair"
+                className="relative h-80 md:h-[420px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 transition-all p-6 flex items-center justify-center overflow-hidden group"
               >
                 {/* Brand Badge */}
                 <div className="absolute top-4 left-4 z-10 flex flex-col gap-1 items-start pointer-events-none">
@@ -198,27 +203,16 @@ export const ProductDetailView = () => {
                   </button>
                 </div>
 
-                {/* Normal & Hover Zoom Image */}
+                {/* Product Image */}
                 <img
-                  src={images[selectedImgIndex]}
+                  src={images[selectedImgIndex] || images[0]}
                   alt={product.name}
-                  style={
-                    isHoverZooming
-                      ? {
-                          transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                          transform: 'scale(1.8)'
-                        }
-                      : { transform: 'scale(1)' }
-                  }
-                  className="max-h-full max-w-full object-contain transition-transform duration-150 select-none"
+                  className="max-h-full max-w-full object-contain transition-transform duration-150 select-none cursor-pointer"
                   onClick={() => setIsFullscreenModalOpen(true)}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                  }}
                 />
-
-                {/* Zoom Helper Pill */}
-                <div className="absolute bottom-3 right-3 pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-bold bg-slate-900/70 text-white px-2.5 py-1 rounded-lg backdrop-blur-sm">
-                  <ZoomIn className="w-3 h-3 text-amber-400" />
-                  <span>Hover to Zoom / Click Fullscreen</span>
-                </div>
               </div>
 
               {/* Gallery Thumbnails */}
@@ -235,7 +229,16 @@ export const ProductDetailView = () => {
                           : 'border-slate-200 dark:border-slate-800 hover:border-slate-400'
                       }`}
                     >
-                      <img src={img} alt={`Thumb ${idx + 1}`} loading="lazy" decoding="async" className="w-full h-full object-contain" />
+                      <img 
+                        src={img} 
+                        alt={`Thumb ${idx + 1}`} 
+                        loading="lazy" 
+                        decoding="async" 
+                        className="w-full h-full object-contain" 
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                        }}
+                      />
                     </button>
                   ))}
                 </div>
@@ -615,13 +618,63 @@ export const ProductDetailView = () => {
                 >
                   <X className="w-5 h-5" />
                 </button>
-                <img
-                  src={images[selectedImgIndex]}
-                  alt={product.name}
-                  className="max-h-[75vh] max-w-full object-contain rounded-2xl"
-                />
-                <span className="text-xs font-bold text-slate-500 mt-4">
-                  {product.name} — Fullscreen Image View ({selectedImgIndex + 1} of {images.length})
+                <div className="relative w-full max-h-[72vh] flex items-center justify-center my-auto">
+                  {images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImgIndex((prev) => (prev - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white shadow-xl hover:scale-110 transition-transform"
+                      title="Previous photo"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  <img
+                    src={images[selectedImgIndex] || images[0]}
+                    alt={product.name}
+                    className="max-h-[70vh] max-w-full object-contain rounded-2xl select-none"
+                  />
+                  {images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImgIndex((prev) => (prev + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white shadow-xl hover:scale-110 transition-transform"
+                      title="Next photo"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Thumbnails in Fullscreen Modal */}
+                {images.length > 1 && (
+                  <div className="flex items-center justify-center gap-2 overflow-x-auto pt-3 pb-1 max-w-full z-20">
+                    {images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImgIndex(idx)}
+                        className={`w-12 h-12 rounded-xl border p-1 overflow-hidden transition-all shrink-0 ${
+                          selectedImgIndex === idx
+                            ? 'border-amber-500 ring-2 ring-amber-500/40 shadow-md scale-105 bg-amber-50/20'
+                            : 'border-slate-300 dark:border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-400'
+                        }`}
+                      >
+                        <img
+                          src={img}
+                          alt={`Thumb ${idx + 1}`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <span className="text-xs font-bold text-slate-500 mt-2">
+                  {product.name} — Photo {selectedImgIndex + 1} of {images.length}
                 </span>
               </motion.div>
             </div>

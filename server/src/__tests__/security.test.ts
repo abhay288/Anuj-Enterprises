@@ -270,12 +270,12 @@ export const runFullRegressionSuite = async () => {
     failed++;
   }
 
-  // 6.2 Oversized Image Rejection (>5MB)
+  // 6.2 Oversized Image Rejection (>6MB)
   try {
-    const oversizedBase64 = 'data:image/png;base64,' + 'B'.repeat(8 * 1024 * 1024);
-    const validation = validateImagePayload(oversizedBase64, 5 * 1024 * 1024);
+    const oversizedBase64 = 'data:image/png;base64,' + 'B'.repeat(9 * 1024 * 1024);
+    const validation = validateImagePayload(oversizedBase64, 6 * 1024 * 1024);
     if (!validation.isValid) {
-      console.log('  [PASS] 6.2 Oversized image payload (>5MB) -> REJECTED (400)');
+      console.log('  [PASS] 6.2 Oversized image payload (>6MB) -> REJECTED (400)');
       passed++;
     } else {
       throw new Error('Oversized payload was accepted');

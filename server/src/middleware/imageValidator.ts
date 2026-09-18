@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE_BYTES = 6 * 1024 * 1024; // 6 MB
 
 export const validateImagePayload = (req: Request, res: Response, next: NextFunction) => {
   const { url, image, images } = req.body || {};

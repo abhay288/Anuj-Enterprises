@@ -7,8 +7,8 @@
  */
 
 export const CLOUDINARY_CONFIG = {
-  cloudName: localStorage.getItem('CLOUDINARY_CLOUD_NAME') || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '',
-  uploadPreset: localStorage.getItem('CLOUDINARY_UPLOAD_PRESET') || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '',
+  cloudName: localStorage.getItem('CLOUDINARY_CLOUD_NAME') || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'uazkw46b',
+  uploadPreset: localStorage.getItem('CLOUDINARY_UPLOAD_PRESET') || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'anuj_fmcg_products',
   folder: 'anuj_enterprises/products'
 };
 
@@ -107,9 +107,44 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
 
   onProgress(35);
 
-  const token = localStorage.getItem('anuj_jwt_token');
+  const activeCloudName = CLOUDINARY_CONFIG.cloudName || 'uazkw46b';
+  const activePreset = CLOUDINARY_CONFIG.uploadPreset || 'anuj_fmcg_products';
 
-  // 1. Try Authenticated Backend Upload Endpoint
+  // 1. Try Direct Upload to Cloudinary API first (fastest, direct CDN, zero proxy delay)
+  if (activeCloudName && activePreset) {
+    try {
+      const formData = new FormData();
+      formData.append('file', dataUrl);
+      formData.append('upload_preset', activePreset);
+      formData.append('folder', CLOUDINARY_CONFIG.folder || 'anuj_enterprises/products');
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${activeCloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.secure_url || data.url) {
+          onProgress(100);
+          return {
+            url: data.secure_url || data.url,
+            publicId: data.public_id,
+            source: 'cloudinary-direct'
+          };
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('Direct Cloudinary upload notice:', errData?.error?.message || res.statusText);
+      }
+    } catch (directErr) {
+      console.warn('Direct Cloudinary upload route failed, attempting backend upload...', directErr);
+    }
+  }
+
+  onProgress(60);
+
+  // 2. Try Authenticated Backend Upload Endpoint (Signed Cloudinary Upload via Server)
   try {
     const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
       ? '/api/v1'
@@ -124,13 +159,13 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
       }
     } catch (e) {}
 
+    const token = localStorage.getItem('anuj_jwt_token');
     const headers = {
       'Content-Type': 'application/json'
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    // Forward admin authorization headers so backend accepts Admin requests
     if (isAdminUser || localStorage.getItem('anuj_admin_pwd')) {
       headers['x-admin-auth'] = 'true';
       headers['x-admin-key'] = 'anuj_admin_master';
@@ -141,13 +176,13 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
       headers,
       body: JSON.stringify({
         image: dataUrl,
-        folder: CLOUDINARY_CONFIG.folder
+        folder: CLOUDINARY_CONFIG.folder || 'anuj_enterprises/products'
       })
     });
 
     if (response.ok) {
       const data = await response.json();
-      if (data.success && data.url) {
+      if (data.success && data.url && !data.url.startsWith('data:')) {
         onProgress(100);
         return {
           url: data.url,
@@ -157,42 +192,10 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
       }
     }
   } catch (err) {
-    console.warn('Backend Cloudinary upload route skipped, trying direct client upload...', err);
+    console.warn('Backend Cloudinary upload route failed:', err);
   }
 
-  onProgress(50);
-
-  // 2. Try Direct Upload to Cloudinary API if configured
-  const activeCloudName = CLOUDINARY_CONFIG.cloudName;
-  const activePreset = CLOUDINARY_CONFIG.uploadPreset;
-
-  if (activeCloudName && activePreset) {
-    try {
-      const formData = new FormData();
-      formData.append('file', dataUrl);
-      formData.append('upload_preset', activePreset);
-      formData.append('folder', CLOUDINARY_CONFIG.folder);
-
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${activeCloudName}/image/upload`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        onProgress(100);
-        return {
-          url: data.secure_url || data.url,
-          publicId: data.public_id,
-          source: 'cloudinary-direct'
-        };
-      }
-    } catch (directErr) {
-      console.warn('Direct Cloudinary upload failed:', directErr);
-    }
-  }
-
-  // 3. Safe Local Data-URI Fallback
+  // 3. Fallback: Compact Data-URI
   onProgress(100);
   return {
     url: dataUrl,
