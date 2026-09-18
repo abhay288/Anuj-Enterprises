@@ -14,9 +14,9 @@ const getCloudinaryConfig = () => {
             return { cloudName, apiKey, apiSecret, configured: true };
         }
     }
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.IMAGE_STORAGE_KEY;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.IMAGE_STORAGE_SECRET;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.IMAGE_STORAGE_KEY || 'uazkw46b';
+    const apiKey = process.env.CLOUDINARY_API_KEY || '147477273384131';
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.IMAGE_STORAGE_SECRET || 'UOPZgxNL4VkPW3kMaJPptIiJ1hQ';
     const configured = Boolean(cloudName && apiKey && apiSecret);
     return { cloudName, apiKey, apiSecret, configured };
 };

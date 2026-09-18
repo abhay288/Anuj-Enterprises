@@ -10,7 +10,8 @@ export const connectDB = async () => {
     return cachedDbConnection;
   }
   try {
-    const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/anuj_enterprises';
+    const ATLAS_URI = 'mongodb+srv://anujenterprisesfmcg006_db_user:cXAYumLKip9B3SSF@anujenterprises.nix5vcy.mongodb.net/?appName=Anujenterprises';
+    const connStr = process.env.MONGODB_URI || ATLAS_URI;
     console.log(`📡 Connecting to MongoDB Atlas cluster...`);
 
     // Register connection reliability hooks

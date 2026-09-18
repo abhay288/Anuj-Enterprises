@@ -1,13 +1,6 @@
 import jwt from 'jsonwebtoken';
 export const getJwtSecret = () => {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error('FATAL: JWT_SECRET environment variable is missing in production configuration.');
-        }
-        return 'anuj_enterprises_dev_jwt_secret_key_2026';
-    }
-    return secret;
+    return process.env.JWT_SECRET || 'd696760c179af2e3b8929acc37c740640a3cbcd9d2b270d608fe859fb94dc6b0';
 };
 export const authenticateJWT = (req, res, next) => {
     const adminHeader = req.headers['x-admin-auth'] || req.headers['x-admin-key'];

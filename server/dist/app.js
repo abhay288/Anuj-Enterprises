@@ -184,7 +184,7 @@ const possibleDistPaths = [
     path.resolve(__dirname, '../../../dist')
 ];
 const staticDistPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html')));
-if (staticDistPath) {
+if (staticDistPath && !process.env.VERCEL) {
     console.log(`📦 [STATIC] Serving frontend build from: ${staticDistPath}`);
     app.use(express.static(staticDistPath));
     app.get('*', (req, res, next) => {

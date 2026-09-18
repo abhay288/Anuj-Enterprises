@@ -12,22 +12,6 @@ if (!process.env.MONGODB_URI) {
   } catch (e) {}
 }
 
-import { app } from '../server/dist/app.js';
-import { connectDB } from '../server/dist/config/db.js';
+import app from '../server/dist/app.js';
 
-export default async function handler(req, res) {
-  try {
-    await connectDB();
-  } catch (dbErr) {
-    console.error('[Vercel Serverless] DB connection error:', dbErr.message);
-  }
-
-  // Restore original URL if Vercel rewrite collapsed path to /api
-  if (req.originalUrl && req.originalUrl.startsWith('/api')) {
-    req.url = req.originalUrl;
-  } else if (req.url && req.url.startsWith('/v1/')) {
-    req.url = '/api' + req.url;
-  }
-
-  return app(req, res);
-}
+export default app;
