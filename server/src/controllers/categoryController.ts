@@ -46,11 +46,21 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
 
 export const deleteCategory = async (req: AuthRequest, res: Response) => {
   try {
-    const idStr = String(req.params.id);
-    const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
-    await Category.findOneAndDelete({ $or: [{ _id: isObjectId ? idStr : null }, { name: idStr }] });
-    return res.json({ success: true, message: 'Category deleted successfully' });
+    const idStr = String(req.params.id || '').trim();
+    if (!idStr) {
+      return res.status(400).json({ success: false, message: 'Category id or name is required' });
+    }
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+    const filter = isObjectId
+      ? { _id: idStr }
+      : { name: new RegExp(`^${idStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+    const deleted = await Category.findOneAndDelete(filter);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: `Category "${idStr}" not found` });
+    }
+    return res.json({ success: true, message: `Category "${deleted.name}" deleted permanently` });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+

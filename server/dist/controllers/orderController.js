@@ -389,3 +389,64 @@ export const updateOrderStatus = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+export const toggleOrderRead = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+        const order = await Order.findOne({
+            $or: [{ orderId: idStr }, { invoiceNumber: idStr }, { _id: isObjectId ? idStr : null }]
+        });
+        if (!order)
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        const nowRead = !order.isRead;
+        order.isRead = nowRead;
+        order.readAt = nowRead ? new Date() : undefined;
+        order.readBy = nowRead ? (req.user.name || req.user.id || 'Admin') : '';
+        await order.save();
+        return res.json({
+            success: true,
+            data: { isRead: order.isRead, readAt: order.readAt, readBy: order.readBy },
+            message: `Order marked as ${nowRead ? 'Read' : 'Unread'}`
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const deleteOrder = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+        const order = await Order.findOne({
+            $or: [{ orderId: idStr }, { invoiceNumber: idStr }, { _id: isObjectId ? idStr : null }]
+        });
+        if (!order)
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        // Restore stock if order was not already cancelled
+        if (order.status !== 'CANCELLED') {
+            for (const item of order.items) {
+                await Product.updateOne({ $or: [{ productId: item.productId }, { sku: item.sku }] }, { $inc: { stock: item.quantity } });
+            }
+        }
+        // Remove linked invoice safely (unlink reference, do not cascade-delete)
+        if (order.invoiceNumber) {
+            await Invoice.updateOne({ invoiceNumber: order.invoiceNumber }, { $set: { orderId: `DELETED-${order.orderId}`, collectionStatus: 'PENDING' } });
+        }
+        await Order.deleteOne({ _id: order._id });
+        await AdminActivity.create({
+            action: 'ORDER_DELETED',
+            adminId: req.user?.id || 'ADMIN',
+            details: `Deleted order ${order.orderId} (Invoice: ${order.invoiceNumber || 'N/A'})`
+        });
+        return res.json({ success: true, message: `Order ${order.orderId} deleted permanently` });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

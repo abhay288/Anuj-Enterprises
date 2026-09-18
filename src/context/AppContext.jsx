@@ -17,6 +17,9 @@ import { salesmanService } from '../services/salesmanService';
 import { companyService, categoryService } from '../services/companyService';
 import { customerService } from '../services/customerService';
 import { inventoryService } from '../services/inventoryService';
+import { ticketService } from '../services/ticketService';
+import { settingService } from '../services/settingService';
+
 import { generateProductSlug, findProductBySlugOrId } from '../utils/slugUtils';
 import { checkUnwantedContent } from '../utils/securityUtils';
 import { updatePageSEO } from '../utils/seoUtils';
@@ -225,11 +228,16 @@ export const AppProvider = ({ children }) => {
   const [categories, setCategories] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_categories_v3');
-      return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      return [];
     } catch (e) {
-      return INITIAL_CATEGORIES;
+      return [];
     }
   });
+
 
   const [brands, setBrands] = useState(() => {
     try {
@@ -237,22 +245,18 @@ export const AppProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingNorm = new Set(parsed.map(b => normalizeBrandName(typeof b === 'object' ? b.name : b)));
-          const missing = INITIAL_BRANDS.filter(b => !existingNorm.has(normalizeBrandName(b.name)));
-          const merged = [...parsed, ...missing].map((b, idx) => {
-            const name = typeof b === 'object' ? b.name : b;
+          return parsed.map((b, idx) => {
             const rank = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (idx + 1);
             return typeof b === 'object' ? { ...b, rank } : { id: `b-${idx}`, name: b, rank };
-          }).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
-          try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
-          return merged;
+          }).sort((a, b) => (a.rank || 999) - (b.rank || 999));
         }
       }
-      return INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
+      return [];
     } catch (e) {
-      return INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
+      return [];
     }
   });
+
 
   const [salesmen, setSalesmen] = useState(() => {
     try {
@@ -701,10 +705,11 @@ export const AppProvider = ({ children }) => {
     return INITIAL_SUPPORT_TICKETS;
   });
 
-  const submitSupportTicket = useCallback((ticketData) => {
+  const submitSupportTicket = useCallback(async (ticketData) => {
     const randomId = `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const newTicket = {
       id: randomId,
+      ticketId: randomId,
       name: ticketData.name || 'Valued Retailer',
       phone: ticketData.phone ? (ticketData.phone.startsWith('+91') ? ticketData.phone : `+91 ${ticketData.phone}`) : '+91 98765 43210',
       email: ticketData.email || '',
@@ -716,12 +721,33 @@ export const AppProvider = ({ children }) => {
       resolutionNote: ''
     };
 
+    // Optimistic update
     setSupportTickets(prev => {
       const updated = [newTicket, ...prev];
       try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_SUPPORT_TICKETS', updated);
       return updated;
     });
+
+    // Persist to MongoDB
+    try {
+      const res = await ticketService.createTicket({
+        name: newTicket.name,
+        phone: newTicket.phone,
+        email: newTicket.email,
+        category: newTicket.category,
+        priority: newTicket.priority,
+        message: newTicket.message
+      });
+      if (res.data?.ticket) {
+        // Replace optimistic ticket with MongoDB document (has real _id)
+        setSupportTickets(prev => {
+          const updated = prev.map(t => (t.id === randomId ? { ...t, ...res.data.ticket } : t));
+          try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+      }
+    } catch (e) {}
 
     addNotification({
       type: 'SUPPORT_TICKET',
@@ -739,15 +765,12 @@ export const AppProvider = ({ children }) => {
     return newTicket;
   }, [broadcastSync, addNotification]);
 
-  const updateTicketStatus = useCallback((ticketId, newStatus, resolutionNote = '') => {
+  const updateTicketStatus = useCallback(async (ticketId, newStatus, resolutionNote = '') => {
     setSupportTickets(prev => {
       const updated = prev.map(t => {
-        if (t.id === ticketId) {
-          return {
-            ...t,
-            status: newStatus,
-            ...(resolutionNote !== undefined ? { resolutionNote } : {})
-          };
+        const tId = t._id || t.ticketId || t.id;
+        if (tId === ticketId || t.id === ticketId) {
+          return { ...t, status: newStatus, ...(resolutionNote !== undefined ? { resolutionNote } : {}) };
         }
         return t;
       });
@@ -755,6 +778,11 @@ export const AppProvider = ({ children }) => {
       broadcastSync('SYNC_SUPPORT_TICKETS', updated);
       return updated;
     });
+
+    // Persist to MongoDB
+    try {
+      await ticketService.updateTicket(ticketId, { status: newStatus, resolutionNote });
+    } catch (e) {}
 
     const statusReadable = 
       newStatus === 'IN_PROGRESS' ? 'In Progress 🟡' :
@@ -768,12 +796,12 @@ export const AppProvider = ({ children }) => {
     });
   }, [broadcastSync]);
 
-  const deleteSupportTicket = useCallback((ticketId) => {
+  const deleteSupportTicket = useCallback(async (ticketId) => {
     const target = String(ticketId || '').toLowerCase().trim();
     setSupportTickets(prev => {
       const updated = prev.filter(t => {
         if (!t) return false;
-        const tId = String(t.id || t._id || '').toLowerCase().trim();
+        const tId = String(t._id || t.ticketId || t.id || '').toLowerCase().trim();
         return tId !== target;
       });
       try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
@@ -781,6 +809,10 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
     setToast({ show: true, message: `Support Ticket #${ticketId} removed successfully.`, type: 'info' });
+    // Permanently delete from MongoDB
+    try {
+      await ticketService.deleteTicket(ticketId);
+    } catch (e) {}
   }, [broadcastSync]);
 
   // Delivery Route & Area Schedule Management (Marked exclusively by Admin)
@@ -886,36 +918,25 @@ export const AppProvider = ({ children }) => {
       try {
         const compRes = await companyService.getCompanies();
         if (compRes.data?.companies && compRes.data.companies.length > 0) {
-          const backendCompanies = compRes.data.companies;
-          setBrands(prev => {
-            const localRankMap = {};
-            (prev || []).forEach((b, idx) => {
-              const name = typeof b === 'object' ? b.name : b;
-              const r = (typeof b === 'object' && typeof b.rank === 'number' && b.rank > 0) ? b.rank : (idx + 1);
-              localRankMap[normalizeBrandName(name)] = r;
-            });
-            const merged = backendCompanies.map((c, idx) => {
-              const norm = normalizeBrandName(c.name);
-              const rank = (typeof c.rank === 'number' && c.rank > 0 && c.rank < 999)
-                ? c.rank
-                : (localRankMap[norm] ?? (idx + 1));
-              return { ...c, rank };
-            }).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
-            try { localStorage.setItem('anuj_brands_v3', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          });
+          const backendCompanies = compRes.data.companies.map((c, idx) => ({
+            ...c,
+            rank: (typeof c.rank === 'number' && c.rank > 0 && c.rank < 999) ? c.rank : (idx + 1)
+          })).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
+          setBrands(backendCompanies);
+          try { localStorage.setItem('anuj_brands_v3', JSON.stringify(backendCompanies)); } catch (e) {}
         }
       } catch (e) {
-        console.log('Using initial companies cache');
+        console.log('Using local companies cache');
       }
 
       try {
         const catRes = await categoryService.getCategories();
-        if (catRes.data?.categories && catRes.data.categories.length > 0) {
+        if (catRes.data?.categories) {
           setCategories(catRes.data.categories);
+          try { localStorage.setItem('anuj_categories_v3', JSON.stringify(catRes.data.categories)); } catch (e) {}
         }
       } catch (e) {
-        console.log('Using initial categories cache');
+        console.log('Using local categories cache');
       }
 
       try {
@@ -929,36 +950,34 @@ export const AppProvider = ({ children }) => {
 
       try {
         const ordRes = await orderService.getOrders();
-        if (ordRes.data?.orders && ordRes.data.orders.length > 0) {
-          setOrders(prev => {
-            const apiOrders = ordRes.data.orders;
-            const merged = [...apiOrders];
-            for (const p of prev) {
-              const exists = merged.some(m => 
-                (m.id && m.id === p.id) || 
-                (m.invoiceNumber && m.invoiceNumber === p.invoiceNumber) ||
-                (m.orderId && m.orderId === p.orderId)
-              );
-              if (!exists) {
-                merged.push(p);
-              }
-            }
-            localStorage.setItem('anuj_orders_v3', JSON.stringify(merged));
-            return merged;
-          });
+        if (ordRes.data?.orders) {
+          const apiOrders = ordRes.data.orders;
+          setOrders(apiOrders);
+          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(apiOrders)); } catch (e) {}
         }
       } catch (e) {
-        console.log('Using initial orders cache');
+        console.log('Using local orders cache');
       }
 
       try {
         const custRes = await customerService.getCustomers();
         if (custRes.data?.customers) {
           setCustomers(custRes.data.customers);
-          localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers));
+          try { localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers)); } catch (e) {}
         }
       } catch (e) {
         console.log('Customer fetch from DB');
+      }
+
+      // Fetch support tickets from MongoDB
+      try {
+        const ticketRes = await ticketService.getTickets();
+        if (ticketRes.data?.tickets) {
+          setSupportTickets(ticketRes.data.tickets);
+          try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(ticketRes.data.tickets)); } catch (e) {}
+        }
+      } catch (e) {
+        console.log('Using local tickets cache');
       }
     };
 
@@ -2513,20 +2532,29 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteCategory = async (catId) => {
+    // Look up the category from current state to get its MongoDB _id or name
+    let backendId = catId;
     setCategories(prev => {
+      const found = prev.find(c => {
+        if (typeof c === 'object') return c.id === catId || c._id === catId || c.name === catId;
+        return c === catId;
+      });
+      if (found && typeof found === 'object') {
+        backendId = found._id || found.name || catId;
+      }
       const updated = prev.filter(c => {
         if (typeof c === 'object') {
           return c.id !== catId && c._id !== catId && c.name !== catId;
         }
         return c !== catId;
       });
-      localStorage.setItem('anuj_categories_v3', JSON.stringify(updated));
+      try { localStorage.setItem('anuj_categories_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_CATEGORIES', updated);
       return updated;
     });
     showToast('Category removed from catalog filters', 'info');
     try {
-      await categoryService.deleteCategory(catId);
+      await categoryService.deleteCategory(backendId);
     } catch (e) {}
   };
 
@@ -2573,7 +2601,20 @@ export const AppProvider = ({ children }) => {
 
   const deleteBrand = async (brandIdOrName) => {
     const targetNorm = normalizeBrandName(brandIdOrName);
+    // Look up the brand's MongoDB _id or name before calling delete API
+    let backendId = brandIdOrName;
     setBrands(prev => {
+      const found = prev.find(b => {
+        if (typeof b === 'object') {
+          const bId = String(b.id || b._id || '').toLowerCase().trim();
+          const bNorm = normalizeBrandName(b.name);
+          return bId === targetNorm || bNorm === targetNorm;
+        }
+        return normalizeBrandName(b) === targetNorm;
+      });
+      if (found && typeof found === 'object') {
+        backendId = found._id || found.name || brandIdOrName;
+      }
       const updated = prev.filter(b => {
         if (typeof b === 'object') {
           const bId = String(b.id || b._id || '').toLowerCase().trim();
@@ -2582,21 +2623,17 @@ export const AppProvider = ({ children }) => {
         }
         return normalizeBrandName(b) !== targetNorm;
       }).map((b, idx) => {
-        if (typeof b === 'object') {
-          return { ...b, rank: idx + 1 };
-        }
+        if (typeof b === 'object') return { ...b, rank: idx + 1 };
         return { id: `brand-${idx}`, name: b, rank: idx + 1 };
       });
-      try {
-        localStorage.setItem('anuj_brands_v3', JSON.stringify(updated));
-      } catch (e) {}
+      try { localStorage.setItem('anuj_brands_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_BRANDS', updated);
       companyService.updateRanks(updated).catch(() => {});
       return updated;
     });
     showToast('Company removed from catalog and ranking priority', 'info');
     try {
-      await companyService.deleteCompany(brandIdOrName);
+      await companyService.deleteCompany(backendId);
     } catch (e) {}
   };
 

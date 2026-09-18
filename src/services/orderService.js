@@ -23,5 +23,13 @@ export const orderService = {
       method: 'PATCH',
       body: JSON.stringify(statusData)
     });
+  },
+
+  markRead: async (id) => {
+    return apiClient(`/orders/${id}/read`, { method: 'PATCH' });
+  },
+
+  deleteOrder: async (id) => {
+    return apiClient(`/orders/${id}`, { method: 'DELETE' });
   }
 };

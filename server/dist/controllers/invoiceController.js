@@ -143,3 +143,52 @@ export const getInvoicePdf = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+export const toggleInvoiceRead = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+        const invoice = await Invoice.findOne({
+            $or: [{ invoiceNumber: idStr }, { orderId: idStr }, { _id: isObjectId ? idStr : null }]
+        });
+        if (!invoice)
+            return res.status(404).json({ success: false, message: 'Invoice not found' });
+        const nowRead = !invoice.isRead;
+        invoice.isRead = nowRead;
+        invoice.readAt = nowRead ? new Date() : undefined;
+        invoice.readBy = nowRead ? (req.user.name || req.user.id || 'Admin') : '';
+        await invoice.save();
+        return res.json({
+            success: true,
+            data: { isRead: invoice.isRead, readAt: invoice.readAt, readBy: invoice.readBy },
+            message: `Invoice marked as ${nowRead ? 'Read' : 'Unread'}`
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const deleteInvoice = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+        const invoice = await Invoice.findOne({
+            $or: [{ invoiceNumber: idStr }, { orderId: idStr }, { _id: isObjectId ? idStr : null }]
+        });
+        if (!invoice)
+            return res.status(404).json({ success: false, message: 'Invoice not found' });
+        // Safely unlink invoice from the related order (don't delete the order)
+        const { Order } = await import('../models/Order.js');
+        await Order.updateOne({ $or: [{ orderId: invoice.orderId }, { invoiceNumber: invoice.invoiceNumber }] }, { $set: { invoiceNumber: null } });
+        await Invoice.deleteOne({ _id: invoice._id });
+        return res.json({ success: true, message: `Invoice ${invoice.invoiceNumber} deleted permanently` });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

@@ -38,6 +38,9 @@ import {
   getProductImageUrl 
 } from '../../utils/packagingUtils';
 import { uploadToCloudinary } from '../../services/cloudinaryService';
+import { orderService } from '../../services/orderService';
+import { invoiceService } from '../../services/invoiceService';
+import { settingService } from '../../services/settingService';
 
 const CHART_COLORS = ['#1e3a8a', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
 
@@ -109,6 +112,15 @@ export const AdminDashboard = () => {
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
   const [jumpRankProduct, setJumpRankProduct] = useState(null);
   const [jumpRankValue, setJumpRankValue] = useState('');
+  // Delete confirmation modals
+  const [deleteOrderConfirm, setDeleteOrderConfirm] = useState(null); // order object or null
+  const [deleteInvoiceConfirm, setDeleteInvoiceConfirm] = useState(null); // invoice object or null
+  // Local read state (optimistic, synced from orders/invoices)
+  const [orderReadState, setOrderReadState] = useState({});
+  const [invoiceReadState, setInvoiceReadState] = useState({});
+  // Retention settings
+  const [retentionSettings, setRetentionSettings] = useState({ orderRetentionDays: 0, invoiceRetentionDays: 0 });
+  const [retentionSaving, setRetentionSaving] = useState(false);
 
   // Admin Direct Invoice Generation State
   const [isAdminCreateInvoiceOpen, setIsAdminCreateInvoiceOpen] = useState(false);
@@ -2149,6 +2161,33 @@ export const AdminDashboard = () => {
                                     <Eye className="w-3.5 h-3.5 text-amber-400" />
                                     <span>Invoice</span>
                                   </button>
+
+                                  {/* Mark as Read / Unread */}
+                                  <button
+                                    onClick={async () => {
+                                      const ordId = order._id || order.orderId || order.invoiceNumber;
+                                      try {
+                                        await orderService.markRead(ordId);
+                                        setOrderReadState(prev => ({ ...prev, [ordId]: !prev[ordId] }));
+                                        showToast(`Order marked as ${orderReadState[ordId] ? 'Unread' : 'Read'}`, 'success');
+                                      } catch (e) { showToast('Failed to update read status', 'error'); }
+                                    }}
+                                    className={`w-full px-3.5 py-1.5 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] ${orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                    title={orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'Mark as Unread' : 'Mark as Read'}
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>{orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'Unread' : 'Read'}</span>
+                                  </button>
+
+                                  {/* Delete Order */}
+                                  <button
+                                    onClick={() => setDeleteOrderConfirm(order)}
+                                    className="w-full px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
+                                    title="Delete Order permanently"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete</span>
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -2159,6 +2198,53 @@ export const AdminDashboard = () => {
                 </div>
               </div>
             )}
+
+            {/* Delete Order Confirmation Modal */}
+            {deleteOrderConfirm && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-rose-200 dark:border-rose-800">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center">
+                      <Trash2 className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">Delete Order?</h3>
+                      <p className="text-[11px] text-slate-500">This action cannot be undone</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 mb-5">
+                    Are you sure you want to permanently delete order <strong>{deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber}</strong> for <strong>{deleteOrderConfirm.customerName}</strong>? Stock will be restored automatically.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setDeleteOrderConfirm(null)}
+                      className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const id = deleteOrderConfirm._id || deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber;
+                        try {
+                          await orderService.deleteOrder(id);
+                          showToast(`Order ${deleteOrderConfirm.orderId || id} deleted successfully`, 'success');
+                          setDeleteOrderConfirm(null);
+                          // Reload orders - page will refresh on next loadBackendData
+                          window.location.reload();
+                        } catch (e) {
+                          showToast('Failed to delete order: ' + (e?.message || 'Unknown error'), 'error');
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all"
+                    >
+                      Delete Permanently
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
 
             {/* ================= TAB: DELIVERY ROUTE & AREA SCHEDULE MANAGEMENT ================= */}
             {activeTab === 'schedules' && (
@@ -3333,22 +3419,23 @@ export const AdminDashboard = () => {
                         </span>
                       </div>
 
-                      <form onSubmit={handleAddCategory} className="flex gap-2">
+                      <form onSubmit={handleAddCategory} className="flex flex-wrap gap-2 w-full">
                         <input
                           type="text"
                           value={newCategoryInput}
                           onChange={(e) => setNewCategoryInput(e.target.value)}
                           placeholder="New Category Name..."
-                          className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                          className="flex-1 min-w-0 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
                         />
                         <button 
                           type="submit"
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0"
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95 shrink-0 whitespace-nowrap"
                         >
                           <Plus className="w-4 h-4" />
                           Add
                         </button>
                       </form>
+
 
                       <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1 text-xs">
                         {categories.length === 0 ? (
@@ -3908,10 +3995,93 @@ export const AdminDashboard = () => {
               </div>
             )}
 
+            {/* ================= AUTO-DELETE RETENTION SETTINGS PANEL (in announcement tab) ================= */}
+            {activeTab === 'announcement' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5 mb-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center">
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Auto-Delete Retention Policy</h3>
+                    <p className="text-[11px] text-slate-400">Automatically delete old orders/invoices after retention period (0 = Never delete)</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Order Retention Period</label>
+                    <select
+                      value={retentionSettings.orderRetentionDays}
+                      onChange={e => setRetentionSettings(prev => ({ ...prev, orderRetentionDays: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value={0}>Never (Keep Forever)</option>
+                      <option value={7}>7 Days</option>
+                      <option value={15}>15 Days</option>
+                      <option value={30}>30 Days</option>
+                      <option value={60}>60 Days</option>
+                      <option value={90}>90 Days</option>
+                      <option value={180}>180 Days</option>
+                      <option value={365}>365 Days</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Invoice Retention Period</label>
+                    <select
+                      value={retentionSettings.invoiceRetentionDays}
+                      onChange={e => setRetentionSettings(prev => ({ ...prev, invoiceRetentionDays: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value={0}>Never (Keep Forever)</option>
+                      <option value={7}>7 Days</option>
+                      <option value={15}>15 Days</option>
+                      <option value={30}>30 Days</option>
+                      <option value={60}>60 Days</option>
+                      <option value={90}>90 Days</option>
+                      <option value={180}>180 Days</option>
+                      <option value={365}>365 Days</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={async () => {
+                      setRetentionSaving(true);
+                      try {
+                        await settingService.updateRetention(retentionSettings);
+                        showToast('Retention policy saved successfully', 'success');
+                      } catch (e) {
+                        showToast('Failed to save retention settings', 'error');
+                      } finally { setRetentionSaving(false); }
+                    }}
+                    disabled={retentionSaving}
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-xs flex items-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    {retentionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Policy
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Run auto-cleanup now? This will permanently delete orders/invoices older than the retention period.')) return;
+                      try {
+                        const res = await settingService.runCleanup();
+                        showToast(`Cleanup complete: ${res.data?.deletedOrders || 0} orders, ${res.data?.deletedInvoices || 0} invoices deleted`, 'info');
+                      } catch (e) { showToast('Cleanup failed', 'error'); }
+                    }}
+                    className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs flex items-center gap-2 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Run Cleanup Now
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ================= TAB 8: FLOATING HEADLINE & ANNOUNCEMENT BAR ================= */}
             {activeTab === 'announcement' && (
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
                 
+
                 {/* Header & Status Toggle */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                   <div>

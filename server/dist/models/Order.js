@@ -41,7 +41,10 @@ const OrderSchema = new Schema({
         type: String,
         enum: ['NEW', 'CONFIRMED', 'READY_FOR_COLLECTION', 'COMPLETED', 'CANCELLED'],
         default: 'NEW'
-    }
+    },
+    isRead: { type: Boolean, default: false, index: true },
+    readAt: { type: Date },
+    readBy: { type: String, default: '' }
 }, { timestamps: true });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ salesmanId: 1, createdAt: -1 });

@@ -40,6 +40,9 @@ export interface IOrder extends Document {
   paymentStatus: 'OFFLINE';
   collectionStatus: 'PENDING' | 'COLLECTED';
   status: 'NEW' | 'CONFIRMED' | 'READY_FOR_COLLECTION' | 'COMPLETED' | 'CANCELLED';
+  isRead: boolean;
+  readAt?: Date;
+  readBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -91,7 +94,10 @@ const OrderSchema: Schema = new Schema(
       type: String, 
       enum: ['NEW', 'CONFIRMED', 'READY_FOR_COLLECTION', 'COMPLETED', 'CANCELLED'], 
       default: 'NEW' 
-    }
+    },
+    isRead: { type: Boolean, default: false, index: true },
+    readAt: { type: Date },
+    readBy: { type: String, default: '' }
   },
   { timestamps: true }
 );

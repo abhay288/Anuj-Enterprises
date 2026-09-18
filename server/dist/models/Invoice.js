@@ -19,6 +19,9 @@ const InvoiceSchema = new Schema({
     grandTotal: { type: Number, default: 0 },
     paymentStatus: { type: String, enum: ['OFFLINE'], default: 'OFFLINE' },
     collectionStatus: { type: String, enum: ['PENDING', 'COLLECTED'], default: 'PENDING' },
+    isRead: { type: Boolean, default: false, index: true },
+    readAt: { type: Date },
+    readBy: { type: String, default: '' },
     issuedAt: { type: Date, default: Date.now, index: true }
 }, { timestamps: true });
 InvoiceSchema.index({ salesmanId: 1, issuedAt: -1 });

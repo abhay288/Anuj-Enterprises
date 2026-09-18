@@ -20,6 +20,8 @@ import invoiceRoutes from './routes/invoiceRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
+import settingRoutes from './routes/settingRoutes.js';
 import { addSSEClient, getConnectedClientsCount } from './utils/realtime.js';
 dotenv.config();
 // Also attempt loading server/.env or root .env if running from various roots
@@ -175,6 +177,8 @@ app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/tickets', ticketRoutes);
+app.use('/api/v1/settings', settingRoutes);
 // Frontend Static Bundle Hosting (Single Server Option)
 const possibleDistPaths = [
     path.resolve(process.cwd(), 'dist'),

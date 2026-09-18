@@ -20,6 +20,9 @@ export interface IInvoice extends Document {
   grandTotal: number;
   paymentStatus: 'OFFLINE';
   collectionStatus: 'PENDING' | 'COLLECTED';
+  isRead: boolean;
+  readAt?: Date;
+  readBy?: string;
   issuedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +49,9 @@ const InvoiceSchema: Schema = new Schema(
     grandTotal: { type: Number, default: 0 },
     paymentStatus: { type: String, enum: ['OFFLINE'], default: 'OFFLINE' },
     collectionStatus: { type: String, enum: ['PENDING', 'COLLECTED'], default: 'PENDING' },
+    isRead: { type: Boolean, default: false, index: true },
+    readAt: { type: Date },
+    readBy: { type: String, default: '' },
     issuedAt: { type: Date, default: Date.now, index: true }
   },
   { timestamps: true }
