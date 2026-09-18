@@ -11,7 +11,7 @@ import {
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
   BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target,
   Truck, MessageSquare, Send, ExternalLink, LifeBuoy, Headphones, PhoneCall, CheckCircle,
-  ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Filter, Building2, Globe
+  ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Filter, Building2, Globe, Loader2
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -36,6 +36,7 @@ import {
   getPackagingLevels, 
   formatPackagingSummary 
 } from '../../utils/packagingUtils';
+import { uploadToCloudinary } from '../../services/cloudinaryService';
 
 const CHART_COLORS = ['#1e3a8a', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
 
@@ -483,8 +484,8 @@ export const AdminDashboard = () => {
     isNew: true,
     isNrp: false,
     status: 'Published',
-    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-    images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
+    image: '',
+    images: [],
     description: 'High-margin enterprise B2B product item.'
   });
 
@@ -502,35 +503,41 @@ export const AdminDashboard = () => {
   const [customSalesmanPassword, setCustomSalesmanPassword] = useState('');
   const [salesmanToDelete, setSalesmanToDelete] = useState(null);
 
-  // Cloudinary Image Upload State (Max 3 Photos, Max 2MB per photo)
+  // Cloudinary Image Upload State (Max 3 Photos, Max 5MB per photo)
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleProductImageFile = async (e) => {
-    const files = Array.from(e.target.files || []);
+    const inputEl = e.target;
+    const files = Array.from(inputEl?.files || []);
     if (!files.length) return;
 
-    const currentImages = prodForm.images || (prodForm.image ? [prodForm.image] : []);
+    const currentImages = (prodForm.images && prodForm.images.length > 0) 
+      ? prodForm.images 
+      : (prodForm.image ? [prodForm.image] : []);
     
     // 1. Strict 3 Photos Boundation
     if (currentImages.length >= 3) {
-      showToast('Maximum 3 photos allowed per product. Please delete a photo first.', 'warning');
+      showToast('Maximum 3 photos allowed per product. Please delete or replace a photo.', 'warning');
+      if (inputEl) inputEl.value = '';
       return;
     }
 
     const availableSlots = 3 - currentImages.length;
     const filesToUpload = files.slice(0, availableSlots);
 
-    // 2. Strict 2MB Size Boundation
-    const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+    // 2. Validation
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB max before client optimization
     for (const file of filesToUpload) {
       if (!file.type.startsWith('image/')) {
         showToast(`"${file.name}" is not a valid image. Please select PNG, JPG, or WEBP.`, 'error');
+        if (inputEl) inputEl.value = '';
         return;
       }
       if (file.size > MAX_SIZE_BYTES) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 2MB. Please compress or resize.`, 'error');
+        showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 5MB. Please select a smaller file.`, 'error');
+        if (inputEl) inputEl.value = '';
         return;
       }
     }
@@ -558,20 +565,68 @@ export const AdminDashboard = () => {
           images: combined,
           image: combined[0] || prev.image
         }));
-        showToast(`${uploadedUrls.length} photo(s) uploaded to Cloudinary CDN successfully!`, 'success');
+        showToast(`${uploadedUrls.length} photo(s) uploaded successfully!`, 'success');
       }
     } catch (err) {
       console.error('Upload error:', err);
-      showToast('Upload error. Please check network connection.', 'error');
+      showToast(err.message || 'Upload error. Please check your image.', 'error');
     } finally {
       setIsImageUploading(false);
       setUploadProgress(0);
-      e.target.value = '';
+      if (inputEl) inputEl.value = '';
+    }
+  };
+
+  const handleReplaceProductImage = async (slotIdx, e) => {
+    const inputEl = e.target;
+    const files = Array.from(inputEl?.files || []);
+    if (!files.length) return;
+
+    const file = files[0];
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (!file.type.startsWith('image/')) {
+      showToast(`"${file.name}" is not a valid image. Please select PNG, JPG, or WEBP.`, 'error');
+      if (inputEl) inputEl.value = '';
+      return;
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      showToast(`"${file.name}" is ${sizeMb}MB! Maximum allowed size is 5MB.`, 'error');
+      if (inputEl) inputEl.value = '';
+      return;
+    }
+
+    setIsImageUploading(true);
+    setUploadProgress(25);
+
+    try {
+      const res = await uploadToCloudinary(file, (prog) => setUploadProgress(prog));
+      if (res?.url) {
+        setProdForm(prev => {
+          const currentImages = [...(prev.images && prev.images.length > 0 ? prev.images : (prev.image ? [prev.image] : []))];
+          currentImages[slotIdx] = res.url;
+          return {
+            ...prev,
+            images: currentImages,
+            image: currentImages[0] || res.url
+          };
+        });
+        showToast(`Photo ${slotIdx + 1} replaced successfully!`, 'success');
+      }
+    } catch (err) {
+      console.error('Photo replacement error:', err);
+      showToast(err.message || 'Error replacing photo.', 'error');
+    } finally {
+      setIsImageUploading(false);
+      setUploadProgress(0);
+      if (inputEl) inputEl.value = '';
     }
   };
 
   const handleRemoveProductImage = (indexToRemove) => {
-    const currentImages = prodForm.images || [prodForm.image];
+    const currentImages = (prodForm.images && prodForm.images.length > 0)
+      ? prodForm.images
+      : (prodForm.image ? [prodForm.image] : []);
     const filtered = currentImages.filter((_, idx) => idx !== indexToRemove);
     setProdForm(prev => ({
       ...prev,
@@ -1495,8 +1550,8 @@ export const AdminDashboard = () => {
                           unitType: 'Piece', unitQuantity: '',
                           packSize: '', bundleSize: '', malaSize: '', boriSize: '', caseSize: '', cartonSize: '', customPackaging: '',
                           isFeatured: true, isNew: true, isNrp: false, status: 'Published',
-                          image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-                          images: ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
+                          image: '',
+                          images: [],
                           description: 'High-margin B2B product.'
                         });
                         setIsAddProductOpen(true);
@@ -4852,7 +4907,7 @@ export const AdminDashboard = () => {
                       <span>Product Photos ({(prodForm.images || []).length}/3)</span>
                     </label>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
-                      Max 3 Photos • Max 2MB each
+                      Max 3 Photos • Max 5MB each
                     </span>
                   </div>
 
@@ -4884,15 +4939,30 @@ export const AdminDashboard = () => {
                                 {slotIdx === 0 ? '★ Cover' : `Photo ${slotIdx + 1}`}
                               </span>
 
-                              {/* Delete Photo Button */}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveProductImage(slotIdx)}
-                                className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-transform hover:scale-110"
-                                title="Remove this photo"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                              {/* Action Buttons: Replace & Delete */}
+                              <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                                <label
+                                  className="p-1.5 bg-slate-950/80 hover:bg-slate-900 text-white rounded-lg shadow-md transition-transform hover:scale-110 cursor-pointer"
+                                  title="Replace this photo"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                  <input
+                                    type="file"
+                                    accept="image/png, image/jpeg, image/webp, image/jpg"
+                                    onChange={(e) => handleReplaceProductImage(slotIdx, e)}
+                                    disabled={isImageUploading}
+                                    className="hidden"
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveProductImage(slotIdx)}
+                                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-transform hover:scale-110"
+                                  title="Remove this photo"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
                             </>
                           ) : (
                             <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20 rounded-xl transition-colors">
@@ -4909,7 +4979,7 @@ export const AdminDashboard = () => {
                               <span className="text-[10px] font-bold text-slate-500">
                                 {slotIdx === 0 ? '+ Cover Photo' : `+ Photo ${slotIdx + 1}`}
                               </span>
-                              <span className="text-[8px] text-slate-400">Max 2MB</span>
+                              <span className="text-[8px] text-slate-400">Max 5MB</span>
                             </label>
                           )}
                         </div>
@@ -4931,24 +5001,24 @@ export const AdminDashboard = () => {
                         {isImageUploading ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Uploading & Optimizing on Cloudinary CDN ({uploadProgress}%)...</span>
+                            <span>Uploading & Optimizing ({uploadProgress}%)...</span>
                           </>
                         ) : (
                           <>
                             <UploadCloud className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            <span>Click to Upload Photo to Cloudinary (Slot {(prodForm.images || []).length + 1} of 3)</span>
+                            <span>Click to Upload Photo (Slot {(prodForm.images || []).length + 1} of 3)</span>
                           </>
                         )}
                       </div>
                       <span className="text-[10px] text-slate-500 mt-0.5">
-                        PNG, JPG, WEBP • Max 2MB per photo • Stored on Cloudinary CDN
+                        PNG, JPG, WEBP • Max 5MB per photo • Automatic Compression & Optimization
                       </span>
                     </label>
                   ) : (
                     <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
                       <div className="flex items-center gap-2 font-bold">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>Maximum 3 product photos uploaded & active on Cloudinary CDN</span>
+                        <span>Maximum 3 product photos uploaded & active</span>
                       </div>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">3 / 3 Photos</span>
                     </div>
