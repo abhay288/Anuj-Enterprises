@@ -68,7 +68,7 @@ class ErrorBoundary extends React.Component {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               A temporary display or network event occurred. Your session and data remain fully secure and protected.
             </p>
-            <div className="pt-2 flex gap-3 justify-center">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
@@ -77,6 +77,20 @@ class ErrorBoundary extends React.Component {
                 className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all"
               >
                 🔄 Refresh Portal
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('anuj_products_v3');
+                    localStorage.removeItem('anuj_deleted_skus_v2');
+                    localStorage.removeItem('anuj_active_filter_v2');
+                  } catch (e) {}
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
+              >
+                🧹 Clear Stale Cache & Reload
               </button>
             </div>
           </div>

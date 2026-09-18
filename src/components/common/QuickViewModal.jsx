@@ -4,6 +4,7 @@ import {
   X, ShoppingCart, ArrowRight, Sparkles, ShieldAlert, 
   ChevronLeft, ChevronRight, Layers, ArrowLeftRight 
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { getPackagingLevels, getProductImageUrl, getProductImages } from '../../utils/packagingUtils';
 
 export const QuickViewModal = () => {
