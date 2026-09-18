@@ -1136,9 +1136,33 @@ export const AppProvider = ({ children }) => {
       } catch (err) {}
     };
 
+    // Automatic multi-device / multi-tab background revalidation from MongoDB
+    const syncFromDatabase = async () => {
+      try {
+        const res = await productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' });
+        if (res.data?.products && Array.isArray(res.data.products) && res.data.products.length > 0) {
+          const delSet = getDeletedSkus();
+          const fresh = normalizeProductRanks(res.data.products.filter(p => !isProductDeleted(p, delSet)));
+          setProducts(fresh);
+          try { localStorage.setItem('anuj_products_v3', JSON.stringify(fresh)); } catch (e) {}
+        }
+      } catch (e) {}
+    };
+
+    const handleWindowFocus = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromDatabase();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleWindowFocus);
+    window.addEventListener('focus', handleWindowFocus);
+
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('visibilitychange', handleWindowFocus);
+      window.removeEventListener('focus', handleWindowFocus);
       if (syncChannel) syncChannel.close();
       if (eventSource) eventSource.close();
     };
@@ -1964,10 +1988,15 @@ export const AppProvider = ({ children }) => {
         ? prod.gallery
         : (prod.image ? [prod.image] : []));
     
-    const cleanImgs = incomingImgs.map(extractUrl).filter(Boolean);
+    let cleanImgs = incomingImgs.map(extractUrl).filter(Boolean);
+    const primaryUrl = extractUrl(prod.image);
+    if (primaryUrl && (!cleanImgs.length || cleanImgs[0] !== primaryUrl)) {
+      cleanImgs = [primaryUrl, ...cleanImgs.filter(u => u !== primaryUrl)].slice(0, 5);
+    }
     const defaultPlaceholder = "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
-    const imgUrl = cleanImgs[0] || extractUrl(prod.image) || defaultPlaceholder;
+    const imgUrl = cleanImgs[0] || primaryUrl || defaultPlaceholder;
     const finalGallery = cleanImgs.length > 0 ? cleanImgs : [defaultPlaceholder];
+    const imagePublicId = String(prod.imagePublicId || prod.publicId || '').trim();
 
     const unitType = prod.unitType || 'Piece';
     const unitQuantity = (prod.unitQuantity !== undefined && prod.unitQuantity !== null) ? String(prod.unitQuantity).trim() : (prod.unitDetail ? String(prod.unitDetail).trim() : '');
@@ -2035,6 +2064,7 @@ export const AppProvider = ({ children }) => {
       status: prod.status || "Published",
       whiteBgAvailable: true,
       image: imgUrl,
+      imagePublicId,
       images: finalGallery,
       gallery: finalGallery,
       specs: cleanSpecs,
@@ -2069,7 +2099,10 @@ export const AppProvider = ({ children }) => {
     const formatted = formatRichProductData(updatedProd);
     const targetId = formatted._id || formatted.productId || formatted.id || formatted.sku;
 
-    // 1. Instant local products update & cross-tab sync
+    // Snapshot previous state for rollback if MongoDB update fails
+    const previousProducts = [...products];
+
+    // Optimistically update local state for immediate feedback
     setProducts(prev => {
       const updated = prev.map(p => checkProductMatch(p, formatted) ? { ...p, ...formatted } : p);
       try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
@@ -2077,60 +2110,68 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
 
-    // 2. Instant Cart update across all storage keys (so items reflect new photos/prices immediately)
-    setCart(prev => {
-      const updatedCart = prev.map(item => {
-        if (checkProductMatch(item.product, formatted)) {
-          return {
-            ...item,
-            product: { ...item.product, ...formatted }
-          };
-        }
-        return item;
-      });
-      try {
-        const activeKey = getCartStorageKey(user);
-        localStorage.setItem(activeKey, JSON.stringify(updatedCart));
-        localStorage.setItem('anuj_cart', JSON.stringify(updatedCart));
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && k.startsWith('anuj_cart')) {
-            try {
-              const raw = localStorage.getItem(k);
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                  const mapped = parsed.map(it => checkProductMatch(it.product, formatted) ? { ...it, product: { ...it.product, ...formatted } } : it);
-                  localStorage.setItem(k, JSON.stringify(mapped));
-                }
-              }
-            } catch (err) {}
-          }
-        }
-      } catch (e) {}
-      broadcastSync('SYNC_CART', { cart: updatedCart, key: activeCartKeyRef.current });
-      return updatedCart;
-    });
-
-    // 3. Instant Wishlist update
-    setWishlist(prev => {
-      const updatedWish = prev.map(item => checkProductMatch(item, formatted) ? { ...item, ...formatted } : item);
-      try { localStorage.setItem('anuj_wishlist', JSON.stringify(updatedWish)); } catch (e) {}
-      return updatedWish;
-    });
-
-    // 4. Instant QuickView & Selected Product update
-    setQuickViewProduct(prev => (prev && checkProductMatch(prev, formatted) ? { ...prev, ...formatted } : prev));
-
-    showToast(`Product details updated live across website`, 'success');
-
-    // 5. Background API Sync
     try {
       if (targetId) {
-        await productService.updateProduct(targetId, formatted);
+        const res = await productService.updateProduct(targetId, formatted);
+        const savedProduct = res?.data?.product;
+        if (savedProduct) {
+          // Merge confirmed MongoDB document back into state
+          setProducts(prev => {
+            const confirmed = prev.map(p => checkProductMatch(p, formatted) ? { ...p, ...formatted, ...savedProduct } : p);
+            try { localStorage.setItem('anuj_products_v3', JSON.stringify(confirmed)); } catch (e) {}
+            broadcastSync('SYNC_PRODUCTS', confirmed);
+            return confirmed;
+          });
+        }
       }
+
+      // Update Cart across all storage keys
+      setCart(prev => {
+        const updatedCart = prev.map(item => checkProductMatch(item.product, formatted) ? { ...item, product: { ...item.product, ...formatted } } : item);
+        try {
+          const activeKey = getCartStorageKey(user);
+          localStorage.setItem(activeKey, JSON.stringify(updatedCart));
+          localStorage.setItem('anuj_cart', JSON.stringify(updatedCart));
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('anuj_cart')) {
+              try {
+                const raw = localStorage.getItem(k);
+                if (raw) {
+                  const parsed = JSON.parse(raw);
+                  if (Array.isArray(parsed)) {
+                    const mapped = parsed.map(it => checkProductMatch(it.product, formatted) ? { ...it, product: { ...it.product, ...formatted } } : it);
+                    localStorage.setItem(k, JSON.stringify(mapped));
+                  }
+                }
+              } catch (err) {}
+            }
+          }
+        } catch (e) {}
+        broadcastSync('SYNC_CART', { cart: updatedCart, key: activeCartKeyRef.current });
+        return updatedCart;
+      });
+
+      // Update Wishlist
+      setWishlist(prev => {
+        const updatedWish = prev.map(item => checkProductMatch(item, formatted) ? { ...item, ...formatted } : item);
+        try { localStorage.setItem('anuj_wishlist', JSON.stringify(updatedWish)); } catch (e) {}
+        return updatedWish;
+      });
+
+      // Update QuickView & Selected Product
+      setQuickViewProduct(prev => (prev && checkProductMatch(prev, formatted) ? { ...prev, ...formatted } : prev));
+
+      showToast(`Product image and details updated and synced across all devices!`, 'success');
+      return true;
     } catch (e) {
-      console.warn('Backend product update sync notice:', e?.message || e);
+      console.error('Failed to sync product update to MongoDB:', e);
+      // Revert to previous products state if MongoDB update fails
+      setProducts(previousProducts);
+      try { localStorage.setItem('anuj_products_v3', JSON.stringify(previousProducts)); } catch (err) {}
+      broadcastSync('SYNC_PRODUCTS', previousProducts);
+      showToast(`Failed to update product in database: ${e.message || 'Server error'}. Reverted to previous image.`, 'error');
+      throw e;
     }
   };
 

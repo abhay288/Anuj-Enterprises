@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProductImage {
   url: string;
+  publicId?: string;
   alt?: string;
   sortOrder?: number;
   isPrimary?: boolean;
@@ -17,6 +18,8 @@ export interface IProduct extends Document {
   companyId?: mongoose.Types.ObjectId;
   categoryId?: mongoose.Types.ObjectId;
   description: string;
+  image?: string;
+  imagePublicId?: string;
   images: IProductImage[];
   price: number;
   mrp?: number;
@@ -45,6 +48,7 @@ export interface IProduct extends Document {
 
 const ProductImageSchema = new Schema({
   url: { type: String, required: true },
+  publicId: { type: String, default: '' },
   alt: { type: String, default: '' },
   sortOrder: { type: Number, default: 0 },
   isPrimary: { type: Boolean, default: false },
@@ -61,6 +65,8 @@ const ProductSchema: Schema = new Schema(
     companyId: { type: Schema.Types.ObjectId, ref: 'Company' },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category' },
     description: { type: String, default: '' },
+    image: { type: String, default: '' },
+    imagePublicId: { type: String, default: '' },
     images: [ProductImageSchema],
     price: { type: Number, required: true, min: 0 },
     mrp: { type: Number, default: 0 },

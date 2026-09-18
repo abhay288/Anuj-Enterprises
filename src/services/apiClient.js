@@ -1,6 +1,15 @@
 const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return '/api/v1';
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === 'anujfmcg.com' ||
+      host === 'www.anujfmcg.com' ||
+      host.endsWith('.vercel.app')
+    ) {
+      return '/api/v1';
+    }
   }
   return import.meta.env.VITE_API_BASE_URL || '/api/v1';
 };
@@ -35,12 +44,15 @@ export const apiClient = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    // Check if response is valid JSON
+    // Strict JSON Content-Type validation to prevent HTML SPA fallbacks from masking API failures
     const contentType = response.headers.get('content-type');
-    let data = {};
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
+    if (!contentType || !contentType.includes('application/json')) {
+      const error = new Error(`Expected JSON API response from ${endpoint} but received "${contentType || 'non-JSON'}" (Status: ${response.status})`);
+      error.status = response.status;
+      throw error;
     }
+
+    const data = await response.json();
 
     if (!response.ok) {
       const error = new Error(data.message || `API Request Failed with status ${response.status}`);
@@ -51,7 +63,7 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return data;
   } catch (err) {
-    console.warn(`[Anuj API Resilience] Network call to ${endpoint} handled safely:`, err.message || err);
+    console.warn(`[Anuj API Resilience] Network call to ${endpoint} failed:`, err.message || err);
     throw err;
   }
 };

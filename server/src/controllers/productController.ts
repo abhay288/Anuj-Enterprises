@@ -248,9 +248,10 @@ export const getProducts = async (req: Request, res: Response) => {
       isNrp: p.isNrp || false,
       status: p.status,
       sortOrder: typeof p.sortOrder === 'number' && p.sortOrder > 0 ? p.sortOrder : (skip + idx + 1),
-      image: p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-      images: p.images ? p.images.map((img: any) => img.url) : [],
-      gallery: p.images ? p.images.map((img: any) => img.url) : [],
+      image: p.image || (p.images && p.images.length > 0 ? p.images[0].url : 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'),
+      imagePublicId: p.imagePublicId || '',
+      images: p.images && p.images.length > 0 ? p.images.map((img: any) => img.url) : (p.image ? [p.image] : []),
+      gallery: p.images && p.images.length > 0 ? p.images.map((img: any) => img.url) : (p.image ? [p.image] : []),
       description: p.description
     }));
 
@@ -318,9 +319,10 @@ export const getProductById = async (req: Request, res: Response) => {
           isNrp: product.isNrp || false,
           status: product.status,
           sortOrder: product.sortOrder || 0,
-          image: product.images && product.images.length > 0 ? product.images[0].url : '',
-          images: product.images ? product.images.map((i: any) => i.url) : [],
-          gallery: product.images ? product.images.map((i: any) => i.url) : [],
+          image: product.image || (product.images && product.images.length > 0 ? product.images[0].url : ''),
+          imagePublicId: product.imagePublicId || '',
+          images: product.images && product.images.length > 0 ? product.images.map((i: any) => i.url) : (product.image ? [product.image] : []),
+          gallery: product.images && product.images.length > 0 ? product.images.map((i: any) => i.url) : (product.image ? [product.image] : []),
           description: product.description
         }
       }
@@ -404,6 +406,8 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       newProduct: isNew ?? true,
       status: status || 'Published',
       sortOrder: assignedSortOrder,
+      image: finalImages[0]?.url || '',
+      imagePublicId: String(req.body?.imagePublicId || req.body?.publicId || '').trim(),
       images: finalImages,
       createdBy: req.user?.id || 'ADMIN'
     });
@@ -472,12 +476,35 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       : (Array.isArray(updates.gallery) && updates.gallery.length > 0 
         ? updates.gallery 
         : (updates.image ? [updates.image] : null)));
+
     if (incomingImgs && incomingImgs.length > 0) {
-      product.images = incomingImgs.slice(0, 5).map((url: string, idx: number) => ({
-        url,
-        isPrimary: idx === 0,
-        whiteBackground: true
-      }));
+      const cleanUrls = incomingImgs.slice(0, 5).map((u: any) => 
+        typeof u === 'object' ? (u.url || u.secure_url || u.src || '') : String(u || '').trim()
+      ).filter(Boolean);
+
+      if (cleanUrls.length > 0) {
+        product.image = cleanUrls[0];
+        product.images = cleanUrls.map((url: string, idx: number) => ({
+          url,
+          isPrimary: idx === 0,
+          whiteBackground: true
+        }));
+        product.markModified('image');
+        product.markModified('images');
+      }
+    } else if (updates.image && typeof updates.image === 'string') {
+      const clean = updates.image.trim();
+      if (clean) {
+        product.image = clean;
+        product.images = [{ url: clean, isPrimary: true, whiteBackground: true }];
+        product.markModified('image');
+        product.markModified('images');
+      }
+    }
+
+    if (updates.imagePublicId || updates.publicId) {
+      product.imagePublicId = String(updates.imagePublicId || updates.publicId).trim();
+      product.markModified('imagePublicId');
     }
 
     await product.save();
@@ -544,7 +571,16 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       details: `Updated product "${product.name}"`
     });
 
-    return res.json({ success: true, data: { product }, message: 'Product updated successfully' });
+    const returnedProduct = {
+      ...product.toObject(),
+      id: product.productId || product._id.toString(),
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0].url : ''),
+      imagePublicId: product.imagePublicId || '',
+      images: (product.images || []).map((i: any) => i.url),
+      gallery: (product.images || []).map((i: any) => i.url),
+    };
+
+    return res.json({ success: true, data: { product: returnedProduct }, message: 'Product updated successfully' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }

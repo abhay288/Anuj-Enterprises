@@ -1054,7 +1054,7 @@ export const AdminDashboard = () => {
     setNewCompanyInput('');
   };
 
-  const handleSaveProduct = (statusOverride = null) => {
+  const handleSaveProduct = async (statusOverride = null) => {
     // 1. Validate packaging inputs
     const valResult = validatePackagingInputs(prodForm);
     if (!valResult.isValid) {
@@ -1071,13 +1071,18 @@ export const AdminDashboard = () => {
       status: statusOverride || prodForm.status
     };
 
-    if (editingProduct) {
-      updateProduct({ ...editingProduct, ...finalForm });
-      setEditingProduct(null);
-    } else {
-      addProduct(finalForm);
+    try {
+      if (editingProduct) {
+        await updateProduct({ ...editingProduct, ...finalForm });
+        setEditingProduct(null);
+      } else {
+        await addProduct(finalForm);
+      }
+      setIsAddProductOpen(false);
+    } catch (err) {
+      // Keep form open so admin doesn't lose modifications
+      console.warn('Product save deferred due to error:', err?.message || err);
     }
-    setIsAddProductOpen(false);
   };
 
   const handleEditProductClick = (product) => {

@@ -1,199 +1,11 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import dotenv from 'dotenv';
-import rateLimit from 'express-rate-limit';
-import mongoose from 'mongoose';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
+import { app } from './app.js';
 import { connectDB } from './config/db.js';
-import { errorHandler } from './middleware/errorHandler.js';
 import { seedDatabase } from './seeds/seed.js';
 
-import authRoutes from './routes/authRoutes.js';
-import productRoutes from './routes/productRoutes.js';
-import companyRoutes from './routes/companyRoutes.js';
-import categoryRoutes from './routes/categoryRoutes.js';
-import salesmanRoutes from './routes/salesmanRoutes.js';
-import customerRoutes from './routes/customerRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-import invoiceRoutes from './routes/invoiceRoutes.js';
-import analyticsRoutes from './routes/analyticsRoutes.js';
-import inventoryRoutes from './routes/inventoryRoutes.js';
-import uploadRoutes from './routes/uploadRoutes.js';
-import { addSSEClient, getConnectedClientsCount } from './utils/realtime.js';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security & Parsing Middlewares
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
-  })
-);
-
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(s => s.trim()) : [])
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Rate Limiting for Public APIs
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many requests from this IP. Please try again after 15 minutes.', code: 'RATE_LIMIT_EXCEEDED' }
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30, // 30 login/register attempts per 15 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many authentication attempts from this IP. Please wait 15 minutes before trying again.', code: 'AUTH_RATE_LIMIT' }
-});
-
-app.use('/api/', apiLimiter);
-app.use('/api/v1/auth/login', authLimiter);
-app.use('/api/v1/auth/register', authLimiter);
-
-// Reverse Geocoding Proxy Endpoint (to bypass browser CORS/User-Agent restrictions and get complete street address)
-app.get(['/api/geocode/reverse', '/api/v1/geocode/reverse'], async (req, res) => {
-  const { lat, lon } = req.query;
-  if (!lat || !lon) {
-    return res.status(400).json({ error: 'Latitude and Longitude are required' });
-  }
-  try {
-    const osmRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          'User-Agent': 'AnujEnterprisesApp/1.0 (contact@anujenterprises.com)',
-          'Accept': 'application/json'
-        }
-      }
-    );
-    if (!osmRes.ok) {
-      return res.status(osmRes.status).json({ error: `Upstream error ${osmRes.status}` });
-    }
-    const data = await osmRes.json();
-    return res.json(data);
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Geocoding failed' });
-  }
-});
-
-// Health check endpoint
-app.get('/api/v1/health', (req, res) => {
-  const isDbConnected = mongoose.connection.readyState === 1;
-  res.json({
-    success: true,
-    service: 'Anuj Enterprises REST API Backend',
-    status: 'ONLINE',
-    database: isDbConnected ? 'CONNECTED' : 'DISCONNECTED',
-    environment: process.env.NODE_ENV || 'development',
-    sseClients: getConnectedClientsCount(),
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Server-Sent Events (SSE) stream for real-time frontend updates
-app.get('/api/v1/events', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for Nginx/proxies
-  res.flushHeaders?.();
-
-  // Send initial handshake
-  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: Date.now() })}\n\n`);
-
-  addSSEClient(res);
-
-  // Keep-alive heartbeat ping every 25 seconds
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': heartbeat\n\n');
-    } catch (e) {
-      clearInterval(heartbeat);
-    }
-  }, 25000);
-
-  req.on('close', () => {
-    clearInterval(heartbeat);
-  });
-});
-
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/products', productRoutes);
-app.use('/api/v1/companies', companyRoutes);
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/salesmen', salesmanRoutes);
-app.use('/api/v1/customers', customerRoutes);
-app.use('/api/v1/orders', orderRoutes);
-app.use('/api/v1/invoices', invoiceRoutes);
-app.use('/api/v1/analytics', analyticsRoutes);
-app.use('/api/v1/inventory', inventoryRoutes);
-app.use('/api/v1/upload', uploadRoutes);
-
-// Frontend Static Bundle Hosting (Single Server Option)
-const possibleDistPaths = [
-  path.resolve(process.cwd(), 'dist'),
-  path.resolve(process.cwd(), '../dist'),
-  path.resolve(__dirname, '../../dist'),
-  path.resolve(__dirname, '../dist'),
-  path.resolve(__dirname, '../../../dist')
-];
-const staticDistPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html')));
-
-if (staticDistPath) {
-  console.log(`📦 [STATIC] Serving frontend build from: ${staticDistPath}`);
-  app.use(express.static(staticDistPath));
-
-  // SPA fallback for React client-side routing
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.join(staticDistPath, 'index.html'));
-  });
-}
-
-// Error Handler
-app.use(errorHandler);
-
 // Connect DB & Start Server
-const startServer = async () => {
+export const startServer = async () => {
   await connectDB();
   // Auto-seed initial demo data if database is fresh
   try {
@@ -202,9 +14,14 @@ const startServer = async () => {
     console.log('Seed check finished');
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`⚡ [SERVER] Anuj Enterprises Platform running at http://localhost:${PORT}`);
   });
+
+  return server;
 };
 
+// Start when executed directly
 startServer();
+
+export default app;

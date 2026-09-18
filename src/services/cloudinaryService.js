@@ -195,11 +195,6 @@ export const uploadToCloudinary = async (imageSource, onProgress = () => {}) => 
     console.warn('Backend Cloudinary upload route failed:', err);
   }
 
-  // 3. Fallback: Compact Data-URI
-  onProgress(100);
-  return {
-    url: dataUrl,
-    publicId: `local_${Date.now()}`,
-    source: 'data-uri-fallback'
-  };
+  // If both direct and backend Cloudinary upload fail, throw clear error to enforce Cloudinary persistence
+  throw new Error('Cloudinary image upload failed. Please verify your internet connection and Cloudinary settings.');
 };
