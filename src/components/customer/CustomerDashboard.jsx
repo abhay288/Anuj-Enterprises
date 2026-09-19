@@ -989,7 +989,7 @@ export const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Email Address & GSTIN */}
+                {/* 3. Email Address & Business ID */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
@@ -1010,7 +1010,7 @@ export const CustomerDashboard = () => {
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                      GSTIN / Tax ID <span className="text-slate-400 text-[10px] font-normal">(Optional)</span>
+                      Trade License / Business ID <span className="text-slate-400 text-[10px] font-normal">(Optional)</span>
                     </label>
                     <div className="relative">
                       <Tag className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
@@ -1018,7 +1018,7 @@ export const CustomerDashboard = () => {
                         type="text"
                         value={profileForm.gstin}
                         onChange={(e) => setProfileForm({ ...profileForm, gstin: e.target.value.toUpperCase() })}
-                        placeholder="09AAAAA0000A1Z5"
+                        placeholder="TRD-2026-001"
                         className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>

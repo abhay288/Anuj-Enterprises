@@ -216,7 +216,7 @@ export const sendInvoiceEmail = async (req, res) => {
         if (pdfBase64 && typeof pdfBase64 === 'string') {
             const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
             pdfAttachment = {
-                filename: `Tax_Invoice_${invoice.invoiceNumber}.pdf`,
+                filename: `Sales_Invoice_${invoice.invoiceNumber}.pdf`,
                 content: Buffer.from(cleanBase64, 'base64'),
                 contentType: 'application/pdf'
             };

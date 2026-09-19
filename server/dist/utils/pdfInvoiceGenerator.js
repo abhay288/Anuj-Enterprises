@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 /**
- * Generate a professional, real GST B2B Vector PDF invoice buffer for Anuj Enterprises
+ * Generate a professional, real B2B Vector PDF invoice buffer for Anuj Enterprises
  */
 export const generateInvoicePdfBuffer = (data) => {
     const doc = new jsPDF({
@@ -32,7 +32,7 @@ export const generateInvoicePdfBuffer = (data) => {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('TAX INVOICE', 196, 16, { align: 'right' });
+    doc.text('SALES INVOICE', 196, 16, { align: 'right' });
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.text(`Invoice #: ${invoiceNumber}`, 196, 23, { align: 'right' });
@@ -75,7 +75,7 @@ export const generateInvoicePdfBuffer = (data) => {
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(71, 85, 105);
-    doc.text('Place of Supply: Kanpur, UP (09)', 115, startY + 19);
+    doc.text('Place of Supply: Kanpur, UP', 115, startY + 19);
     doc.text('Hub: Kanpur Central Distribution Depot', 115, startY + 25);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(5, 150, 105); // Emerald 600

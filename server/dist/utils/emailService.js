@@ -59,14 +59,14 @@ export const verifyEmailConnection = async () => {
 const FROM_EMAIL = process.env.EMAIL_FROM || '"Anuj Enterprises FMCG" <anujenterprises.fmcg.006@gmail.com>';
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'anujenterprises.fmcg.006@gmail.com';
 /**
- * 2A. Send Customer-Facing Tax Invoice & B2B Order Confirmation Email
+ * 2A. Send Customer-Facing Sales Invoice & B2B Order Confirmation Email
  */
 export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAttachment) => {
     try {
         const transporter = createEmailTransporter();
         // Ensure real vector PDF invoice is attached
         const finalAttachment = pdfAttachment || {
-            filename: `Tax_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
+            filename: `Sales_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
             content: generateInvoicePdfBuffer(orderData),
             contentType: 'application/pdf'
         };
@@ -124,7 +124,7 @@ export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAtta
       <body>
         <div class="container">
           <div class="header">
-            <span class="badge">OFFICIAL GST B2B TAX INVOICE</span>
+            <span class="badge">OFFICIAL B2B SALES INVOICE</span>
             <h1 class="title">ANUJ ENTERPRISES</h1>
             <p class="subtitle">Authorized Wholesale FMCG & Confectionery Distributors &bull; Kanpur Central Hub</p>
             <p style="font-size: 11px; color: #cbd5e1; margin: 6px 0 0 0;">
@@ -142,7 +142,7 @@ export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAtta
               <div style="text-align: right;">
                 <p style="font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; font-weight: 700;">Date of Issue</p>
                 <p style="font-size: 14px; font-weight: 800; color: #0f172a; margin: 2px 0 0 0;">${invoiceDate}</p>
-                <p style="font-size: 11px; color: #059669; font-weight: 700; margin: 2px 0 0 0;">Place of Supply: Kanpur, UP (09)</p>
+                <p style="font-size: 11px; color: #059669; font-weight: 700; margin: 2px 0 0 0;">Place of Supply: Kanpur, UP</p>
               </div>
             </div>
 
@@ -188,7 +188,7 @@ export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAtta
               </tr>
               ${subtotal > 0 ? `
               <tr>
-                <td style="padding: 6px 12px; color: #64748b; text-align: right;">Subtotal (Taxable Value):</td>
+                <td style="padding: 6px 12px; color: #64748b; text-align: right;">Subtotal:</td>
                 <td style="padding: 6px 12px; font-weight: 700; color: #0f172a; text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
               </tr>` : ''}
               <tr style="border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; background: #fffbeb;">
@@ -199,7 +199,7 @@ export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAtta
 
             <!-- PDF Attachment Confirmation Notice -->
             <div class="attachment-box">
-              <span>📎 <strong>Official Invoice PDF Attached:</strong> An official high-resolution vector PDF invoice (<code>${finalAttachment.filename}</code>) is attached to this email for your tax filing, claims, and accounting records.</span>
+              <span>📎 <strong>Official Invoice PDF Attached:</strong> An official high-resolution vector PDF invoice (<code>${finalAttachment.filename}</code>) is attached to this email for your accounting records.</span>
             </div>
 
             <!-- Terms & Authorized Signatory -->
@@ -229,7 +229,7 @@ export const sendCustomerInvoiceEmail = async (orderData, customerEmail, pdfAtta
         const mailOptions = {
             from: FROM_EMAIL,
             to: customerEmail,
-            subject: `🧾 Official Tax Invoice #${orderData.invoiceNumber || orderData.orderId} - Anuj Enterprises`,
+            subject: `🧾 Official Sales Invoice #${orderData.invoiceNumber || orderData.orderId} - Anuj Enterprises`,
             html: htmlContent,
             attachments: [finalAttachment]
         };
@@ -362,7 +362,7 @@ export const sendAdminOrderAlertEmail = async (orderData, adminEmail, pdfAttachm
       </html>
     `;
         const finalAttachment = pdfAttachment || {
-            filename: `Tax_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
+            filename: `Sales_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
             content: generateInvoicePdfBuffer(orderData),
             contentType: 'application/pdf'
         };

@@ -690,7 +690,7 @@ export const AppProvider = ({ children }) => {
       email: "kanpur.dmart@dmartindia.com",
       category: "Invoice Copy",
       priority: "NORMAL",
-      message: "Please email signed GST B2B invoice copy for monthly audit.",
+      message: "Please email signed B2B sales invoice copy for monthly audit.",
       status: "RESOLVED",
       createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
       resolutionNote: "Signed invoice PDF delivered to registered email."

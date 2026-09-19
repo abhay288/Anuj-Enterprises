@@ -759,7 +759,7 @@ export const InvoiceModal = () => {
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 mb-4">
-                Send authentic Tax Invoice <strong>#{invoiceNumber}</strong> with real vector PDF attachment (<code>Tax_Invoice_{invoiceNumber}.pdf</code>) directly to the recipient.
+                Send authentic Sales Invoice <strong>#{invoiceNumber}</strong> with real vector PDF attachment (<code>Sales_Invoice_{invoiceNumber}.pdf</code>) directly to the recipient.
               </p>
 
               <div className="space-y-3 mb-5">
@@ -775,7 +775,7 @@ export const InvoiceModal = () => {
                   autoFocus
                 />
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-indigo-700 dark:text-indigo-300">
-                  ✓ Includes itemized breakdown, Kanpur dispatch depot details, GST breakdown & official vector PDF.
+                  ✓ Includes itemized breakdown, Kanpur dispatch depot details & official vector PDF.
                 </div>
               </div>
 
