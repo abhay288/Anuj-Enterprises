@@ -12,6 +12,8 @@ import { sendDeliveryWhatsAppNotification } from '../../utils/deliveryNotificati
 import { WhatsAppIcon } from '../common/WhatsAppIcon';
 import { getPackagingLevels } from '../../utils/packagingUtils';
 import { invoiceService } from '../../services/invoiceService';
+import { companyConfig } from '../../config/companyConfig';
+import { numberToWordsIndian } from '../../utils/currencyUtils';
 
 export const InvoiceModal = () => {
   const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast, user, toggleOrderUrgent } = useApp();
@@ -65,6 +67,8 @@ export const InvoiceModal = () => {
   };
 
   const invoiceDateInfo = getInvoiceDateInfo(inv);
+
+  const totalBookedQty = inv.totalQuantity || (inv.items || []).reduce((a, b) => a + (parseInt(b.qty || b.quantity || 1, 10)), 0);
 
   const handlePrint = () => {
     try {
@@ -300,14 +304,22 @@ export const InvoiceModal = () => {
                   Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021
                 </p>
                 <p className="text-[11px] text-slate-700 font-semibold">
-                  Phone: +91 88876 83782 / +91 70719 79894 | Email: anujenterprises.fmcg.006@gmail.com
+                  Phone: {companyConfig.phone} / {companyConfig.mobile} | Email: {companyConfig.email}
                 </p>
+                <div className="mt-1 text-[10.5px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 inline-block">
+                  Authorized B2B Wholesale Distribution Depot • Kanpur Central Hub
+                </div>
               </div>
 
               <div className="text-right space-y-1.5">
-                <span className="px-3 py-1 bg-brand-950 text-white font-extrabold text-xs uppercase tracking-widest inline-block rounded">
-                  OFFICIAL PRODUCT INVOICE
-                </span>
+                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                  <span className="px-2.5 py-1 bg-amber-600 text-white font-black text-xs uppercase tracking-wider inline-block rounded shadow-sm">
+                    DELIVERY INVOICE
+                  </span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-200 font-bold text-[9px] uppercase tracking-wider inline-block rounded">
+                    ORIGINAL FOR RECIPIENT
+                  </span>
+                </div>
                 <h3 className="text-xl font-mono font-black text-slate-900 pt-0.5">{invoiceNumber}</h3>
                 
                 <div className="text-xs text-slate-700 space-y-0.5 pt-1 border-t border-slate-200">
@@ -319,8 +331,8 @@ export const InvoiceModal = () => {
                     <Clock className="w-3.5 h-3.5 text-slate-500" />
                     <span>Time: {invoiceDateInfo.formattedTime}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    Timestamp: {invoiceDateInfo.isoTimestamp}
+                  <div className="text-[11px] text-emerald-700 font-bold">
+                    Dispatch Hub: Kanpur Central Depot
                   </div>
                 </div>
               </div>
@@ -397,52 +409,61 @@ export const InvoiceModal = () => {
               </div>
             )}
 
-            {/* Itemized Invoice Table with Pack Specifications */}
+            {/* Itemized Delivery Goods Table with Packaging Specifications */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
                 <thead className="bg-slate-900 text-white uppercase font-extrabold text-[10px]">
                   <tr>
-                    <th className="py-2.5 px-3">#</th>
-                    <th className="py-2.5 px-3">Product Name & SKU</th>
-                    <th className="py-2.5 px-3">Pack Info</th>
-                    <th className="py-2.5 px-3 text-center">Quantity</th>
+                    <th className="py-2.5 px-3 text-center w-12">#</th>
+                    <th className="py-2.5 px-4">Product Name & SKU</th>
+                    <th className="py-2.5 px-3 text-center">Item Code</th>
+                    <th className="py-2.5 px-4">Packaging Specification</th>
+                    <th className="py-2.5 px-4 text-right">Dispatched Quantity</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium">
-                  {inv.items?.map((item, idx) => (
-                    <tr key={idx} className={`hover:bg-slate-50 ${item.isPriority ? 'bg-amber-50/70 border-l-4 border-amber-500' : ''}`}>
-                      <td className="py-3 px-3 text-slate-500 font-bold">{idx + 1}</td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center flex-wrap gap-1.5">
-                          <span className="font-bold text-slate-900">{item.name}</span>
-                          {item.isPriority && (
-                            <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[9px] uppercase rounded inline-flex items-center gap-0.5 shadow-sm border border-amber-500">
-                              <Zap className="w-2.5 h-2.5 fill-slate-950" /> URGENT PRIORITY DISPATCH
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
-                          SKU: {item.sku} | HSN: {item.hsn || '19053100'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-[10px] text-slate-600 space-y-0.5">
-                        {getPackagingLevels(item).length > 0 ? (
-                          <div className="space-y-0.5">
-                            {getPackagingLevels(item).map((lvl) => (
-                              <div key={lvl.key}>
-                                {lvl.label}: <strong className={lvl.key === 'case' || lvl.key === 'bori' ? 'text-amber-800 font-bold' : 'text-slate-800'}>{lvl.value}</strong>
-                              </div>
-                            ))}
+                  {inv.items?.map((item, idx) => {
+                    const itemQty = parseInt(item.qty || item.quantity || 1, 10);
+
+                    return (
+                      <tr key={idx} className={`hover:bg-slate-50 ${item.isPriority ? 'bg-amber-50/70 border-l-4 border-amber-500' : ''}`}>
+                        <td className="py-3 px-3 text-slate-500 font-bold text-center">{idx + 1}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center flex-wrap gap-1.5">
+                            <span className="font-bold text-slate-900 text-[13px]">{item.name}</span>
+                            {item.isPriority && (
+                              <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[9px] uppercase rounded inline-flex items-center gap-0.5 shadow-sm border border-amber-500">
+                                <Zap className="w-2.5 h-2.5 fill-slate-950" /> URGENT PRIORITY DISPATCH
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-slate-400 font-mono">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center font-bold text-sm">
-                        {item.qty} Units {item.isPriority && <span className="text-[10px] font-black text-amber-700 block">⚡ Urgent</span>}
-                      </td>
-                    </tr>
-                  ))}
+                          <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
+                            SKU: {item.sku || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-600 font-semibold">
+                          {item.sku || item.hsn || `SKU-${1000 + idx}`}
+                        </td>
+                        <td className="py-3 px-4 text-[11px] text-slate-600 space-y-0.5">
+                          {getPackagingLevels(item).length > 0 ? (
+                            <div className="space-y-0.5">
+                              {getPackagingLevels(item).map((lvl) => (
+                                <div key={lvl.key}>
+                                  {lvl.label}: <strong className={lvl.key === 'case' || lvl.key === 'bori' ? 'text-amber-800 font-bold' : 'text-slate-800'}>{lvl.value}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 font-medium">{item.packSize || 'Standard Box'}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right font-bold text-sm text-slate-900">
+                          {itemQty} Units
+                          {item.isPriority && <span className="text-[10px] font-black text-amber-700 block">⚡ Urgent</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -600,26 +621,42 @@ export const InvoiceModal = () => {
               </div>
             )}
 
-            {/* Summary Totals */}
-            <div className="flex justify-end pt-4 border-t border-slate-200">
-              <div className="w-full sm:w-64 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Total Ordered Quantity:</span>
-                  <span className="font-extrabold text-slate-900">{inv.totalQuantity || inv.items?.reduce((a, b) => a + (b.qty || 0), 0) || 0} Units</span>
+            {/* Dispatch Quantity Summary & Verification Box (No Price, No Tax) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+              <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-4">
+                <h5 className="font-extrabold uppercase tracking-wider text-slate-700 text-[10px] pb-1 border-b border-slate-200">
+                  Dispatch Volume Verification
+                </h5>
+                <div className="text-slate-600">
+                  Total Product Line Items: <strong className="text-slate-900">{inv.items?.length || 0} SKU(s)</strong>
                 </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Subtotal:</span>
-                  <span className="font-mono font-bold">Price On Request</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Applicable Charges:</span>
-                  <span className="font-mono font-bold">Quoted on RFQ</span>
-                </div>
-                <div className="pt-2 border-t-2 border-slate-900 flex justify-between font-black text-sm text-slate-900">
-                  <span>Grand Total:</span>
-                  <span className="font-mono text-xs text-brand-900 uppercase">Quoted On RFQ</span>
+                <div className="text-emerald-700 font-bold text-[11px]">
+                  ✓ All packages inspected & seal-verified for delivery
                 </div>
               </div>
+
+              <div className="space-y-1.5 md:pl-2 flex flex-col justify-center">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="font-bold">Total Ordered Quantity:</span>
+                  <span className="font-extrabold text-slate-900">{totalBookedQty} Units</span>
+                </div>
+                <div className="pt-2 border-t-2 border-slate-900 flex justify-between items-center font-black text-sm bg-slate-900 text-white p-2.5 rounded-lg mt-1 shadow-sm">
+                  <span>TOTAL DISPATCH VOLUME:</span>
+                  <span className="font-mono text-base text-amber-400">
+                    {totalBookedQty} UNITS
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms & Delivery Conditions */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
+              <span className="font-extrabold uppercase text-[10px] tracking-wider text-slate-700 block">
+                Terms & Delivery Conditions:
+              </span>
+              <p>1. Goods once inspected & received upon delivery handover are covered under manufacturer guarantee.</p>
+              <p>2. Computer generated delivery invoice & dispatch docket — B2B trade account billing settled per agreement.</p>
+              <p>3. Subject to exclusive Kanpur, Uttar Pradesh jurisdiction.</p>
             </div>
 
             {/* Corporate Seal & Authorized Signature */}
@@ -798,13 +835,13 @@ export const InvoiceModal = () => {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black">Email B2B Tax Invoice</h3>
+                  <h3 className="text-sm font-black">Email Delivery Invoice</h3>
                   <p className="text-[11px] text-slate-500">Official Nodemailer Delivery (Gmail SMTP)</p>
                 </div>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 mb-4">
-                Send authentic Sales Invoice <strong>#{invoiceNumber}</strong> with real vector PDF attachment (<code>Sales_Invoice_{invoiceNumber}.pdf</code>) directly to the recipient.
+                Send official Delivery Invoice <strong>#{invoiceNumber}</strong> with real vector PDF attachment (<code>Delivery_Invoice_{invoiceNumber}.pdf</code>) directly to the recipient.
               </p>
 
               <div className="space-y-3 mb-5">
@@ -820,7 +857,7 @@ export const InvoiceModal = () => {
                   autoFocus
                 />
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-indigo-700 dark:text-indigo-300">
-                  ✓ Includes itemized breakdown, Kanpur dispatch depot details & official vector PDF.
+                  ✓ Includes itemized SKU packaging specifications, Kanpur dispatch details & official vector PDF.
                 </div>
               </div>
 
@@ -856,7 +893,7 @@ export const InvoiceModal = () => {
                         pdfBase64
                       });
 
-                      showToast(`Real Invoice #${invoiceNumber} emailed successfully to ${targetEmail}!`, 'success');
+                      showToast(`Delivery Invoice #${invoiceNumber} emailed successfully to ${targetEmail}!`, 'success');
                       setShowEmailModal(false);
                     } catch (e) {
                       showToast('Failed to send email: ' + (e?.message || 'Check SMTP credentials'), 'error');
@@ -874,7 +911,7 @@ export const InvoiceModal = () => {
                   ) : (
                     <>
                       <Mail className="w-3.5 h-3.5" />
-                      <span>Send Real Invoice</span>
+                      <span>Send Delivery Invoice</span>
                     </>
                   )}
                 </button>

@@ -48,8 +48,11 @@ const parseUserAgent = (ua) => {
 };
 export const register = async (req, res) => {
     try {
-        const { name, mobile, email, password, address, city, state } = req.body;
-        if (!name || !email || !password) {
+        const { name, shopName, ownerName, mobile, phone, email, password, address, city, state } = req.body;
+        const finalName = String(shopName || name || '').trim();
+        const finalOwner = String(ownerName || name || '').trim();
+        const cleanMobile = String(mobile || phone || '').trim();
+        if (!finalName || !email || !password) {
             return res.status(400).json({
                 success: false,
                 message: 'Name, email, and password are required',
@@ -68,8 +71,9 @@ export const register = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const customerId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
         const userObj = await User.create({
-            name: String(name).trim(),
+            name: finalName,
             email: cleanEmail,
+            phone: cleanMobile,
             passwordHash,
             role: 'CUSTOMER',
             status: 'Active'
@@ -78,9 +82,10 @@ export const register = async (req, res) => {
         if (!customerDoc) {
             customerDoc = await Customer.create({
                 customerId,
-                name: String(name).trim(),
-                mobile: mobile ? String(mobile).trim() : '',
-                phone: mobile ? String(mobile).trim() : '',
+                name: finalName,
+                ownerName: finalOwner,
+                mobile: cleanMobile,
+                phone: cleanMobile,
                 email: cleanEmail,
                 address: address ? String(address).trim() : '',
                 city: city ? String(city).trim() : 'Kanpur',
@@ -106,11 +111,13 @@ export const register = async (req, res) => {
                 token,
                 user: {
                     id: userObj._id,
-                    name: userObj.name,
+                    name: customerDoc.name || userObj.name,
+                    shopName: customerDoc.name || userObj.name,
+                    ownerName: customerDoc.ownerName || userObj.name,
                     email: userObj.email,
                     role: 'customer',
                     customerId: customerDoc.customerId,
-                    mobile: customerDoc.mobile || customerDoc.phone,
+                    mobile: customerDoc.mobile || customerDoc.phone || userObj.phone,
                     address: customerDoc.address,
                     city: customerDoc.city,
                     state: customerDoc.state
@@ -128,133 +135,20 @@ export const login = async (req, res) => {
         if (!identifier || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide identifier/email and password',
+                message: 'Please provide identifier/email/mobile and password',
                 code: 'MISSING_CREDENTIALS'
             });
         }
         const cleanId = String(identifier).trim();
         const cleanRole = role ? String(role).toLowerCase() : 'user';
         const JWT_SECRET = getJwtSecret();
-        // 1. Check Admin / Corporate User
-        if (cleanRole === 'admin' || cleanId.toLowerCase() === 'admin@anujenterprises.demo' || cleanId.includes('@')) {
-            const userObj = await User.findOne({ email: cleanId.toLowerCase() }).select('+passwordHash');
-            if (userObj) {
-                // Enforce Account Status Check (Requirement 6)
-                if (userObj.status === 'Disabled') {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Your account has been deactivated. Please contact Administrator.',
-                        code: 'ACCOUNT_DISABLED'
-                    });
-                }
-                const isMatch = await bcrypt.compare(password, userObj.passwordHash);
-                if (isMatch) {
-                    const token = jwt.sign({
-                        id: String(userObj._id),
-                        email: userObj.email,
-                        role: userObj.role,
-                        name: userObj.name,
-                        status: userObj.status
-                    }, JWT_SECRET, { expiresIn: '24h' });
-                    // Track Device Security for Admin accounts
-                    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
-                    const uaString = req.headers['user-agent'] || '';
-                    const parsed = parseUserAgent(uaString);
-                    const rawDeviceId = req.headers['x-device-id'] || '';
-                    const deviceId = rawDeviceId || `${parsed.deviceType}_${parsed.os}_${parsed.browser}`.replace(/\s+/g, '_');
-                    const knownList = userObj.knownDevices || [];
-                    const existingDevice = knownList.find(d => d.deviceId === deviceId || (d.browser === parsed.browser && d.os === parsed.os));
-                    const isNewDevice = !existingDevice;
-                    if (isNewDevice) {
-                        userObj.knownDevices = [
-                            ...knownList,
-                            {
-                                deviceId,
-                                browser: parsed.browser,
-                                os: parsed.os,
-                                deviceType: parsed.deviceType,
-                                firstSeenAt: new Date(),
-                                lastSeenAt: new Date(),
-                                lastIP: clientIp,
-                                lastLocation: 'Kanpur Region, Uttar Pradesh (Approximate)',
-                                lastLoginAt: new Date()
-                            }
-                        ];
-                        // Send Security Alert Email via Nodemailer asynchronously without blocking login
-                        const now = new Date();
-                        const loginDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-                        const loginTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        sendAdminNewDeviceAlertEmail({
-                            adminEmail: userObj.email,
-                            adminName: userObj.name,
-                            loginDate,
-                            loginTime,
-                            timezone: 'IST (UTC+05:30)',
-                            ipAddress: clientIp,
-                            approximateLocation: 'Kanpur / Uttar Pradesh, India (Approximate)',
-                            deviceType: parsed.deviceType,
-                            os: parsed.os,
-                            browser: parsed.browser,
-                            userAgent: uaString,
-                            deviceId
-                        }).catch((emailErr) => {
-                            console.warn('[AuthController] Non-blocking new device alert email failure caught:', emailErr?.message || emailErr);
-                        });
-                        // Log New Device Login Event in AdminActivity
-                        AdminActivity.create({
-                            action: 'ADMIN_NEW_DEVICE_LOGIN',
-                            adminId: String(userObj._id),
-                            adminName: userObj.name,
-                            details: `Admin login from new device (${parsed.deviceType}, ${parsed.os}, ${parsed.browser}) at IP ${clientIp}`
-                        }).catch(() => { });
-                    }
-                    else {
-                        existingDevice.lastSeenAt = new Date();
-                        existingDevice.lastIP = clientIp;
-                        existingDevice.lastLoginAt = new Date();
-                        userObj.markModified('knownDevices');
-                        AdminActivity.create({
-                            action: 'ADMIN_LOGIN',
-                            adminId: String(userObj._id),
-                            adminName: userObj.name,
-                            details: `Admin login from recognized device (${parsed.deviceType}) at IP ${clientIp}`
-                        }).catch(() => { });
-                    }
-                    userObj.lastLogin = new Date();
-                    await userObj.save();
-                    // Compute Password Age (30-day reminder)
-                    const pwdChangedAt = userObj.passwordChangedAt || userObj.createdAt || new Date();
-                    const passwordAgeDays = Math.floor((Date.now() - new Date(pwdChangedAt).getTime()) / (1000 * 60 * 60 * 24));
-                    const isPasswordOld = passwordAgeDays >= 30;
-                    return res.json({
-                        success: true,
-                        data: {
-                            token,
-                            user: {
-                                id: userObj._id,
-                                name: userObj.name,
-                                email: userObj.email,
-                                role: userObj.role.toLowerCase(),
-                                status: userObj.status,
-                                passwordChangedAt: pwdChangedAt,
-                                passwordAgeDays,
-                                isPasswordOld,
-                                newDeviceDetected: isNewDevice
-                            }
-                        },
-                        message: `${userObj.role} Authentication Granted`
-                    });
-                }
-            }
-        }
-        // 2. Check Salesman Account (Salesman ID or Email)
+        // 1. Check Salesman Account (Salesman ID or Email)
         if (cleanRole === 'salesman' || cleanId.toUpperCase().startsWith('AE-SM') || cleanId.toUpperCase().startsWith('SLS')) {
             const sId = cleanId.toUpperCase();
             const salesmanObj = await Salesman.findOne({
                 $or: [{ salesmanId: sId }, { email: cleanId.toLowerCase() }]
             }).select('+passwordHash');
             if (salesmanObj) {
-                // Enforce Account Status Check (Requirement 6)
                 if (salesmanObj.status === 'Disabled') {
                     return res.status(403).json({
                         success: false,
@@ -292,38 +186,222 @@ export const login = async (req, res) => {
                 }
             }
         }
-        // 3. Fallback check for Customer / General Account
-        const customerObj = await User.findOne({ email: cleanId.toLowerCase() }).select('+passwordHash');
-        if (customerObj) {
-            if (customerObj.status === 'Disabled') {
+        // 2. Check Admin / Corporate User (by role or if email belongs to an Admin)
+        let adminObj = null;
+        if (cleanRole === 'admin' || cleanId.toLowerCase().includes('admin') || cleanId.toLowerCase() === 'anujenterprises.fmcg.006@gmail.com') {
+            adminObj = await User.findOne({
+                $or: [
+                    { email: cleanId.toLowerCase() },
+                    { role: 'ADMIN', email: cleanId.toLowerCase() }
+                ]
+            }).select('+passwordHash');
+        }
+        else if (cleanId.includes('@')) {
+            const candidateUser = await User.findOne({ email: cleanId.toLowerCase() }).select('+passwordHash');
+            if (candidateUser && candidateUser.role === 'ADMIN') {
+                adminObj = candidateUser;
+            }
+        }
+        if (adminObj && adminObj.role === 'ADMIN') {
+            if (adminObj.status === 'Disabled') {
                 return res.status(403).json({
                     success: false,
-                    message: 'Your account is deactivated.',
+                    message: 'Your account has been deactivated. Please contact Administrator.',
                     code: 'ACCOUNT_DISABLED'
                 });
             }
-            const isMatch = await bcrypt.compare(password, customerObj.passwordHash);
+            const isMatch = await bcrypt.compare(password, adminObj.passwordHash);
             if (isMatch) {
                 const token = jwt.sign({
-                    id: String(customerObj._id),
-                    email: customerObj.email,
-                    role: customerObj.role,
-                    name: customerObj.name,
-                    status: customerObj.status
+                    id: String(adminObj._id),
+                    email: adminObj.email,
+                    role: adminObj.role,
+                    name: adminObj.name,
+                    status: adminObj.status
+                }, JWT_SECRET, { expiresIn: '24h' });
+                // Track Device Security for Admin accounts
+                const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+                const uaString = req.headers['user-agent'] || '';
+                const parsed = parseUserAgent(uaString);
+                const rawDeviceId = req.headers['x-device-id'] || '';
+                const deviceId = rawDeviceId || `${parsed.deviceType}_${parsed.os}_${parsed.browser}`.replace(/\s+/g, '_');
+                const knownList = adminObj.knownDevices || [];
+                const existingDevice = knownList.find(d => d.deviceId === deviceId || (d.browser === parsed.browser && d.os === parsed.os));
+                const isNewDevice = !existingDevice;
+                if (isNewDevice) {
+                    adminObj.knownDevices = [
+                        ...knownList,
+                        {
+                            deviceId,
+                            browser: parsed.browser,
+                            os: parsed.os,
+                            deviceType: parsed.deviceType,
+                            firstSeenAt: new Date(),
+                            lastSeenAt: new Date(),
+                            lastIP: clientIp,
+                            lastLocation: 'Kanpur Region, Uttar Pradesh (Approximate)',
+                            lastLoginAt: new Date()
+                        }
+                    ];
+                    const now = new Date();
+                    const loginDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+                    const loginTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    sendAdminNewDeviceAlertEmail({
+                        adminEmail: adminObj.email,
+                        adminName: adminObj.name,
+                        loginDate,
+                        loginTime,
+                        timezone: 'IST (UTC+05:30)',
+                        ipAddress: clientIp,
+                        approximateLocation: 'Kanpur / Uttar Pradesh, India (Approximate)',
+                        deviceType: parsed.deviceType,
+                        os: parsed.os,
+                        browser: parsed.browser,
+                        userAgent: uaString,
+                        deviceId
+                    }).catch((emailErr) => {
+                        console.warn('[AuthController] Non-blocking new device alert email failure caught:', emailErr?.message || emailErr);
+                    });
+                    AdminActivity.create({
+                        action: 'ADMIN_NEW_DEVICE_LOGIN',
+                        adminId: String(adminObj._id),
+                        adminName: adminObj.name,
+                        details: `Admin login from new device (${parsed.deviceType}, ${parsed.os}, ${parsed.browser}) at IP ${clientIp}`
+                    }).catch(() => { });
+                }
+                else {
+                    existingDevice.lastSeenAt = new Date();
+                    existingDevice.lastIP = clientIp;
+                    existingDevice.lastLoginAt = new Date();
+                    adminObj.markModified('knownDevices');
+                    AdminActivity.create({
+                        action: 'ADMIN_LOGIN',
+                        adminId: String(adminObj._id),
+                        adminName: adminObj.name,
+                        details: `Admin login from recognized device (${parsed.deviceType}) at IP ${clientIp}`
+                    }).catch(() => { });
+                }
+                adminObj.lastLogin = new Date();
+                await adminObj.save();
+                const pwdChangedAt = adminObj.passwordChangedAt || adminObj.createdAt || new Date();
+                const passwordAgeDays = Math.floor((Date.now() - new Date(pwdChangedAt).getTime()) / (1000 * 60 * 60 * 24));
+                const isPasswordOld = passwordAgeDays >= 30;
+                return res.json({
+                    success: true,
+                    data: {
+                        token,
+                        user: {
+                            id: adminObj._id,
+                            name: adminObj.name,
+                            email: adminObj.email,
+                            role: 'admin',
+                            status: adminObj.status,
+                            passwordChangedAt: pwdChangedAt,
+                            passwordAgeDays,
+                            isPasswordOld,
+                            newDeviceDetected: isNewDevice
+                        }
+                    },
+                    message: 'Admin Authentication Granted'
+                });
+            }
+        }
+        // 3. Customer / Retailer Account Lookup (by Email, Mobile/Phone, or Customer ID)
+        const digitsOnly = cleanId.replace(/\D/g, '');
+        let userObj = null;
+        let customerDoc = null;
+        if (cleanId.includes('@')) {
+            userObj = await User.findOne({ email: cleanId.toLowerCase() }).select('+passwordHash');
+            if (userObj) {
+                customerDoc = await Customer.findOne({ email: userObj.email.toLowerCase() }).lean();
+            }
+        }
+        else {
+            // First check if there's a User with this phone number directly
+            if (digitsOnly.length >= 10) {
+                const matchingUsers = await User.find({
+                    $or: [
+                        { phone: cleanId },
+                        { phone: digitsOnly.slice(-10) },
+                        { phone: `+91${digitsOnly.slice(-10)}` },
+                        { phone: `+91 ${digitsOnly.slice(-10)}` }
+                    ]
+                }).select('+passwordHash');
+                for (const u of matchingUsers) {
+                    const isMatch = await bcrypt.compare(password, u.passwordHash);
+                    if (isMatch) {
+                        userObj = u;
+                        customerDoc = await Customer.findOne({ email: u.email }).lean();
+                        break;
+                    }
+                }
+            }
+            // If not matched yet, search across Customer collection by phone, mobile, or customerId
+            if (!userObj) {
+                const potentialCustomers = await Customer.find({
+                    $or: [
+                        { phone: cleanId },
+                        { mobile: cleanId },
+                        ...(digitsOnly.length >= 10 ? [{ phone: digitsOnly.slice(-10) }, { mobile: digitsOnly.slice(-10) }] : []),
+                        { customerId: cleanId.toUpperCase() }
+                    ]
+                }).lean();
+                for (const c of potentialCustomers) {
+                    if (c.email) {
+                        const u = await User.findOne({ email: c.email.toLowerCase() }).select('+passwordHash');
+                        if (u) {
+                            const isMatch = await bcrypt.compare(password, u.passwordHash);
+                            if (isMatch) {
+                                userObj = u;
+                                customerDoc = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (userObj) {
+            if (userObj.status === 'Disabled') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Your account is deactivated. Please contact support.',
+                    code: 'ACCOUNT_DISABLED'
+                });
+            }
+            const isMatch = await bcrypt.compare(password, userObj.passwordHash);
+            if (isMatch) {
+                const userRole = (userObj.role || 'customer').toLowerCase();
+                const token = jwt.sign({
+                    id: String(userObj._id),
+                    email: userObj.email,
+                    role: userRole,
+                    name: userObj.name,
+                    customerId: customerDoc?.customerId,
+                    status: userObj.status
                 }, JWT_SECRET, { expiresIn: '24h' });
                 return res.json({
                     success: true,
                     data: {
                         token,
                         user: {
-                            id: customerObj._id,
-                            name: customerObj.name,
-                            email: customerObj.email,
-                            role: 'customer',
-                            status: customerObj.status
+                            id: userObj._id,
+                            name: customerDoc?.name || userObj.name,
+                            shopName: customerDoc?.name || userObj.name,
+                            ownerName: customerDoc?.ownerName || userObj.name,
+                            shopOwnerName: customerDoc?.ownerName || userObj.name,
+                            email: userObj.email,
+                            mobile: customerDoc?.mobile || customerDoc?.phone || userObj.phone,
+                            phone: customerDoc?.phone || customerDoc?.mobile || userObj.phone,
+                            customerId: customerDoc?.customerId,
+                            city: customerDoc?.city || 'Kanpur',
+                            state: customerDoc?.state || 'Uttar Pradesh',
+                            address: customerDoc?.address || '',
+                            role: userRole === 'admin' ? 'admin' : 'customer',
+                            status: userObj.status
                         }
                     },
-                    message: 'Customer Login Successful'
+                    message: `${userRole === 'admin' ? 'Admin' : 'Customer'} Login Successful`
                 });
             }
         }

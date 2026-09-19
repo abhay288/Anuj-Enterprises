@@ -65,6 +65,52 @@ export const seedDatabase = async () => {
       console.log(`✓ Categories already exist (${existingCategoryCount} records) — skipping seed to preserve admin changes`);
     }
 
+    // 3. Ensure Default Salesmen exist if collection is empty
+    const existingSalesmanCount = await Salesman.countDocuments();
+    if (existingSalesmanCount === 0) {
+      const salesmanPasswordHash = await bcrypt.hash('Sales@123', 10);
+      await Salesman.create([
+        {
+          salesmanId: 'AE-SM-001',
+          name: 'Ramesh Kumar',
+          email: 'salesman@anujfmcg.com',
+          phone: '+91 98765 00001',
+          passwordHash: salesmanPasswordHash,
+          region: 'Central UP (Kanpur HQ)',
+          status: 'Active',
+          totalOrders: 28,
+          totalPurchase: '1,450 Units'
+        },
+        {
+          salesmanId: 'AE-SM-002',
+          name: 'Vikram Singh',
+          email: 'vikram@anujfmcg.com',
+          phone: '+91 98765 00002',
+          passwordHash: salesmanPasswordHash,
+          region: 'East UP (Lucknow Hub)',
+          status: 'Active',
+          totalOrders: 19,
+          totalPurchase: '820 Units'
+        }
+      ]);
+      console.log('✓ Default Salesmen seeded (AE-SM-001, AE-SM-002)');
+    }
+
+    // 4. Ensure Default Admin exists
+    const adminExists = await User.findOne({ email: 'admin@anujfmcg.com' });
+    if (!adminExists) {
+      const adminPasswordHash = await bcrypt.hash('Anuj@2026', 10);
+      await User.create({
+        name: 'Managing Director (Admin)',
+        email: 'admin@anujfmcg.com',
+        phone: '+91 88876 83782',
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN',
+        status: 'Active'
+      });
+      console.log('✓ Default Admin seeded (admin@anujfmcg.com)');
+    }
+
     // Mark system as seeded so deleted items can never be resurrected
     await Setting.findOneAndUpdate(
       { key: 'system_initial_seeded' },

@@ -23,6 +23,9 @@ try {
   dotenv.config();
 }
 
+import { companyConfig } from '../config/companyConfig.js';
+import { numberToWordsIndian } from './currencyUtils.js';
+
 interface EmailAttachment {
   filename: string;
   content: Buffer | string;
@@ -36,11 +39,14 @@ interface OrderEmailData {
   customerName: string;
   shopOwnerName?: string;
   customerMobile?: string;
+  customerGstin?: string;
   customerAddress?: string;
   customerCity?: string;
   customerState?: string;
   totalQuantity: number;
   totalAmount?: number;
+  subtotal?: number;
+  tax?: number;
   items: Array<{
     name?: string;
     productName?: string;
@@ -49,6 +55,8 @@ interface OrderEmailData {
     price?: number;
     unitPrice?: number;
     packSize?: string;
+    hsn?: string;
+    sku?: string;
     isPriority?: boolean;
   }>;
   date?: string;
@@ -95,7 +103,8 @@ const FROM_EMAIL = process.env.EMAIL_FROM || '"Anuj Enterprises FMCG" <anujenter
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'anujenterprises.fmcg.006@gmail.com';
 
 /**
- * 2A. Send Customer-Facing Sales Invoice & B2B Order Confirmation Email
+ * 2A. Send Customer-Facing Official B2B Delivery Invoice & Dispatch Email
+ * Strictly NO price, rate, or tax displays. 100% table-based for bulletproof alignment.
  */
 export const sendCustomerInvoiceEmail = async (
   orderData: OrderEmailData,
@@ -105,169 +114,257 @@ export const sendCustomerInvoiceEmail = async (
   try {
     const transporter = createEmailTransporter();
 
-    // Ensure real vector PDF invoice is attached
+    const invoiceNum = orderData.invoiceNumber || orderData.orderId || 'AE-INV-2026-000001';
+    const orderNum = orderData.orderId || invoiceNum;
+    const invoiceDate = orderData.date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    // Vector PDF delivery invoice attachment
     const finalAttachment: EmailAttachment = pdfAttachment || {
-      filename: `Sales_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
+      filename: `Delivery_Invoice_${invoiceNum}.pdf`,
       content: generateInvoicePdfBuffer(orderData),
       contentType: 'application/pdf'
     };
-    
-    let subtotal = 0;
+
+    let totalUnits = 0;
     const itemsRowsHtml = (orderData.items || []).map((item, idx) => {
       const pName = item.productName || item.name || 'FMCG Product';
-      const qty = item.quantity || item.qty || 1;
-      const pack = item.packSize ? `<span style="font-size: 11px; color: #64748b;">(${item.packSize})</span>` : '';
-      const unitPrice = item.price || item.unitPrice ? `₹${item.price || item.unitPrice}` : '—';
-      const itemTotal = (item.price || item.unitPrice || 0) * qty;
-      subtotal += itemTotal;
+      const qty = parseInt(String(item.quantity || item.qty || 1), 10);
+      const sku = item.sku || item.hsn || `SKU-${1000 + idx}`;
+      const pack = item.packSize || 'Standard Box';
+      totalUnits += qty;
+
+      const bgColor = idx % 2 === 0 ? '#f8fafc' : '#ffffff';
 
       return `
-        <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 0 ? 'background-color: #f8fafc;' : 'background-color: #ffffff;'}">
-          <td style="padding: 10px 12px; font-size: 12px; color: #64748b; text-align: center; font-weight: 700;">${idx + 1}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; font-weight: 600;">
-            ${pName} ${pack}
+        <tr style="background-color: ${bgColor}; border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 8px; font-size: 11px; color: #64748b; text-align: center; font-weight: 700; width: 6%;">${idx + 1}</td>
+          <td style="padding: 10px 10px; font-size: 12.5px; color: #0f172a; font-weight: 600; text-align: left; width: 44%;">
+            ${pName}
           </td>
-          <td style="padding: 10px 12px; font-size: 12px; color: #475569; text-align: center;">${item.packSize || 'Piece'}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; text-align: center; font-weight: 800;">
-            ${qty}
-          </td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; text-align: right; font-weight: 600;">
-            ${unitPrice}
-          </td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #d97706; text-align: right; font-weight: 800;">
-            ${itemTotal > 0 ? `₹${itemTotal.toLocaleString('en-IN')}` : '—'}
-          </td>
+          <td style="padding: 10px 8px; font-size: 11px; color: #475569; text-align: center; font-family: monospace; width: 16%;">${sku}</td>
+          <td style="padding: 10px 8px; font-size: 11.5px; color: #475569; text-align: center; width: 18%;">${pack}</td>
+          <td style="padding: 10px 10px; font-size: 13px; color: #0f172a; text-align: right; font-weight: 800; width: 16%;">${qty} Units</td>
         </tr>
       `;
     }).join('');
 
-    const finalAmount = orderData.totalAmount || subtotal;
-    const formattedTotal = finalAmount > 0 ? `₹${finalAmount.toLocaleString('en-IN')}` : 'N/A';
-    const invoiceDate = orderData.date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const finalTotalUnits = orderData.totalQuantity || totalUnits;
 
     const htmlContent = `
-      <!DOCTYPE html>
-      <html>
+      <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml">
       <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #0f172a; }
-          .container { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #cbd5e1; }
-          .header { background: #0f172a; color: #ffffff; padding: 28px 24px; border-bottom: 4px solid #f59e0b; }
-          .badge { display: inline-block; background: #f59e0b; color: #0f172a; font-weight: 900; font-size: 10px; padding: 4px 12px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-          .title { font-size: 24px; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
-          .subtitle { font-size: 12px; color: #94a3b8; margin: 4px 0 0 0; }
-          .content { padding: 24px; }
-          .invoice-grid { display: table; width: 100%; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; }
-          .col { display: table-cell; width: 50%; vertical-align: top; padding: 4px 10px; }
-          .table { width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-          .th { background: #0f172a; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 10px 12px; }
-          .attachment-box { margin-top: 20px; padding: 14px 18px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; font-size: 12.5px; color: #065f46; display: flex; align-items: center; }
-          .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.6; }
-        </style>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Delivery Invoice #${invoiceNum}</title>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <span class="badge">OFFICIAL B2B SALES INVOICE</span>
-            <h1 class="title">ANUJ ENTERPRISES</h1>
-            <p class="subtitle">Authorized Wholesale FMCG & Confectionery Distributors &bull; Kanpur Central Hub</p>
-            <p style="font-size: 11px; color: #cbd5e1; margin: 6px 0 0 0;">
-              📍 Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021 | 📞 +91 88876 83782 / +91 70719 79894
-            </p>
-          </div>
-
-          <div class="content">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">
-              <div>
-                <p style="font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; font-weight: 700;">Invoice Number</p>
-                <p style="font-size: 18px; font-weight: 900; color: #0f172a; margin: 2px 0 0 0; font-family: monospace;">${orderData.invoiceNumber || orderData.orderId}</p>
-                <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Order Ref: <strong>${orderData.orderId || orderData.invoiceNumber}</strong></p>
-              </div>
-              <div style="text-align: right;">
-                <p style="font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; font-weight: 700;">Date of Issue</p>
-                <p style="font-size: 14px; font-weight: 800; color: #0f172a; margin: 2px 0 0 0;">${invoiceDate}</p>
-                <p style="font-size: 11px; color: #059669; font-weight: 700; margin: 2px 0 0 0;">Place of Supply: Kanpur, UP</p>
-              </div>
-            </div>
-
-            <!-- Retailer & Dispatch Details -->
-            <table style="width: 100%; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 12px; width: 50%; vertical-align: top; border-right: 1px solid #e2e8f0;">
-                  <strong style="color: #64748b; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;">Billed To / Retailer:</strong>
-                  <div style="font-size: 14px; font-weight: 800; color: #0f172a;">${orderData.customerName}</div>
-                  ${orderData.shopOwnerName ? `<div style="color: #475569; font-weight: 600;">Contact: ${orderData.shopOwnerName}</div>` : ''}
-                  ${orderData.customerMobile ? `<div style="color: #475569;">Phone: <strong>${orderData.customerMobile}</strong></div>` : ''}
-                </td>
-                <td style="padding: 12px; width: 50%; vertical-align: top;">
-                  <strong style="color: #64748b; font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 4px;">Destination & Payment Terms:</strong>
-                  <div style="color: #334155; font-weight: 600;">${orderData.customerAddress || 'Kanpur Store'}, ${orderData.customerCity || 'Kanpur'}, ${orderData.customerState || 'Uttar Pradesh'}</div>
-                  <div style="margin-top: 4px; color: #059669; font-weight: 800;">Terms: ${(orderData.paymentMethod || 'Due on Delivery (Offline)').toUpperCase()}</div>
-                </td>
-              </tr>
-            </table>
-
-            <!-- Itemized Table -->
-            <table class="table">
-              <thead>
+      <body style="margin: 0; padding: 20px 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9;">
+          <tr>
+            <td align="center" style="padding: 10px 15px;">
+              <!-- Main Card (680px max) -->
+              <table width="680" cellpadding="0" cellspacing="0" border="0" style="max-width: 680px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; border-collapse: separate; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+                
+                <!-- 1. Header: Brand, Badges & Metadata -->
                 <tr>
-                  <th class="th" style="width: 30px; text-align: center;">#</th>
-                  <th class="th" style="text-align: left;">Description of Goods</th>
-                  <th class="th" style="text-align: center;">Pack Size</th>
-                  <th class="th" style="text-align: center;">Qty</th>
-                  <th class="th" style="text-align: right;">Unit Rate</th>
-                  <th class="th" style="text-align: right;">Amount</th>
+                  <td style="background-color: #0f172a; padding: 24px; border-bottom: 4px solid #d97706;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <!-- Left: Badges & Company Identity -->
+                        <td valign="top" style="width: 60%; text-align: left;">
+                          <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 8px;">
+                            <tr>
+                              <td style="background-color: #d97706; color: #ffffff; font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                DELIVERY INVOICE
+                              </td>
+                              <td style="width: 8px;"></td>
+                              <td style="background-color: #334155; color: #cbd5e1; font-size: 9px; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase;">
+                                ORIGINAL FOR RECIPIENT
+                              </td>
+                            </tr>
+                          </table>
+                          <div style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; margin-top: 4px;">
+                            ${companyConfig.name.toUpperCase()}
+                          </div>
+                          <div style="font-size: 11px; font-weight: 700; color: #f59e0b; margin-top: 2px;">
+                            ${companyConfig.tagline.toUpperCase()}
+                          </div>
+                          <div style="font-size: 11px; color: #cbd5e1; margin-top: 6px; line-height: 1.4;">
+                            📍 ${companyConfig.address}<br />
+                            📞 Helpline: ${companyConfig.phone} / ${companyConfig.mobile} | ✉️ ${companyConfig.email}
+                          </div>
+                        </td>
+                        <!-- Right: Invoice Metadata -->
+                        <td valign="top" style="width: 40%; text-align: right;">
+                          <div style="font-size: 13px; font-weight: 900; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">
+                            B2B DELIVERY INVOICE
+                          </div>
+                          <div style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace; margin-top: 3px;">
+                            ${invoiceNum}
+                          </div>
+                          <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 4px;">
+                            <strong>Date of Issue:</strong> ${invoiceDate}
+                          </div>
+                          <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">
+                            <strong>Order Ref:</strong> ${orderNum}
+                          </div>
+                          <div style="font-size: 11px; color: #34d399; font-weight: 700; margin-top: 2px;">
+                            Dispatch Hub: Kanpur Central Depot
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                ${itemsRowsHtml}
-              </tbody>
-            </table>
 
-            <!-- Totals Calculation -->
-            <table style="width: 100%; margin-top: 14px; font-size: 13px; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 6px 12px; color: #64748b; text-align: right; width: 75%;">Total Booked Quantity:</td>
-                <td style="padding: 6px 12px; font-weight: 800; color: #0f172a; text-align: right;">${orderData.totalQuantity} Units</td>
-              </tr>
-              ${subtotal > 0 ? `
-              <tr>
-                <td style="padding: 6px 12px; color: #64748b; text-align: right;">Subtotal:</td>
-                <td style="padding: 6px 12px; font-weight: 700; color: #0f172a; text-align: right;">₹${subtotal.toLocaleString('en-IN')}</td>
-              </tr>` : ''}
-              <tr style="border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; background: #fffbeb;">
-                <td style="padding: 10px 12px; font-size: 15px; font-weight: 900; color: #0f172a; text-align: right;">NET INVOICE TOTAL:</td>
-                <td style="padding: 10px 12px; font-size: 17px; font-weight: 900; color: #d97706; text-align: right;">${formattedTotal}</td>
-              </tr>
-            </table>
+                <!-- 2. Buyer & Dispatch Details -->
+                <tr>
+                  <td style="padding: 20px 24px 12px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; border-collapse: separate;">
+                      <tr>
+                        <!-- Buyer Details Left (50%) -->
+                        <td valign="top" style="width: 50%; padding: 14px; border-right: 1px solid #e2e8f0; text-align: left;">
+                          <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">
+                            DETAILS OF RECEIVER / BILLED TO (BUYER):
+                          </div>
+                          <div style="font-size: 14px; font-weight: 800; color: #0f172a;">
+                            ${orderData.customerName || 'Valued Retail Partner'}
+                          </div>
+                          ${orderData.shopOwnerName ? `<div style="font-size: 12px; color: #475569; margin-top: 2px;">Proprietor: <strong>${orderData.shopOwnerName}</strong></div>` : ''}
+                          ${orderData.customerMobile ? `<div style="font-size: 12px; color: #475569; margin-top: 2px;">Mobile: <strong>${orderData.customerMobile}</strong></div>` : ''}
+                          <div style="font-size: 11.5px; color: #475569; margin-top: 2px; line-height: 1.4;">
+                            Address: ${orderData.customerAddress || 'Local Market'}, ${orderData.customerCity || 'Kanpur'}, ${orderData.customerState || 'Uttar Pradesh'}
+                          </div>
+                        </td>
+                        <!-- Supply Terms Right (50%) -->
+                        <td valign="top" style="width: 50%; padding: 14px; text-align: left;">
+                          <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">
+                            DISPATCH & DELIVERY TERMS:
+                          </div>
+                          <div style="font-size: 12px; color: #334155; margin-top: 2px;">
+                            <strong>Dispatch Hub:</strong> Kanpur Central Warehouse Depot
+                          </div>
+                          <div style="font-size: 12px; color: #334155; margin-top: 2px;">
+                            <strong>Delivery Mode:</strong> Direct Store Delivery (Doorstep)
+                          </div>
+                          <div style="font-size: 12px; color: #059669; font-weight: 800; margin-top: 4px;">
+                            <strong>Payment Mode:</strong> ${(orderData.paymentMethod || 'Due on Delivery (Offline)').toUpperCase()}
+                          </div>
+                          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                            Inspection: <strong>Verified on Delivery Handover</strong>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
 
-            <!-- PDF Attachment Confirmation Notice -->
-            <div class="attachment-box">
-              <span>📎 <strong>Official Invoice PDF Attached:</strong> An official high-resolution vector PDF invoice (<code>${finalAttachment.filename}</code>) is attached to this email for your accounting records.</span>
-            </div>
+                <!-- 3. Itemized Goods Table (Product & Packaging Specifications Only) -->
+                <tr>
+                  <td style="padding: 8px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #cbd5e1; border-collapse: collapse; border-radius: 6px; overflow: hidden;">
+                      <thead>
+                        <tr style="background-color: #0f172a; color: #ffffff;">
+                          <th style="padding: 10px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; width: 6%;">#</th>
+                          <th style="padding: 10px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: left; width: 44%;">Description of Goods / SKU</th>
+                          <th style="padding: 10px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; width: 16%;">Item Code</th>
+                          <th style="padding: 10px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; width: 18%;">Packaging Spec</th>
+                          <th style="padding: 10px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: right; width: 16%;">Quantity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${itemsRowsHtml}
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
 
-            <!-- Terms & Authorized Signatory -->
-            <div style="margin-top: 24px; padding-top: 14px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
-              <div style="max-width: 60%;">
-                <strong>Terms & Conditions:</strong><br>
-                1. Goods once inspected & verified upon delivery handover are covered under manufacturer guarantee.<br>
-                2. Payment due strictly on physical delivery handover or agreed B2B credit terms.<br>
-                3. Subject to Kanpur jurisdiction.
-              </div>
-              <div style="text-align: right;">
-                <strong style="color: #0f172a; font-size: 12px;">For ANUJ ENTERPRISES</strong><br><br>
-                <span style="color: #64748b; font-style: italic;">Authorized Signatory</span>
-              </div>
-            </div>
-          </div>
+                <!-- 4. Quantity Summary Box (No Price, No Tax) -->
+                <tr>
+                  <td style="padding: 12px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; border-collapse: separate;">
+                      <tr>
+                        <!-- Left: Line items info -->
+                        <td valign="middle" style="width: 50%; padding: 16px; border-right: 1px solid #cbd5e1; text-align: left;">
+                          <div style="font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 4px;">
+                            DISPATCH VOLUME VERIFICATION:
+                          </div>
+                          <div style="font-size: 12.5px; color: #475569;">
+                            Total Product Line Items: <strong>${(orderData.items || []).length} SKU(s)</strong>
+                          </div>
+                          <div style="font-size: 11.5px; color: #059669; font-weight: 700; margin-top: 4px;">
+                            ✓ All cases inspected & verified for delivery handover
+                          </div>
+                        </td>
+                        <!-- Right: Total Units -->
+                        <td valign="middle" style="width: 50%; padding: 16px; text-align: right;">
+                          <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                            TOTAL DISPATCHED VOLUME
+                          </div>
+                          <div style="font-size: 22px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                            ${finalTotalUnits} UNITS
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
 
-          <div class="footer">
-            <strong>Anuj Enterprises</strong> &bull; Authorized Wholesale FMCG Distributors<br>
-            📍 Anand Vihar Society, Koyla Nagar, Kanpur, Uttar Pradesh — 208021<br>
-            📞 Helpline: +91 88876 83782 / +91 70719 79894 &bull; 📧 anujenterprises.fmcg.006@gmail.com
-          </div>
-        </div>
+                <!-- 5. Official PDF Attachment Notice -->
+                <tr>
+                  <td style="padding: 0 24px 16px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px;">
+                      <tr>
+                        <td style="font-size: 18px; width: 32px; vertical-align: middle; text-align: center;">📎</td>
+                        <td style="font-size: 12px; color: #065f46; vertical-align: middle; text-align: left; line-height: 1.4;">
+                          <strong>Official Vector PDF Delivery Invoice Attached:</strong><br />
+                          An official print-ready delivery invoice (<code>${finalAttachment.filename}</code>) is attached to this email for your store receiving records.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- 6. Statutory Declaration & Authorized Signatory -->
+                <tr>
+                  <td style="padding: 16px 24px; border-top: 1px dashed #cbd5e1;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <!-- Left: Legal Terms -->
+                        <td valign="top" style="width: 60%; font-size: 10.5px; color: #64748b; line-height: 1.5; text-align: left;">
+                          <strong style="color: #334155;">Terms & Delivery Conditions:</strong><br />
+                          1. Goods once inspected & received upon delivery handover are covered under manufacturer guarantee.<br />
+                          2. B2B trade account billing and payments are settled per agreed wholesale terms.<br />
+                          3. Subject to exclusive Kanpur, Uttar Pradesh jurisdiction.
+                        </td>
+                        <!-- Right: Signatory -->
+                        <td valign="bottom" style="width: 40%; text-align: right;">
+                          <div style="font-size: 11px; font-weight: 800; color: #0f172a;">
+                            For ${companyConfig.name.toUpperCase()}
+                          </div>
+                          <div style="height: 24px;"></div>
+                          <div style="border-top: 1px solid #94a3b8; display: inline-block; padding-top: 4px; font-size: 11px; font-weight: 700; color: #334155;">
+                            ${companyConfig.signatory} / Authorized Signatory
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- 7. Footer -->
+                <tr>
+                  <td style="background-color: #f8fafc; padding: 18px 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.6;">
+                    <strong>${companyConfig.name}</strong> &bull; ${companyConfig.tagline}<br />
+                    📍 ${companyConfig.address}<br />
+                    📞 Support: ${companyConfig.phone} / ${companyConfig.mobile} &bull; 📧 ${companyConfig.email}
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
@@ -275,16 +372,16 @@ export const sendCustomerInvoiceEmail = async (
     const mailOptions: nodemailer.SendMailOptions = {
       from: FROM_EMAIL,
       to: customerEmail,
-      subject: `🧾 Official Sales Invoice #${orderData.invoiceNumber || orderData.orderId} - Anuj Enterprises`,
+      subject: `📦 Official Delivery Invoice #${invoiceNum} - ${companyConfig.name}`,
       html: htmlContent,
       attachments: [finalAttachment]
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log(`[EmailService] Real invoice email with PDF sent to ${customerEmail} (MessageID: ${info.messageId})`);
+    console.log(`[EmailService] Delivery invoice email with PDF sent to ${customerEmail} (MessageID: ${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err: any) {
-    console.error(`[EmailService] Failed to send customer invoice email to ${customerEmail}:`, err?.message || err);
+    console.error(`[EmailService] Failed to send customer delivery invoice email to ${customerEmail}:`, err?.message || err);
     return { success: false, error: err?.message || 'Failed to send customer email' };
   }
 };

@@ -58,6 +58,8 @@ const defaultAppContext = {
   toggleWishlist: () => {},
   loginSalesman: async () => false,
   loginNormalUser: async () => false,
+  registerCustomer: async () => {},
+  clearLockout: () => {},
   bypassLoginAsGuest: () => {},
   loginAdmin: async () => false,
   logout: () => {},
@@ -1548,6 +1550,57 @@ export const AppProvider = ({ children }) => {
     recordFailedAuth('user', 3);
     showToast('❌ Account not found. Please check your details or click "Register Account".', 'error');
     return false;
+  };
+
+  const registerCustomer = async (formData) => {
+    try {
+      const res = await authService.register({
+        name: formData.name || formData.shopName,
+        shopName: formData.name || formData.shopName,
+        ownerName: formData.ownerName || formData.name,
+        email: formData.email,
+        mobile: formData.mobile || formData.phone,
+        phone: formData.mobile || formData.phone,
+        password: formData.password,
+        address: formData.address || '',
+        city: formData.city || 'Kanpur',
+        state: formData.state || 'Uttar Pradesh'
+      });
+
+      if (res.data?.user) {
+        recordSuccessfulAuth('user');
+        const u = res.data.user;
+        const custUser = {
+          role: 'customer',
+          name: u.shopName || u.name,
+          shopName: u.shopName || u.name,
+          ownerName: u.ownerName || u.name,
+          shopOwnerName: u.ownerName || u.name,
+          email: u.email,
+          mobile: u.mobile,
+          phone: u.mobile,
+          customerId: u.customerId,
+          city: u.city || 'Kanpur',
+          state: u.state || 'Uttar Pradesh',
+          address: u.address || ''
+        };
+        setUser(custUser);
+        try { localStorage.setItem('anuj_user', JSON.stringify(custUser)); } catch (e) {}
+        setCustomers(prev => [custUser, ...prev.filter(c => c.customerId !== custUser.customerId)]);
+        showToast(`Welcome, ${custUser.name}! Account registered successfully.`, 'success');
+        return custUser;
+      }
+      return res;
+    } catch (err) {
+      const errMsg = err?.message || 'Registration failed. Please verify your details.';
+      showToast(`❌ ${errMsg}`, 'error');
+      throw err;
+    }
+  };
+
+  const clearLockout = (role) => {
+    recordSuccessfulAuth(role);
+    showToast(`Lockout cleared for ${role}. You may try again now.`, 'info');
   };
 
   const bypassLoginAsGuest = () => {
@@ -3275,6 +3328,8 @@ export const AppProvider = ({ children }) => {
       toggleWishlist,
       loginSalesman,
       loginNormalUser,
+      registerCustomer,
+      clearLockout,
       bypassLoginAsGuest,
       loginAdmin,
       logout,
