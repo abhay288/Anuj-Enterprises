@@ -43,11 +43,10 @@ export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunct
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired access token',
-      code: 'UNAUTHORIZED'
-    });
+    // If token is expired or invalid, do not block public routes.
+    // Explicitly protected routes will be enforced by requireAuth.
+    req.user = undefined;
+    next();
   }
 };
 

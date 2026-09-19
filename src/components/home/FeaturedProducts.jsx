@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Flame, Award } from 'lucide-react';
 import { useApp, normalizeBrandName } from '../../context/AppContext';
 import { ProductCard } from '../catalogue/ProductCard';
+import { ProductCardSkeleton } from '../catalogue/ProductGrid';
 
 export const FeaturedProducts = () => {
-  const { products, brands, navigateTo, t } = useApp();
+  const { products, brands, navigateTo, t, isLoadingProducts } = useApp();
   const [activeTab, setActiveTab] = useState('featured'); // 'featured' | 'trending' | 'bulk'
 
   // Build brand rank priority lookup map
@@ -94,9 +95,15 @@ export const FeaturedProducts = () => {
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.slice(0, 8).map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {isLoadingProducts && products.length === 0 ? (
+            [...Array(4)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))
+          ) : (
+            filteredProducts.slice(0, 8).map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          )}
         </div>
 
         {/* View All Catalogue CTA */}

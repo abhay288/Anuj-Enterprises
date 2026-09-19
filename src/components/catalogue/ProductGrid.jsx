@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { PackageX, LayoutGrid, List, Search, X, SlidersHorizontal, Sparkles, CheckCircle2, WifiOff } from 'lucide-react';
+import { PackageX, LayoutGrid, List, Search, X, SlidersHorizontal, Sparkles, CheckCircle2, WifiOff, RefreshCw } from 'lucide-react';
 import { useApp, normalizeBrandName } from '../../context/AppContext';
 import { ProductCard } from './ProductCard';
 import { FilterSidebar } from './FilterSidebar';
@@ -128,6 +128,9 @@ const ProductListItem = ({ product }) => {
 export const ProductGrid = () => {
   const { 
     products, 
+    isLoadingProducts,
+    productFetchError,
+    retryFetchProducts,
     brands,
     searchQuery, 
     setSearchQuery, 
@@ -357,7 +360,32 @@ export const ProductGrid = () => {
 
         {/* Products Container */}
         <div>
-          {filteredProducts.length === 0 ? (
+          {isLoadingProducts && products.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : !isLoadingProducts && productFetchError && products.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/40 p-12 text-center my-8 shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 mx-auto flex items-center justify-center mb-4">
+                <WifiOff className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                Unable to Connect to Product Database
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                {productFetchError || 'Network timeout while loading catalog from server. Please retry.'}
+              </p>
+              <button
+                onClick={retryFetchProducts}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow transition-all"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry Loading Catalogue
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-12 text-center my-8 shadow-sm">
               <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-slate-800 text-amber-500 mx-auto flex items-center justify-center mb-4">
                 <PackageX className="w-8 h-8" />

@@ -55,7 +55,19 @@ self.addEventListener('fetch', (event) => {
 
   // 1. Dynamic Product APIs - Always Network Only (Live MongoDB single source of truth)
   if (url.includes('/api/')) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch((err) => {
+        console.warn('[PWA ServiceWorker] Network offline or API unreachable:', err.message);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: 'Network offline or API server unreachable. Please check connection.', 
+            code: 'OFFLINE' 
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+      })
+    );
     return;
   }
 

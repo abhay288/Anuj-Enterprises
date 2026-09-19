@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
 
+const inFlightRequests = new Map();
+
 export const productService = {
   getProducts: async (filters = {}) => {
     const query = new URLSearchParams();
@@ -11,9 +13,22 @@ export const productService = {
     if (filters.status) query.append('status', filters.status);
     if (filters.limit) query.append('limit', String(filters.limit));
     if (filters.page) query.append('page', String(filters.page));
+    if (filters.sort) query.append('sort', String(filters.sort));
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    return apiClient(`/products${queryString}`);
+    const endpoint = `/products${queryString}`;
+
+    // In-flight request deduplication: reuse active Promise for concurrent requests
+    if (inFlightRequests.has(endpoint)) {
+      return inFlightRequests.get(endpoint);
+    }
+
+    const requestPromise = apiClient(endpoint).finally(() => {
+      inFlightRequests.delete(endpoint);
+    });
+
+    inFlightRequests.set(endpoint, requestPromise);
+    return requestPromise;
   },
 
   getProductById: async (id) => {

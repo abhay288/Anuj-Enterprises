@@ -1,20 +1,18 @@
 const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === 'anujfmcg.com' ||
-      host === 'www.anujfmcg.com' ||
-      host.endsWith('.vercel.app')
-    ) {
-      return '/api/v1';
-    }
+    // In any browser environment, relative /api/v1 routes to the current origin cleanly
+    return '/api/v1';
   }
   return import.meta.env.VITE_API_BASE_URL || '/api/v1';
 };
 
-export const apiClient = async (endpoint, options = {}) => {
+const isPublicEndpoint = (endpoint) => {
+  return endpoint.startsWith('/products') || 
+         endpoint.startsWith('/companies') || 
+         endpoint.startsWith('/categories');
+};
+
+export const apiClient = async (endpoint, options = {}, isRetry = false) => {
   const API_BASE_URL = getApiBaseUrl();
   const token = localStorage.getItem('anuj_jwt_token');
 
@@ -36,13 +34,29 @@ export const apiClient = async (endpoint, options = {}) => {
     ...(options.headers || {})
   };
 
+  // Add 15-second AbortController timeout if not already provided
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), options.timeout || 15000);
+
   const config = {
     ...options,
-    headers
+    headers,
+    signal: options.signal || controller.signal
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
+
+    // If a public endpoint gets 401 because of an expired/invalid token in localStorage,
+    // clear the bad token and retry once as a guest
+    if (response.status === 401 && token && isPublicEndpoint(endpoint) && !isRetry) {
+      console.warn(`[API] Public endpoint ${endpoint} received 401 with stale token. Retrying without auth.`);
+      try { localStorage.removeItem('anuj_jwt_token'); } catch (e) {}
+      const retryHeaders = { ...headers };
+      delete retryHeaders.Authorization;
+      return apiClient(endpoint, { ...options, headers: retryHeaders }, true);
+    }
     
     // Strict JSON Content-Type validation to prevent HTML SPA fallbacks from masking API failures
     const contentType = response.headers.get('content-type');
@@ -63,6 +77,12 @@ export const apiClient = async (endpoint, options = {}) => {
 
     return data;
   } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error(`Network request to ${endpoint} timed out after 15s`);
+      timeoutErr.code = 'TIMEOUT';
+      throw timeoutErr;
+    }
     console.warn(`[Anuj API Resilience] Network call to ${endpoint} failed:`, err.message || err);
     throw err;
   }

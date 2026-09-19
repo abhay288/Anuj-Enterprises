@@ -157,16 +157,7 @@ export const AppProvider = ({ children }) => {
 
   const getDeletedSkus = () => {
     try {
-      const defaultRemoved = [
-        'ALT-PIN-SLC-800G-24', 
-        'prod-alt-041',
-        'AML-GLD-1L-12',
-        'prod-fmcg-101',
-        'BRT-NTR-DIG-24',
-        'prod-fmcg-102',
-        'NST-MAG-70G-96',
-        'prod-fmcg-103'
-      ];
+      const defaultRemoved = ['ALT-PIN-SLC-800G-24', 'prod-alt-041'];
       const saved = localStorage.getItem('anuj_deleted_skus_v2');
       const list = saved ? JSON.parse(saved) : [];
       defaultRemoved.forEach(item => {
@@ -174,16 +165,7 @@ export const AppProvider = ({ children }) => {
       });
       return new Set(list.map(s => String(s).toUpperCase()));
     } catch (e) {
-      return new Set([
-        'ALT-PIN-SLC-800G-24', 
-        'PROD-ALT-041',
-        'AML-GLD-1L-12',
-        'PROD-FMCG-101',
-        'BRT-NTR-DIG-24',
-        'PROD-FMCG-102',
-        'NST-MAG-70G-96',
-        'PROD-FMCG-103'
-      ]);
+      return new Set(['ALT-PIN-SLC-800G-24', 'PROD-ALT-041']);
     }
   };
 
@@ -225,6 +207,9 @@ export const AppProvider = ({ children }) => {
       return normalizeProductRanks(INITIAL_PRODUCTS);
     }
   });
+
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productFetchError, setProductFetchError] = useState(null);
 
   const [categories, setCategories] = useState(() => {
     try {
@@ -420,12 +405,36 @@ export const AppProvider = ({ children }) => {
   });
 
   const resolveInitialRoute = () => {
-    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
-    const target = hash || pathname || 'home';
+    const rawHash = (window.location.hash || '').replace(/^#\/?/, '').trim();
+    const rawPath = (window.location.pathname || '').replace(/^\//, '').trim();
+    let target = (rawHash || rawPath || 'home').toLowerCase();
 
+    // Strip query strings, trailing slashes, .html, .php
+    target = target.split('?')[0].replace(/\/+$/, '').replace(/\.(html|php)$/, '');
+
+    if (!target || target === 'index' || target === 'home') {
+      return { view: 'home' };
+    }
+    if (target === 'catalogue' || target === 'catalog' || target === 'products') {
+      return { view: 'catalogue' };
+    }
+    if (target === 'cart') {
+      return { view: 'cart' };
+    }
     if (target === 'admin' || target === 'admin-dash') {
       return { view: 'admin-dash' };
+    }
+    if (target === 'salesman' || target === 'salesman-dash') {
+      return { view: 'salesman-dash' };
+    }
+    if (target === 'customer' || target === 'customer-dash' || target === 'user-dash' || target === 'profile') {
+      return { view: 'customer-dash' };
+    }
+    if (target === 'about' || target === 'about-us') {
+      return { view: 'about' };
+    }
+    if (target === 'contact' || target === 'support') {
+      return { view: 'support' };
     }
     if (target === 'privacy' || target === 'privacy-policy') {
       return { view: 'privacy-policy' };
@@ -448,6 +457,24 @@ export const AppProvider = ({ children }) => {
 
   const initialRoute = resolveInitialRoute();
   const [view, setView] = useState(initialRoute.view);
+
+  // Sync browser back/forward buttons and hash changes with active view
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const resolved = resolveInitialRoute();
+      setView(resolved.view);
+      if (resolved.slug) {
+        const found = findProductBySlugOrId(products, resolved.slug);
+        if (found) setSelectedProductId(found.id);
+      }
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, [products]);
   const [selectedProductId, setSelectedProductId] = useState(() => {
     if (initialRoute.slug) {
       const found = findProductBySlugOrId(INITIAL_PRODUCTS, initialRoute.slug);
@@ -901,117 +928,141 @@ export const AppProvider = ({ children }) => {
     });
   }, [customers, broadcastSync]);
 
-  // Initial Fetch From API (MongoDB Single Source of Truth)
-  useEffect(() => {
-    const loadBackendData = async () => {
-      try {
-        const prodRes = await productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' });
-        if (prodRes.data?.products && Array.isArray(prodRes.data.products) && prodRes.data.products.length > 0) {
-          const deletedSet = getDeletedSkus();
-          const cleanProducts = normalizeProductRanks(prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet)));
-          setProducts(cleanProducts);
-          try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleanProducts)); } catch (e) {}
-        }
-      } catch (e) {
-        console.log('Using local products cache');
+  // Retryable Product Fetch Callback
+  const retryFetchProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+    setProductFetchError(null);
+    try {
+      const prodRes = await productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' });
+      if (prodRes.data?.products && Array.isArray(prodRes.data.products)) {
+        const deletedSet = getDeletedSkus();
+        const cleanProducts = normalizeProductRanks(prodRes.data.products.filter(p => !isProductDeleted(p, deletedSet)));
+        setProducts(cleanProducts);
+        try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleanProducts)); } catch (e) {}
+        showToast('✅ Products refreshed from database', 'success');
       }
+    } catch (e) {
+      setProductFetchError(e.message || 'Failed to load products');
+      showToast('⚠️ Could not load products. Please check connection.', 'error');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [showToast]);
 
-      try {
-        const compRes = await companyService.getCompanies();
-        if (compRes.data?.companies && compRes.data.companies.length > 0) {
-          const backendCompanies = compRes.data.companies.map((c, idx) => ({
+  // Initial Fetch From API (MongoDB Single Source of Truth) with Parallelization & Auto-Retry
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchWithRetry = async (fn, maxRetries = 2, delayMs = 1000) => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (attempt === maxRetries || isCancelled) throw err;
+          await new Promise(res => setTimeout(res, delayMs * (attempt + 1)));
+        }
+      }
+    };
+
+    const loadBackendData = async () => {
+      setIsLoadingProducts(true);
+      setProductFetchError(null);
+
+      // 1. Fetch Public Data in Parallel with Auto-Retry (Products, Companies/Brands, Categories)
+      const [prodResult, compResult, catResult] = await Promise.allSettled([
+        fetchWithRetry(() => productService.getProducts({ limit: 5000, status: 'all', sort: 'sortOrder' }), 2, 800),
+        fetchWithRetry(() => companyService.getCompanies(), 1, 800),
+        fetchWithRetry(() => categoryService.getCategories(), 1, 800)
+      ]);
+
+      if (!isCancelled) {
+        if (prodResult.status === 'fulfilled' && prodResult.value?.data?.products) {
+          const rawProds = prodResult.value.data.products;
+          if (Array.isArray(rawProds)) {
+            const deletedSet = getDeletedSkus();
+            const cleanProducts = normalizeProductRanks(rawProds.filter(p => !isProductDeleted(p, deletedSet)));
+            setProducts(cleanProducts);
+            try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleanProducts)); } catch (e) {}
+          }
+        } else if (prodResult.status === 'rejected') {
+          console.warn('[Initial Load] Product fetch error:', prodResult.reason?.message);
+          setProductFetchError(prodResult.reason?.message || 'Failed to load products from database');
+        }
+
+        if (compResult.status === 'fulfilled' && compResult.value?.data?.companies) {
+          const backendCompanies = compResult.value.data.companies.map((c, idx) => ({
             ...c,
             rank: (typeof c.rank === 'number' && c.rank > 0 && c.rank < 999) ? c.rank : (idx + 1)
           })).sort((a, b) => (a.rank || 999) - (b.rank || 999)).map((b, idx) => ({ ...b, rank: idx + 1 }));
           setBrands(backendCompanies);
           try { localStorage.setItem('anuj_brands_v3', JSON.stringify(backendCompanies)); } catch (e) {}
         }
-      } catch (e) {
-        console.log('Using local companies cache');
+
+        if (catResult.status === 'fulfilled' && catResult.value?.data?.categories) {
+          setCategories(catResult.value.data.categories);
+          try { localStorage.setItem('anuj_categories_v3', JSON.stringify(catResult.value.data.categories)); } catch (e) {}
+        }
+
+        setIsLoadingProducts(false);
       }
 
+      // 2. Fetch User-Specific / Operational Data in Background (Non-blocking for public catalogue)
       try {
-        const catRes = await categoryService.getCategories();
-        if (catRes.data?.categories) {
-          setCategories(catRes.data.categories);
-          try { localStorage.setItem('anuj_categories_v3', JSON.stringify(catRes.data.categories)); } catch (e) {}
+        const ordRes = await orderService.getOrders();
+        if (!isCancelled && ordRes.data?.orders) {
+          setOrders(ordRes.data.orders);
+          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(ordRes.data.orders)); } catch (e) {}
         }
-      } catch (e) {
-        console.log('Using local categories cache');
-      }
+      } catch (e) {}
 
       try {
         const salesRes = await salesmanService.getSalesmen();
-        if (salesRes.data?.salesmen && salesRes.data.salesmen.length > 0) {
+        if (!isCancelled && salesRes.data?.salesmen) {
           setSalesmen(salesRes.data.salesmen);
         }
-      } catch (e) {
-        console.log('Using initial salesmen cache');
-      }
-
-      try {
-        const ordRes = await orderService.getOrders();
-        if (ordRes.data?.orders) {
-          const apiOrders = ordRes.data.orders;
-          setOrders(apiOrders);
-          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(apiOrders)); } catch (e) {}
-        }
-      } catch (e) {
-        console.log('Using local orders cache');
-      }
+      } catch (e) {}
 
       try {
         const custRes = await customerService.getCustomers();
-        if (custRes.data?.customers) {
+        if (!isCancelled && custRes.data?.customers) {
           setCustomers(custRes.data.customers);
           try { localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers)); } catch (e) {}
         }
-      } catch (e) {
-        console.log('Customer fetch from DB');
-      }
+      } catch (e) {}
 
-      // Fetch support tickets from MongoDB
       try {
         const ticketRes = await ticketService.getTickets();
-        if (ticketRes.data?.tickets) {
+        if (!isCancelled && ticketRes.data?.tickets) {
           setSupportTickets(ticketRes.data.tickets);
           try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(ticketRes.data.tickets)); } catch (e) {}
         }
-      } catch (e) {
-        console.log('Using local tickets cache');
-      }
+      } catch (e) {}
     };
 
     loadBackendData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // History PopState & URL /product/:slug and /admin Route Detection
   useEffect(() => {
     const checkRouteUrl = () => {
-      const hash = window.location.hash.replace(/^#\/?/, '');
-      const pathname = window.location.pathname.replace(/^\//, '');
-      const currentRoute = (hash || pathname || 'home').toLowerCase();
-
-      if (currentRoute === 'admin' || currentRoute === 'admin-dash') {
+      const resolved = resolveInitialRoute();
+      if (resolved.view === 'admin-dash' && user.role !== 'admin') {
         setView('admin-dash');
-        if (user.role !== 'admin') {
-          setSalesmanModalMode('admin');
-          setIsSalesmanModalOpen(true);
-        }
+        setSalesmanModalMode('admin');
+        setIsSalesmanModalOpen(true);
         return;
       }
-
-      if (currentRoute.startsWith('product/') || currentRoute.startsWith('products/')) {
-        const slug = currentRoute.replace(/^products?\//, '');
-        const matched = findProductBySlugOrId(products, slug);
+      if (resolved.slug) {
+        const matched = findProductBySlugOrId(products, resolved.slug);
         if (matched) {
           setSelectedProductId(matched.id);
         }
-        setView('product-detail');
-        return;
       }
-
-      setView(hash || pathname || 'home');
+      setView(resolved.view);
     };
 
     checkRouteUrl();
@@ -3458,6 +3509,9 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider value={{
       products,
+      isLoadingProducts,
+      productFetchError,
+      retryFetchProducts,
       categories,
       brands,
       salesmen,
