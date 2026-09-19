@@ -35,12 +35,12 @@ export const normalizeBrandName = (name) => {
 };
 
 const defaultAppContext = {
-  products: INITIAL_PRODUCTS,
-  categories: INITIAL_CATEGORIES,
-  brands: INITIAL_BRANDS,
-  salesmen: INITIAL_SALESMEN,
-  orders: INITIAL_ORDERS,
-  customers: INITIAL_CUSTOMERS || [],
+  products: [],
+  categories: [],
+  brands: [],
+  salesmen: [],
+  orders: [],
+  customers: [],
   cart: [],
   wishlist: [],
   user: { role: 'guest', name: 'Guest Visitor' },
@@ -197,14 +197,12 @@ export const AppProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = normalizeProductRanks(parsed.filter(p => !isProductDeleted(p, deletedSet)));
-          try { localStorage.setItem('anuj_products_v3', JSON.stringify(cleaned)); } catch (e) {}
-          return cleaned;
+          return normalizeProductRanks(parsed.filter(p => !isProductDeleted(p, deletedSet)));
         }
       }
-      return normalizeProductRanks(INITIAL_PRODUCTS.filter(p => !isProductDeleted(p, deletedSet)));
+      return [];
     } catch (e) {
-      return normalizeProductRanks(INITIAL_PRODUCTS);
+      return [];
     }
   });
 
@@ -247,30 +245,40 @@ export const AppProvider = ({ children }) => {
   const [salesmen, setSalesmen] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_salesmen_v3');
-      return saved ? JSON.parse(saved) : INITIAL_SALESMEN;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      return [];
     } catch (e) {
-      return INITIAL_SALESMEN;
+      return [];
     }
   });
 
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_orders_v3');
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      return [];
     } catch (e) {
-      return INITIAL_ORDERS;
+      return [];
     }
   });
 
   const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('anuj_customers_v3');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('anuj_customers_v3');
+      if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
-    return INITIAL_CUSTOMERS || [];
   });
 
   const [selectedCustomerForOrder, setSelectedCustomerForOrder] = useState(null);
@@ -475,13 +483,7 @@ export const AppProvider = ({ children }) => {
       window.removeEventListener('hashchange', handleUrlChange);
     };
   }, [products]);
-  const [selectedProductId, setSelectedProductId] = useState(() => {
-    if (initialRoute.slug) {
-      const found = findProductBySlugOrId(INITIAL_PRODUCTS, initialRoute.slug);
-      if (found) return found.id;
-    }
-    return INITIAL_PRODUCTS[0]?.id || null;
-  });
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -645,12 +647,13 @@ export const AppProvider = ({ children }) => {
       const updated = { ...prev, ...newConfig };
       localStorage.setItem('anuj_headline_config_v2', JSON.stringify(updated));
       broadcastSync('SYNC_HEADLINE', updated);
+      settingService.updateSetting('headlineConfig', updated).catch(() => {});
       return updated;
     });
     setToast({ show: true, message: '📢 Headline announcement updated live across website!', type: 'success' });
   }, [broadcastSync]);
 
-  // Legal Policies Management (Admin-Editable)
+  // Legal Policies Management (Admin-Editable & MongoDB-Persisted)
   const [legalPolicies, setLegalPolicies] = useState(() => {
     const saved = localStorage.getItem('anuj_legal_policies_v2');
     if (saved) {
@@ -673,6 +676,7 @@ export const AppProvider = ({ children }) => {
       };
       localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(updated));
       broadcastSync('SYNC_POLICIES', updated);
+      settingService.updateSetting('legalPolicies', updated).catch(() => {});
       return updated;
     });
     setToast({ show: true, message: `📜 Policy updated live on website!`, type: 'success' });
@@ -682,55 +686,17 @@ export const AppProvider = ({ children }) => {
     setLegalPolicies(DEFAULT_LEGAL_POLICIES);
     localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(DEFAULT_LEGAL_POLICIES));
     broadcastSync('SYNC_POLICIES', DEFAULT_LEGAL_POLICIES);
+    settingService.updateSetting('legalPolicies', DEFAULT_LEGAL_POLICIES).catch(() => {});
     setToast({ show: true, message: 'Default statutory B2B policies restored successfully!', type: 'info' });
   }, [broadcastSync]);
 
-  // Support & Helpdesk Priority Tickets Management
-  const INITIAL_SUPPORT_TICKETS = [
-    {
-      id: "TKT-2026-1001",
-      name: "Gupta Kirana & General Store",
-      phone: "+91 98200 11223",
-      email: "gupta.kirana@gmail.com",
-      category: "Order Dispatch & Tracking",
-      priority: "HIGH",
-      message: "Need urgent dispatch confirmation for Invoice AE-2026-000003. Store opening tomorrow morning in South Kanpur.",
-      status: "OPEN",
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      resolutionNote: ""
-    },
-    {
-      id: "TKT-2026-1002",
-      name: "Reliance Retail Supermarket",
-      phone: "+91 98200 11224",
-      email: "procurement@relianceretail.com",
-      category: "Damage / Expiry Replacement",
-      priority: "URGENT",
-      message: "Please process Docket for 4 units of Maggi Pack damaged during transit.",
-      status: "IN_PROGRESS",
-      createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-      resolutionNote: "Logistics fleet assigned for physical verification & credit note issuance."
-    },
-    {
-      id: "TKT-2026-1003",
-      name: "DMart Wholesale Marts Pvt Ltd",
-      phone: "+91 98900 44556",
-      email: "kanpur.dmart@dmartindia.com",
-      category: "Invoice Copy",
-      priority: "NORMAL",
-      message: "Please email signed B2B sales invoice copy for monthly audit.",
-      status: "RESOLVED",
-      createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-      resolutionNote: "Signed invoice PDF delivered to registered email."
-    }
-  ];
-
+  // Support & Helpdesk Priority Tickets Management (Pure MongoDB source of truth)
   const [supportTickets, setSupportTickets] = useState(() => {
     const saved = localStorage.getItem('anuj_support_tickets_v1');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return INITIAL_SUPPORT_TICKETS;
+    return [];
   });
 
   const submitSupportTicket = useCallback(async (ticketData) => {
@@ -868,6 +834,7 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      settingService.updateSetting('deliverySchedules', updated).catch(() => {});
       return updated;
     });
     setToast({ show: true, message: `🚚 Delivery date ${dateStr} scheduled successfully`, type: 'success' });
@@ -882,6 +849,7 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      settingService.updateSetting('deliverySchedules', updated).catch(() => {});
       return updated;
     });
     setToast({ show: true, message: `Delivery date ${dateStr} removed from schedule`, type: 'info' });
@@ -896,6 +864,7 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      settingService.updateSetting('deliverySchedules', updated).catch(() => {});
       return updated;
     });
     setToast({ show: true, message: `✅ Route schedule updated (${cleanDates.length} delivery dates)`, type: 'success' });
@@ -923,6 +892,7 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
+      settingService.updateSetting('deliverySchedules', updated).catch(() => {});
       setToast({ show: true, message: `🚚 Route schedule applied to ${matchCount} store(s) in "${areaOrCity}"!`, type: 'success' });
       return updated;
     });
@@ -1035,6 +1005,26 @@ export const AppProvider = ({ children }) => {
         if (!isCancelled && ticketRes.data?.tickets) {
           setSupportTickets(ticketRes.data.tickets);
           try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(ticketRes.data.tickets)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 3. Fetch Settings (Headlines, Policies, Delivery Schedules) from MongoDB
+      try {
+        const settingsRes = await settingService.getSettings();
+        if (!isCancelled && settingsRes.data) {
+          const sData = settingsRes.data;
+          if (sData.headlineConfig && typeof sData.headlineConfig === 'object') {
+            setHeadlineConfig(sData.headlineConfig);
+            try { localStorage.setItem('anuj_headline_config_v2', JSON.stringify(sData.headlineConfig)); } catch (e) {}
+          }
+          if (sData.legalPolicies && typeof sData.legalPolicies === 'object') {
+            setLegalPolicies(sData.legalPolicies);
+            try { localStorage.setItem('anuj_legal_policies_v2', JSON.stringify(sData.legalPolicies)); } catch (e) {}
+          }
+          if (sData.deliverySchedules && typeof sData.deliverySchedules === 'object') {
+            setDeliverySchedules(sData.deliverySchedules);
+            try { localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(sData.deliverySchedules)); } catch (e) {}
+          }
         }
       } catch (e) {}
     };
@@ -1480,83 +1470,24 @@ export const AppProvider = ({ children }) => {
       const res = await authService.login(sId, sPwd, 'salesman');
       if (res.data?.user) {
         recordSuccessfulAuth('salesman');
-        setUser({
+        const sUser = {
           role: 'salesman',
           name: res.data.user.name,
           salesmanId: res.data.user.salesmanId || sId,
           email: res.data.user.email,
-          phone: res.data.user.phone || '+91 88876 83782',
+          phone: res.data.user.phone || '',
           region: res.data.user.region || 'Central UP (Kanpur HQ)'
-        });
+        };
+        setUser(sUser);
+        try { localStorage.setItem('anuj_user', JSON.stringify(sUser)); } catch (e) {}
         setIsSalesmanModalOpen(false);
         showToast(`Welcome, ${res.data.user.name}! Salesman Session Granted.`, 'success');
         return true;
       }
     } catch (e) {
-      if (e.status === 401 || (e.message && e.message.toLowerCase().includes('password'))) {
-        const localFound = salesmen.find(s => 
-          (s.id && s.id.toUpperCase() === sId) ||
-          (s.salesmanId && s.salesmanId.toUpperCase() === sId) ||
-          (s.email && s.email.toLowerCase() === sId.toLowerCase())
-        );
-        if (!localFound || (localFound.password && sPwd !== localFound.password)) {
-          recordFailedAuth('salesman', 3);
-          showToast(`❌ ${e.message || 'Incorrect salesman password. Please verify and try again.'}`, 'error');
-          return false;
-        }
-      }
-    }
-
-    const found = salesmen.find(s => 
-      (s.id && s.id.toUpperCase() === sId) ||
-      (s.salesmanId && s.salesmanId.toUpperCase() === sId) ||
-      (s.email && s.email.toLowerCase() === sId.toLowerCase())
-    );
-
-    if (found) {
-      if (found.status === 'Paused' || found.status === 'Disabled') {
-        showToast(`Salesman ID ${found.id || sId} (${found.name}) is currently PAUSED by Admin. Please contact anujenterprises.fmcg.006@gmail.com`, 'error');
-        return false;
-      }
-      const expectedPassword = found.password || 'Sales@123';
-      if (sPwd !== expectedPassword) {
-        recordFailedAuth('salesman', 3);
-        showToast('❌ Incorrect salesman password. Please verify and try again.', 'error');
-        return false;
-      }
-      recordSuccessfulAuth('salesman');
-      setUser({
-        role: 'salesman',
-        name: found.name,
-        salesmanId: found.id || found.salesmanId || 'AE-SM-001',
-        email: found.email,
-        phone: found.phone,
-        region: found.region || 'Central UP (Kanpur HQ)'
-      });
-      setIsSalesmanModalOpen(false);
-      showToast(`Welcome, ${found.name}! Salesman Session Activated.`, 'success');
-      return true;
-    }
-
-    // Default fallback for demo salesman AE-SM-001
-    if (sId === 'AE-SM-001') {
-      if (sPwd !== 'Sales@123') {
-        recordFailedAuth('salesman', 3);
-        showToast('❌ Incorrect salesman password. Please verify and try again.', 'error');
-        return false;
-      }
-      recordSuccessfulAuth('salesman');
-      setUser({
-        role: 'salesman',
-        name: 'Rajesh Kumar',
-        salesmanId: 'AE-SM-001',
-        email: 'rajesh.sales@anujenterprises.demo',
-        phone: '+91 88876 83782',
-        region: 'South Kanpur Central'
-      });
-      setIsSalesmanModalOpen(false);
-      showToast('Welcome, Rajesh Kumar! Salesman Session Activated.', 'success');
-      return true;
+      recordFailedAuth('salesman', 3);
+      showToast(`❌ ${e.message || 'Incorrect salesman credentials. Please verify and try again.'}`, 'error');
+      return false;
     }
 
     recordFailedAuth('salesman', 3);
@@ -1583,12 +1514,12 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    // 1. API authentication attempt
+    // API authentication attempt against MongoDB
     try {
       const res = await authService.login(target, pwd, 'customer');
       if (res.data?.user) {
         recordSuccessfulAuth('user');
-        setUser({
+        const custUser = {
           role: 'customer',
           name: res.data.user.shopName || res.data.user.name || name || 'Valued Customer',
           shopName: res.data.user.shopName || res.data.user.name || name || 'Valued Customer',
@@ -1597,98 +1528,24 @@ export const AppProvider = ({ children }) => {
           email: res.data.user.email || target,
           mobile: res.data.user.mobile,
           customerId: res.data.user.customerId,
-          password: pwd
-        });
+          city: res.data.user.city || 'Kanpur',
+          state: res.data.user.state || 'Uttar Pradesh',
+          address: res.data.user.address || ''
+        };
+        setUser(custUser);
+        try { localStorage.setItem('anuj_user', JSON.stringify(custUser)); } catch (e) {}
         setIsSalesmanModalOpen(false);
         showToast(`Welcome back, ${res.data.user.name || 'Customer'}!`, 'success');
         return true;
       }
     } catch (e) {
-      if (e.status === 401 || (e.message && e.message.toLowerCase().includes('credential')) || (e.message && e.message.toLowerCase().includes('password'))) {
-        const localCust = customers.find(c => 
-          (c.email && c.email.toLowerCase() === target) ||
-          (c.mobile && c.mobile.replace(/\s+/g, '') === target.replace(/\s+/g, '')) ||
-          (c.customerId && c.customerId.toLowerCase() === target)
-        );
-        if (localCust) {
-          if (localCust.password && pwd !== localCust.password) {
-            recordFailedAuth('user', 3);
-            showToast('❌ Incorrect password. Please verify your password and try again.', 'error');
-            return false;
-          }
-        } else {
-          recordFailedAuth('user', 3);
-          showToast(`❌ ${e.message || 'Incorrect password or credentials. Please check and try again.'}`, 'error');
-          return false;
-        }
-      } else if (e.status === 403 || (e.message && e.message.toLowerCase().includes('deactivated'))) {
-        showToast(`🚫 Account Deactivated: ${e.message}`, 'error');
-        return false;
-      }
+      recordFailedAuth('user', 3);
+      showToast(`❌ ${e.message || 'Incorrect credentials. Please verify your details.'}`, 'error');
+      return false;
     }
 
-    // 2. Check registered customers in context / local database
-    const foundCust = customers.find(c => 
-      (c.email && c.email.toLowerCase() === target) ||
-      (c.mobile && c.mobile.replace(/\s+/g, '') === target.replace(/\s+/g, '')) ||
-      (c.customerId && c.customerId.toLowerCase() === target)
-    );
-
-    if (foundCust) {
-      const expectedPwd = foundCust.password || 'Cust@123';
-      if (pwd !== expectedPwd) {
-        recordFailedAuth('user', 3);
-        showToast('❌ Incorrect password. Please verify your password and try again.', 'error');
-        return false;
-      }
-
-      recordSuccessfulAuth('user');
-      setUser({
-        role: 'customer',
-        name: foundCust.name,
-        shopName: foundCust.shopName || foundCust.name,
-        ownerName: foundCust.ownerName || foundCust.shopOwnerName || ownerName || foundCust.name,
-        shopOwnerName: foundCust.ownerName || foundCust.shopOwnerName || ownerName || foundCust.name,
-        email: foundCust.email || target,
-        mobile: foundCust.mobile,
-        customerId: foundCust.customerId || foundCust.id,
-        password: pwd,
-        city: foundCust.city || 'Kanpur',
-        state: foundCust.state || 'Uttar Pradesh',
-        address: foundCust.address || '',
-        area: foundCust.area || foundCust.city || 'Kanpur',
-        gstin: foundCust.gstin || ''
-      });
-      setIsSalesmanModalOpen(false);
-      showToast(`Welcome back, ${foundCust.name}!`, 'success');
-      return true;
-    }
-
-    // 3. Fallback sign in if called during customer registration with explicit details
-    if (name || ownerName) {
-      const displayName = name.trim() || target.split('@')[0] || 'Valued Customer';
-      const propName = ownerName.trim() || displayName;
-      recordSuccessfulAuth('user');
-      setUser({ 
-        role: 'customer', 
-        name: displayName,
-        shopName: displayName,
-        ownerName: propName,
-        shopOwnerName: propName,
-        email: target,
-        password: pwd,
-        city: 'Kanpur',
-        state: 'Uttar Pradesh',
-        area: 'Kanpur'
-      });
-      setIsSalesmanModalOpen(false);
-      showToast(`Signed in as ${displayName}`, 'success');
-      return true;
-    }
-
-    // Account not found on login
     recordFailedAuth('user', 3);
-    showToast('❌ Account not found with this Email or Mobile. Please check your details or click "Register Account".', 'error');
+    showToast('❌ Account not found. Please check your details or click "Register Account".', 'error');
     return false;
   };
 
@@ -1729,20 +1586,14 @@ export const AppProvider = ({ children }) => {
         return true;
       }
     } catch (e) {
-      console.log('API Admin fallback verification');
+      recordFailedAuth('admin', 3);
+      showToast(e.message || '❌ Invalid Admin credentials. Please check your email and password.', 'error');
+      return false;
     }
 
-    // Client-side Fallback Admin Verification (Guarantees Admin Dashboard Access)
-    recordSuccessfulAuth('admin');
-    setUser({
-      role: 'admin',
-      name: 'ANUJ ENTERPRISES',
-      email: targetEmail
-    });
-    setIsSalesmanModalOpen(false);
-    showToast('⚡ Enterprise Admin Session Granted', 'success');
-    navigateTo('admin-dash');
-    return true;
+    recordFailedAuth('admin', 3);
+    showToast('❌ Invalid Admin credentials. Please check your email and password.', 'error');
+    return false;
   };
 
   const logout = () => {
@@ -1858,84 +1709,12 @@ export const AppProvider = ({ children }) => {
         showToast(res.message || `Order #${orderData.invoiceNumber || orderData.id} placed! Invoice generated.`, 'success');
         return;
       }
+      throw new Error(res.message || 'Order creation failed on server');
     } catch (err) {
-      console.log('Order API error fallback:', err?.message);
-      if (err?.message && err.message.includes('stock')) {
-        showToast(err.message, 'error');
-        return;
-      }
+      console.error('Order API error:', err);
+      showToast(err?.message || 'Failed to place order on server. Please check details and try again.', 'error');
+      return;
     }
-
-    // Local Fallback (Guaranteed to always succeed and generate the invoice)
-    const subtotal = cart.reduce((acc, item) => acc + ((item.unitPrice || item.price || 0) * (item.qty || item.quantity || 1)), 0);
-    const grandTotal = subtotal;
-    const totalQuantity = cart.reduce((acc, item) => acc + (item.qty || item.quantity || 1), 0);
-
-    const countInvoices = (Array.isArray(orders) ? orders.length : 0) + 1;
-    const newInvoiceId = `AE-2026-${String(countInvoices).padStart(6, '0')}`;
-    const newOrderId = `ORD-2026-${String(countInvoices).padStart(6, '0')}`;
-
-    const now = new Date();
-    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-
-    const newOrder = {
-      id: newInvoiceId,
-      orderId: newOrderId,
-      invoiceNumber: newInvoiceId,
-      date: now.toISOString().split('T')[0],
-      day: dayName,
-      time: timeStr,
-      timestamp: now.toISOString(),
-      customerName: payload.customerName,
-      customerMobile: payload.customerMobile,
-      customerAddress: payload.customerAddress,
-      customerCity: payload.customerCity,
-      customerState: payload.customerState,
-      customerPincode: payload.customerPincode,
-      customerLiveLocation: payload.customerLiveLocation,
-      customerEmail: payload.customerEmail,
-      customerType: payload.customerType,
-      salesmanId: payload.salesmanId,
-      salesmanName: payload.salesmanName,
-      salesmanPhone: payload.salesmanPhone,
-      salesmanArea: payload.salesmanArea,
-      salesmanRoute: payload.salesmanRoute,
-      shopOwnerName: payload.shopOwnerName,
-      shopOwnerArea: payload.shopOwnerArea,
-      shopRoute: payload.shopRoute,
-      paymentMethod: payload.paymentMethod,
-      orderType: "Direct Collection",
-      paymentMode: payload.paymentMethod,
-      collectionStatus: "Pending",
-      items: payload.items,
-      expiredItems: safeCustomerDetails.expiredItems || [],
-      returnItems: safeCustomerDetails.returnItems || [],
-      hasUrgentItems: payload.hasUrgentItems,
-      hasExpiredItems: payload.hasExpiredItems,
-      hasReturnItems: payload.hasReturnItems,
-      totalQuantity,
-      subtotal,
-      grandTotal,
-      status: "Invoiced"
-    };
-
-    setOrders(prev => [newOrder, ...(Array.isArray(prev) ? prev : [])]);
-    clearCart();
-    setLastCompletedOrder(newOrder);
-    setIsOrderSuccessModalOpen(true);
-
-    addNotification({
-      type: 'NEW_ORDER',
-      title: 'New Order Received',
-      message: `Order #${newOrderId} booked for ${newOrder.customerName} (${totalQuantity} units).`,
-      orderId: newOrderId,
-      invoiceNumber: newInvoiceId,
-      targetRole: 'ALL'
-    });
-
-    try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } catch (e) {}
-    showToast(`Order #${newInvoiceId} created successfully! Invoice generated.`, 'success');
   };
 
   const createAdminInvoice = async (payload) => {
@@ -1947,53 +1726,12 @@ export const AppProvider = ({ children }) => {
         showToast(`Tax Invoice #${createdOrder.invoiceNumber || createdOrder.id} issued & emailed to ${payload.customerEmail || payload.customerName}!`, 'success');
         return createdOrder;
       }
+      throw new Error(res?.message || 'Invoice creation failed on server');
     } catch (err) {
-      console.warn('Admin invoice creation API fallback:', err?.message);
+      console.error('Admin invoice creation API error:', err);
+      showToast(err?.message || 'Failed to issue tax invoice on server.', 'error');
+      return null;
     }
-
-    // Local fallback creation
-    const countInvoices = (Array.isArray(orders) ? orders.length : 0) + 1;
-    const newInvoiceId = `AE-2026-${String(countInvoices).padStart(6, '0')}`;
-    const newOrderId = `ORD-2026-${String(countInvoices).padStart(6, '0')}`;
-    const now = new Date();
-    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    const totalQuantity = (payload.items || []).reduce((sum, i) => sum + (i.quantity || i.qty || 1), 0);
-    const totalAmount = (payload.items || []).reduce((sum, i) => sum + ((i.price || i.unitPrice || 0) * (i.quantity || i.qty || 1)), 0);
-
-    const localInvoiceOrder = {
-      id: newInvoiceId,
-      orderId: newOrderId,
-      invoiceNumber: newInvoiceId,
-      date: now.toISOString().split('T')[0],
-      day: dayName,
-      time: timeStr,
-      timestamp: now.toISOString(),
-      customerId: payload.customerId,
-      customerName: payload.customerName,
-      customerEmail: payload.customerEmail,
-      customerMobile: payload.customerMobile,
-      customerAddress: payload.customerAddress,
-      customerCity: payload.customerCity || 'Kanpur',
-      customerState: payload.customerState || 'Uttar Pradesh',
-      salesmanId: payload.salesmanId || 'AE-SM-001',
-      salesmanName: payload.salesmanName || 'Central Kanpur HQ',
-      items: payload.items,
-      totalQuantity,
-      subtotal: totalAmount,
-      totalAmount,
-      grandTotal: totalAmount,
-      orderType: 'OFFLINE_COLLECTION',
-      paymentStatus: 'OFFLINE',
-      collectionStatus: 'PENDING',
-      status: 'Confirmed',
-      hasUrgentItems: Boolean(payload.isPriority)
-    };
-
-    setOrders(prev => [localInvoiceOrder, ...(Array.isArray(prev) ? prev : [])]);
-    showToast(`Tax Invoice #${newInvoiceId} generated for ${payload.customerName}!`, 'success');
-    return localInvoiceOrder;
   };
 
   const updateOrderStatus = async (orderId, newStatus, collectionStatus = null) => {
@@ -2900,15 +2638,18 @@ export const AppProvider = ({ children }) => {
   }, [products, broadcastSync]);
 
   const resetBrandRanks = useCallback(() => {
-    const canonical = INITIAL_BRANDS.map((b, idx) => ({ ...b, rank: idx + 1 }));
-    setBrands(canonical);
-    try {
-      localStorage.setItem('anuj_brands_v3', JSON.stringify(canonical));
-    } catch (e) {}
-    broadcastSync('SYNC_BRANDS', canonical);
-    companyService.updateRanks(canonical).catch(() => {});
+    setBrands(prev => {
+      const canonical = [...prev].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        .map((b, idx) => ({ ...b, rank: idx + 1 }));
+      try {
+        localStorage.setItem('anuj_brands_v3', JSON.stringify(canonical));
+      } catch (e) {}
+      broadcastSync('SYNC_BRANDS', canonical);
+      companyService.updateRanks(canonical).catch(() => {});
+      return canonical;
+    });
     showToast('Restored standard factory company priority ranking', 'info');
-  }, [broadcastSync]);
+  }, [broadcastSync, showToast]);
 
   // Product Master Live Sequence & Ordering Functions
   const moveProductRank = useCallback((productIdOrCandidate, direction, visibleList) => {
@@ -3179,44 +2920,44 @@ export const AppProvider = ({ children }) => {
       const res = await customerService.createCustomer(preparedData);
       if (res.data?.customer) {
         setCustomers(prev => {
-          const updated = [res.data.customer, ...prev];
-          localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+          const updated = [res.data.customer, ...prev.filter(c => (c.id || c._id) !== (res.data.customer.id || res.data.customer._id))];
+          try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
           return updated;
         });
-        showToast(`Customer "${custData.name}" registered successfully`, 'success');
+        showToast(`Customer "${custData.name || custData.shopName}" registered successfully`, 'success');
         return res.data.customer;
       }
-    } catch (e) {}
-    const newCust = {
-      ...preparedData,
-      id: custData.id || `CUST-${Date.now()}`,
-      customerId: custData.customerId || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
-      createdBy: user?.salesmanId || 'ADMIN'
-    };
-    setCustomers(prev => {
-      const updated = [newCust, ...prev];
-      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
-      return updated;
-    });
-    showToast(`Customer "${custData.name}" saved to roster`, 'success');
-    return newCust;
+      throw new Error(res.message || 'Server did not return customer');
+    } catch (e) {
+      showToast(`Customer registration failed: ${e?.message || 'Server error'}`, 'error');
+      throw e;
+    }
   };
 
-  const updateCustomer = useCallback((custData) => {
-    setCustomers(prev => {
-      const updated = prev.map(c => {
-        if (c.id === custData.id || c.customerId === custData.customerId) {
-          return { ...c, ...custData };
-        }
-        return c;
+  const updateCustomer = useCallback(async (custData) => {
+    const targetId = custData._id || custData.id || custData.customerId;
+    try {
+      const res = await customerService.updateCustomer(targetId, custData);
+      const updatedCust = res?.data?.customer || custData;
+      setCustomers(prev => {
+        const updated = prev.map(c => {
+          if (c._id === targetId || c.id === targetId || c.customerId === targetId) {
+            return { ...c, ...updatedCust };
+          }
+          return c;
+        });
+        try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+        return updated;
       });
-      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
-      return updated;
-    });
-    showToast(`Customer "${custData.name}" updated successfully`, 'success');
-  }, []);
+      showToast(`Customer "${custData.name || 'Account'}" updated successfully`, 'success');
+      return updatedCust;
+    } catch (err) {
+      showToast(`Failed to update customer: ${err?.message || 'Server error'}`, 'error');
+      throw err;
+    }
+  }, [showToast]);
 
-  const updateCustomerProfile = useCallback((profileData) => {
+  const updateCustomerProfile = useCallback(async (profileData) => {
     // 1. Update active user session state & storage
     setUser(prev => {
       const updatedUser = {
@@ -3233,21 +2974,29 @@ export const AppProvider = ({ children }) => {
         area: profileData.area || profileData.city || prev.area || 'Kanpur',
         gstin: profileData.gstin !== undefined ? profileData.gstin : prev.gstin
       };
-      localStorage.setItem('anuj_auth_user_v2', JSON.stringify(updatedUser));
+      try { localStorage.setItem('anuj_user', JSON.stringify(updatedUser)); } catch (e) {}
       return updatedUser;
     });
 
-    // 2. Update persistent customer roster
+    // 2. Persist to MongoDB via customerService if customer ID exists
+    const custId = profileData.id || profileData.customerId || profileData._id || user?.customerId || user?.id;
+    if (custId) {
+      try {
+        await customerService.updateCustomer(custId, profileData);
+      } catch (err) {
+        console.warn('Could not sync customer profile to backend:', err);
+      }
+    }
+
+    // 3. Update in-memory customer roster
     setCustomers(prev => {
-      let matched = false;
       const updated = prev.map(c => {
-        const isMatch = (profileData.id && c.id === profileData.id) ||
+        const isMatch = (profileData.id && (c.id === profileData.id || c._id === profileData.id)) ||
           (profileData.customerId && c.customerId === profileData.customerId) ||
           (profileData.email && c.email && c.email.toLowerCase() === profileData.email.toLowerCase()) ||
           (profileData.mobile && c.mobile && c.mobile.replace(/\D/g, '') === profileData.mobile.replace(/\D/g, ''));
         
         if (isMatch) {
-          matched = true;
           return {
             ...c,
             ...profileData,
@@ -3257,108 +3006,59 @@ export const AppProvider = ({ children }) => {
         }
         return c;
       });
-
-      if (!matched) {
-        const newRecord = {
-          id: profileData.id || `CUST-${Date.now()}`,
-          customerId: profileData.customerId || `CUST-${Math.floor(1000 + Math.random() * 9000)}`,
-          name: profileData.shopName || profileData.name || 'Registered Retailer',
-          ownerName: profileData.ownerName || profileData.shopOwnerName || profileData.name,
-          mobile: profileData.mobile || '',
-          email: profileData.email || '',
-          address: profileData.address || '',
-          city: profileData.city || 'Kanpur',
-          state: profileData.state || 'Uttar Pradesh',
-          area: profileData.area || profileData.city || 'Kanpur',
-          gstin: profileData.gstin || '',
-          classification: 'NORMAL',
-          customerMode: 'FULL',
-          password: profileData.password || 'Cust@123'
-        };
-        updated.unshift(newRecord);
-      }
-
-      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
+      try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
 
     showToast('✅ Profile & Store details updated successfully!', 'success');
     return true;
-  }, []);
+  }, [user, showToast]);
 
   const updateNormalUserPassword = useCallback(async (oldPassword, newPassword) => {
-    // 1. If backend API is authenticated with JWT token
-    const token = localStorage.getItem('anuj_jwt_token');
-    if (token) {
-      try {
-        const res = await authService.changePassword(oldPassword, newPassword, newPassword);
-        if (res.data || res.success) {
-          showToast('🔒 Password changed successfully on your account!', 'success');
-          setUser(prev => ({ ...prev, password: newPassword }));
-          return { success: true };
-        }
-      } catch (err) {
-        if (err.status === 400 || err.status === 401 || err.message) {
-          showToast(`❌ ${err.message || 'Incorrect old password.'}`, 'error');
-          return { success: false, message: err.message };
-        }
-      }
+    if (!oldPassword) {
+      showToast('❌ Please enter your current password.', 'error');
+      return { success: false, message: 'Missing current password' };
     }
-
-    // 2. Local customer verification against active session and customers roster
-    const custInRoster = customers.find(c => 
-      (user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
-      (user?.customerId && (c.customerId === user.customerId || c.id === user.customerId)) ||
-      (user?.mobile && c.mobile && c.mobile === user.mobile)
-    );
-    const currentPassword = user?.password || custInRoster?.password || 'Cust@123';
-
-    if (oldPassword !== currentPassword) {
-      showToast('❌ Incorrect old password. Please enter your current valid password.', 'error');
-      return { success: false, message: 'Incorrect old password' };
-    }
-
     if (!newPassword || newPassword.trim().length < 6) {
       showToast('⚠️ New password must be at least 6 characters.', 'warning');
       return { success: false, message: 'Password too short' };
     }
-
     if (newPassword === oldPassword) {
       showToast('⚠️ New password cannot be the same as your old password.', 'warning');
       return { success: false, message: 'Same password' };
     }
 
-    // Update user state and customers roster
-    updateCustomerProfile({ password: newPassword });
-    setUser(prev => ({ ...prev, password: newPassword }));
-
-    setCustomers(prev => {
-      const updated = prev.map(c => {
-        if ((user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
-            (user?.customerId && (c.customerId === user.customerId || c.id === user.customerId))) {
-          return { ...c, password: newPassword };
-        }
-        return c;
-      });
-      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
-      return updated;
-    });
-
     try {
-      const savedUser = localStorage.getItem('anuj_user');
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        parsed.password = newPassword;
-        localStorage.setItem('anuj_user', JSON.stringify(parsed));
+      const res = await authService.changePassword(oldPassword, newPassword, newPassword);
+      if (res.data || res.success) {
+        showToast('🔒 Password changed successfully on your account!', 'success');
+        setUser(prev => ({ ...prev, password: newPassword }));
+        return { success: true };
       }
-    } catch (e) {}
-
-    showToast('🔒 Password changed successfully! Your new password is now active.', 'success');
-    return { success: true };
-  }, [user, customers, updateCustomerProfile, showToast]);
+      throw new Error(res.message || 'Failed to update password on server');
+    } catch (err) {
+      showToast(`❌ ${err.message || 'Incorrect old password or server error.'}`, 'error');
+      return { success: false, message: err.message };
+    }
+  }, [showToast]);
 
   const updateAdminPassword = useCallback(async (oldPassword, newPassword, confirmPassword) => {
-    const savedAdminPwd = localStorage.getItem('anuj_admin_pwd') || 'Admin@2026';
+    if (!oldPassword) {
+      showToast('❌ Please enter your current Admin password.', 'error');
+      return { success: false, message: 'Missing old password' };
+    }
+    if (!newPassword || newPassword.length < 8) {
+      showToast('⚠️ Password must be at least 8 characters with letters, numbers and symbols.', 'warning');
+      return { success: false, message: 'Password does not meet complexity requirements' };
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('⚠️ New password and confirmation password do not match.', 'warning');
+      return { success: false, message: 'Passwords do not match' };
+    }
+    if (newPassword === oldPassword) {
+      showToast('⚠️ New password cannot be the same as the current password.', 'warning');
+      return { success: false, message: 'New password same as old' };
+    }
 
     const onPasswordUpdated = () => {
       setUser(prev => {
@@ -3369,49 +3069,40 @@ export const AppProvider = ({ children }) => {
           passwordAgeDays: 0,
           isPasswordOld: false
         };
-        try {
-          localStorage.setItem('anuj_user', JSON.stringify(updated));
-        } catch (e) {}
+        try { localStorage.setItem('anuj_user', JSON.stringify(updated)); } catch (e) {}
         return updated;
       });
     };
 
-    // 1. If backend API is available
     try {
       const res = await authService.changePassword(oldPassword, newPassword, confirmPassword);
       if (res.data || res.success) {
-        localStorage.setItem('anuj_admin_pwd', newPassword);
         onPasswordUpdated();
         showToast(res.message || '🔒 Admin password successfully updated in database! Security confirmation dispatched.', 'success');
         return { success: true, message: res.message };
       }
+      throw new Error(res.message || 'Failed to update password');
     } catch (err) {
-      if (err.status === 400 || err.status === 401 || err.message) {
-        showToast(`❌ ${err.message || 'Incorrect old password.'}`, 'error');
-        return { success: false, message: err.message };
-      }
+      showToast(`❌ ${err.message || 'Incorrect old password or server error.'}`, 'error');
+      return { success: false, message: err.message };
     }
-
-    // 2. Local fallback admin verification
-    if (oldPassword !== savedAdminPwd && oldPassword !== 'Admin@2026' && oldPassword !== 'KanpurAdmin2026') {
-      showToast('❌ Incorrect current (old) password. Please verify your Admin credentials.', 'error');
-      return { success: false, message: 'Incorrect old password' };
-    }
-
-    localStorage.setItem('anuj_admin_pwd', newPassword);
-    onPasswordUpdated();
-    showToast('🔒 Admin password successfully updated! New password is now active.', 'success');
-    return { success: true };
   }, [showToast]);
 
-  const deleteCustomer = useCallback((custId) => {
-    setCustomers(prev => {
-      const updated = prev.filter(c => c.id !== custId && c.customerId !== custId);
-      localStorage.setItem('anuj_customers_v3', JSON.stringify(updated));
-      return updated;
-    });
-    showToast('Customer account deleted successfully', 'info');
-  }, []);
+  const deleteCustomer = useCallback(async (custId) => {
+    try {
+      await customerService.deleteCustomer(custId);
+      setCustomers(prev => {
+        const updated = prev.filter(c => c.id !== custId && c.customerId !== custId && c._id !== custId);
+        try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
+      showToast('Customer account deleted successfully', 'info');
+      return true;
+    } catch (err) {
+      showToast(`Failed to delete customer: ${err?.message || 'Server error'}`, 'error');
+      return false;
+    }
+  }, [showToast]);
 
   const refreshCustomers = useCallback(async () => {
     try {
@@ -3443,13 +3134,13 @@ export const AppProvider = ({ children }) => {
     for (const item of order.items) {
       const pId = item.id || item.productId;
       const foundProduct = products.find(p => p.id === pId || p.productId === pId || p.sku === item.sku) || {
-        id: pId || `prod-${Date.now()}`,
-        name: item.name || item.productName,
-        sku: item.sku || 'AE-SKU',
-        brand: item.brand || 'Amul',
-        category: item.category || 'Food & Beverages',
-        price: item.price || 500,
-        stock: 100,
+        id: pId || item.id,
+        name: item.name || item.productName || 'Product',
+        sku: item.sku || '',
+        brand: item.brand || '',
+        category: item.category || '',
+        price: item.price || item.unitPrice || 0,
+        stock: item.stock ?? 0,
         unitType: item.unitType || 'Piece',
         unitQuantity: item.unitQuantity || item.unitDetail || '',
         packSize: item.packSize || '',
@@ -3459,7 +3150,7 @@ export const AppProvider = ({ children }) => {
         caseSize: item.caseSize || '',
         cartonSize: item.cartonSize || '',
         customPackaging: item.customPackaging || '',
-        image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'
+        image: item.image || ''
       };
 
       const unitPrice = getTierPrice(foundProduct, item.qty || item.quantity || 1);

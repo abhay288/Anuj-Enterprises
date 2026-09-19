@@ -3319,7 +3319,7 @@ export const AdminDashboard = () => {
                                       type="button"
                                       onClick={() => {
                                         if (window.confirm(`Delete customer record for "${cName}" (${cId})?`)) {
-                                          deleteCustomer(cust.id || cust.customerId);
+                                          deleteCustomer(cust._id || cust.id || cust.customerId);
                                         }
                                       }}
                                       className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 dark:bg-slate-800 rounded-xl transition-colors"

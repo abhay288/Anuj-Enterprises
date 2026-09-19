@@ -14,11 +14,12 @@ export const getInvoices = async (req, res) => {
             const userSalesmanId = req.user.salesmanId || req.user.id;
             filter.salesmanId = String(userSalesmanId).toUpperCase();
         }
-        else if (req.user.role === 'USER') {
-            // Normal user can only access their own invoices
+        else if (req.user.role === 'USER' || req.user.role === 'CUSTOMER') {
+            // Normal customer can only access their own invoices
             filter.$or = [
-                { customerId: req.user.id },
-                { customerMobile: req.user.email }
+                { customerId: req.user.customerId || req.user.id },
+                { customerEmail: req.user.email },
+                { customerMobile: req.user.mobile || req.user.email }
             ];
         }
         else if (req.user.role === 'ADMIN') {

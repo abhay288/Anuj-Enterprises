@@ -13,14 +13,46 @@ export const getSettings = async (req: AuthRequest, res: Response) => {
     for (const s of settings) {
       settingMap[s.key] = s.value;
     }
-    // Return defaults if not set
     return res.json({
       success: true,
       data: {
         orderRetentionDays: settingMap['orderRetentionDays'] ?? 0,
-        invoiceRetentionDays: settingMap['invoiceRetentionDays'] ?? 0
+        invoiceRetentionDays: settingMap['invoiceRetentionDays'] ?? 0,
+        headlineConfig: settingMap['headlineConfig'] ?? null,
+        legalPolicies: settingMap['legalPolicies'] ?? null,
+        deliverySchedules: settingMap['deliverySchedules'] ?? null,
+        ...settingMap
       },
       message: 'Settings fetched successfully'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateSetting = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const key = String(req.params.key || '').trim();
+    const { value } = req.body;
+
+    if (!key) {
+      return res.status(400).json({ success: false, message: 'Setting key is required' });
+    }
+
+    const updated = await Setting.findOneAndUpdate(
+      { key },
+      { key, value },
+      { upsert: true, new: true }
+    );
+
+    return res.json({
+      success: true,
+      data: { [key]: updated.value },
+      message: `Setting "${key}" updated successfully`
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

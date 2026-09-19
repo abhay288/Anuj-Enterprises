@@ -8,7 +8,6 @@ export const getCustomers = async (req, res) => {
         }
         const { search, salesmanId } = req.query;
         const filter = {};
-        // Role-based Access Control Scope (Requirement 4)
         if (req.user.role === 'SALESMAN') {
             const userSalesmanId = String(req.user.salesmanId || '').toUpperCase();
             if (userSalesmanId) {
@@ -25,6 +24,13 @@ export const getCustomers = async (req, res) => {
                     { assignedSalesmanId: String(salesmanId).toUpperCase() }
                 ];
             }
+        }
+        else if (req.user.role === 'CUSTOMER' || req.user.role === 'USER') {
+            filter.$or = [
+                { customerId: req.user.customerId },
+                { phone: req.user.email || req.user.mobile },
+                { email: req.user.email }
+            ];
         }
         else {
             return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });
@@ -186,6 +192,85 @@ export const createCustomer = async (req, res) => {
             success: true,
             data: { customer },
             message: 'Customer registered successfully'
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const updateCustomer = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
+        const customer = await Customer.findOne({
+            $or: [{ customerId: idStr }, { _id: isObjectId ? idStr : null }, { phone: idStr }]
+        });
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+        // Role check
+        if (req.user.role === 'SALESMAN') {
+            const userSalesmanId = String(req.user.salesmanId || '').toUpperCase();
+            if (customer.createdBy && customer.createdBy !== userSalesmanId && customer.assignedSalesmanId !== userSalesmanId) {
+                return res.status(403).json({ success: false, message: 'Forbidden: Unauthorized', code: 'FORBIDDEN' });
+            }
+        }
+        else if (req.user.role === 'CUSTOMER' || req.user.role === 'USER') {
+            if (customer.customerId !== req.user.customerId && customer.email !== req.user.email && customer.phone !== (req.user.mobile || req.user.email)) {
+                return res.status(403).json({ success: false, message: 'Forbidden: Unauthorized', code: 'FORBIDDEN' });
+            }
+        }
+        else if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });
+        }
+        const { name, phone, email, address, city, state, area, classification } = req.body || {};
+        if (name)
+            customer.name = String(name).trim();
+        if (phone)
+            customer.phone = String(phone).trim();
+        if (email !== undefined)
+            customer.email = String(email).trim().toLowerCase();
+        if (address !== undefined)
+            customer.address = address;
+        if (city !== undefined)
+            customer.city = city;
+        if (state !== undefined)
+            customer.state = state;
+        if (area !== undefined)
+            customer.area = area;
+        if (classification && req.user.role === 'ADMIN')
+            customer.classification = classification;
+        await customer.save();
+        return res.json({
+            success: true,
+            data: { customer },
+            message: 'Customer updated successfully'
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const deleteCustomer = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Forbidden: Admin access required', code: 'FORBIDDEN' });
+        }
+        const idStr = String(req.params.id);
+        const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
+        const customer = await Customer.findOneAndDelete({
+            $or: [{ customerId: idStr }, { _id: isObjectId ? idStr : null }]
+        });
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+        return res.json({
+            success: true,
+            data: { customerId: customer.customerId },
+            message: `Customer "${customer.name}" permanently deleted`
         });
     }
     catch (error) {

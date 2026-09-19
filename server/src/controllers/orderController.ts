@@ -375,10 +375,13 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
       // Salesman can only query their own orders
       const userSalesmanId = req.user.salesmanId || req.user.id;
       filter.salesmanId = String(userSalesmanId).toUpperCase();
-    } else if (req.user.role === 'USER') {
-      // Normal user can only see their own customer orders
+    } else if (req.user.role === 'USER' || req.user.role === 'CUSTOMER') {
+      // Normal customer can only see their own customer orders
       filter.$or = [
         { customerName: req.user.name },
+        { customerId: req.user.customerId },
+        { 'customerDetails.email': req.user.email },
+        { 'customerDetails.mobile': req.user.mobile || req.user.email },
         { 'shippingAddress.street': req.user.email }
       ];
     } else if (req.user.role === 'ADMIN') {

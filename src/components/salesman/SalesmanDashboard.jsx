@@ -20,6 +20,7 @@ export const SalesmanDashboard = () => {
     orders, 
     products, 
     customers, 
+    salesmen,
     cart, 
     addToCart, 
     updateCartQty, 
@@ -58,7 +59,7 @@ export const SalesmanDashboard = () => {
     customerMode: 'QUICK'
   });
 
-  const activeSalesmanId = (user.salesmanId || 'AE-SM-001').toUpperCase();
+  const activeSalesmanId = (user.salesmanId || user.id || '').toUpperCase();
 
   // Scoped Salesman Orders (Only orders belonging to this active representative)
   const myOrders = useMemo(() => {
@@ -176,23 +177,19 @@ export const SalesmanDashboard = () => {
 
   // Calculate Sales Force Leaderboard across all representatives dynamically
   const salesmanLeaderboard = useMemo(() => {
-    const defaultReps = [
-      { id: 'AE-SM-001', name: 'Rajesh Kumar', region: 'South Kanpur Central' },
-      { id: 'AE-SM-002', name: 'Vikram Singh', region: 'North Kanpur Wholesale' },
-      { id: 'AE-SM-003', name: 'Amit Sharma', region: 'East Kanpur Transport Nagar' },
-      { id: 'AE-SM-004', name: 'Priya Patel', region: 'Civil Lines Supermarket Route' },
-      { id: 'AE-SM-005', name: 'Sunil Verma', region: 'Kidwai Nagar Commercial Hub' },
-    ];
-
     const map = {};
-    defaultReps.forEach(r => {
-      map[r.id] = { id: r.id, name: r.name, region: r.region, ordersCount: 0, totalQuantity: 0 };
+    (salesmen || []).forEach(r => {
+      const id = (r.id || r.salesmanId || '').toUpperCase();
+      if (id) {
+        map[id] = { id, name: r.name, region: r.region || r.area || 'Kanpur', ordersCount: 0, totalQuantity: 0 };
+      }
     });
 
     orders.forEach(o => {
-      const sId = (o.salesmanId || 'AE-SM-001').toUpperCase();
-      const sName = o.salesmanName || 'Rajesh Kumar';
-      const sArea = o.salesmanArea || 'South Kanpur Central';
+      const sId = (o.salesmanId || '').toUpperCase();
+      if (!sId) return;
+      const sName = o.salesmanName || 'Sales Representative';
+      const sArea = o.salesmanArea || 'Kanpur';
       const q = o.totalQuantity || o.items?.reduce((a, b) => a + (b.qty || b.quantity || 0), 0) || 0;
 
       if (!map[sId]) {
@@ -203,7 +200,7 @@ export const SalesmanDashboard = () => {
     });
 
     return Object.values(map).sort((a, b) => b.totalQuantity - a.totalQuantity);
-  }, [orders]);
+  }, [orders, salesmen]);
 
   const handleCreateCustomerSubmit = async (e) => {
     e.preventDefault();

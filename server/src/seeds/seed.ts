@@ -8,6 +8,7 @@ import { Category } from '../models/Category.js';
 import { Product } from '../models/Product.js';
 import { Order } from '../models/Order.js';
 import { Invoice } from '../models/Invoice.js';
+import { Setting } from '../models/Setting.js';
 
 dotenv.config();
 
@@ -15,7 +16,14 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/anuj_e
 
 export const seedDatabase = async () => {
   try {
-    console.log('Seeding MongoDB database...');
+    // 0. Production Guard: If database was ever initialized, NEVER recreate deleted items
+    const seededFlag = await Setting.findOne({ key: 'system_initial_seeded' });
+    if (seededFlag) {
+      console.log('✓ System already initialized — skipping seed check to guarantee deleted items are never recreated');
+      return;
+    }
+
+    console.log('Seeding MongoDB database (initial fresh setup)...');
 
     // 1. Seed Base Companies (Brands) ONLY if collection is empty
     const existingCompanyCount = await Company.countDocuments();
@@ -56,6 +64,13 @@ export const seedDatabase = async () => {
     } else {
       console.log(`✓ Categories already exist (${existingCategoryCount} records) — skipping seed to preserve admin changes`);
     }
+
+    // Mark system as seeded so deleted items can never be resurrected
+    await Setting.findOneAndUpdate(
+      { key: 'system_initial_seeded' },
+      { key: 'system_initial_seeded', value: true },
+      { upsert: true }
+    );
 
     console.log('Production seeding check completed successfully!');
 

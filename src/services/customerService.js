@@ -20,5 +20,19 @@ export const customerService = {
       method: 'POST',
       body: JSON.stringify(customerData)
     });
+  },
+
+  updateCustomer: async (id, customerData) => {
+    return apiClient(`/customers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(customerData)
+    });
+  },
+
+  deleteCustomer: async (id) => {
+    return apiClient(`/customers/${id}`, {
+      method: 'DELETE'
+    });
   }
 };
+

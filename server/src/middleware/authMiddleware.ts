@@ -5,8 +5,10 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: 'USER' | 'SALESMAN' | 'ADMIN';
+    role: 'USER' | 'CUSTOMER' | 'SALESMAN' | 'ADMIN';
     salesmanId?: string;
+    customerId?: string;
+    mobile?: string;
     name?: string;
     status?: string;
   };
@@ -61,7 +63,7 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
   next();
 };
 
-export const requireRoles = (...roles: Array<'USER' | 'SALESMAN' | 'ADMIN'>) => {
+export const requireRoles = (...roles: Array<'USER' | 'CUSTOMER' | 'SALESMAN' | 'ADMIN'>) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !req.user.role) {
       return res.status(401).json({
