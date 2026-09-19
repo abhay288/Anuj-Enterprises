@@ -10,7 +10,7 @@ export const UNWANTED_WORDS = [
   'dick', 'cunt', 'pussy', 'whore', 'slut', 'nigger', 'crap',
   
   // Hinglish / Hindi Abusive Terms
-  'madarchod', 'mc', 'bhenchod', 'bc', 'chutiya', 'choot', 'gaand', 'laund', 
+  'madarchod', 'bhenchod', 'chutiya', 'choot', 'gaand', 'laund', 
   'lauda', 'loda', 'gand', 'harami', 'kamina', 'saala', 'randi', 'bhosdike', 
   'bhosdi', 'chut', 'tatte', 'tatta',
 
