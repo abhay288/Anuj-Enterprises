@@ -90,8 +90,10 @@ export const searchKanpurPlaces = (rawQuery, maxResults = 8) => {
  * Returns a structured address object containing only non-empty fields.
  */
 export const buildStructuredAddress = (item, rawAddressText) => {
+  const addrText = rawAddressText || item.label || item.name || '';
   const structured = {
-    address: rawAddressText || item.label || item.name,
+    address: addrText,
+    label: addrText,
     city: item.city || 'Kanpur',
     district: item.district || 'Kanpur Nagar',
     state: item.state || 'Uttar Pradesh'
@@ -106,6 +108,7 @@ export const buildStructuredAddress = (item, rawAddressText) => {
 
   return structured;
 };
+
 
 export const AddressAutocomplete = ({
   value = '',
@@ -278,7 +281,7 @@ export const AddressAutocomplete = ({
 
       {/* Google-Style Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-72 sm:max-h-80 overflow-y-auto">
+        <div className="absolute z-[9999] left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-72 sm:max-h-80 overflow-y-auto">
           {/* Header */}
           <div className="px-3.5 py-2 bg-slate-50/80 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
@@ -306,7 +309,18 @@ export const AddressAutocomplete = ({
                 return (
                   <div
                     key={item.id || index}
-                    onMouseDown={() => handleSelect(item)}
+                    role="button"
+                    tabIndex={0}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(item);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(item);
+                    }}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     className={`w-full px-3.5 py-2.5 sm:py-3 flex items-start gap-3 cursor-pointer transition-colors text-left select-none ${
                       isSelected 
@@ -361,7 +375,16 @@ export const AddressAutocomplete = ({
               </p>
               <button
                 type="button"
-                onMouseDown={handleUseManualAddress}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUseManualAddress();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUseManualAddress();
+                }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md"
               >
                 <CornerDownLeft className="w-3.5 h-3.5" />
@@ -369,6 +392,7 @@ export const AddressAutocomplete = ({
               </button>
             </div>
           )}
+
 
           {/* Footer Guide */}
           <div className="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">

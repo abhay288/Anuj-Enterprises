@@ -54,6 +54,7 @@ const defaultAppContext = {
   removeFromCart: () => {},
   clearCart: () => {},
   toggleCartItemPriority: () => {},
+  toggleOrderUrgent: async () => {},
   toggleWishlist: () => {},
   loginSalesman: async () => false,
   loginNormalUser: async () => false,
@@ -1075,11 +1076,16 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const currentKey = getCartStorageKey(user);
     if (activeCartKeyRef.current === currentKey) {
-      localStorage.setItem(currentKey, JSON.stringify(cart));
-      if (user.role === 'guest') {
-        localStorage.setItem('anuj_cart', JSON.stringify(cart));
-      }
-      broadcastSync('SYNC_CART', { key: currentKey, cart });
+      const handler = setTimeout(() => {
+        try {
+          localStorage.setItem(currentKey, JSON.stringify(cart));
+          if (user.role === 'guest') {
+            localStorage.setItem('anuj_cart', JSON.stringify(cart));
+          }
+          broadcastSync('SYNC_CART', { key: currentKey, cart });
+        } catch (e) {}
+      }, 150);
+      return () => clearTimeout(handler);
     }
   }, [cart, user, broadcastSync]);
   useEffect(() => { localStorage.setItem('anuj_user', JSON.stringify(user)); }, [user]);
@@ -1236,22 +1242,30 @@ export const AppProvider = ({ children }) => {
     return unitPrice;
   };
 
+  const lastCartToastRef = useRef(0);
   const addToCart = (product, qty = 1) => {
-    const quantity = Math.max(1, parseInt(qty) || 1);
+    const quantity = Math.max(1, parseInt(qty, 10) || 1);
     setCart(prev => {
       const existingIndex = prev.findIndex(item => item.product.id === product.id);
       if (existingIndex > -1) {
         const newCart = [...prev];
         const newQty = newCart[existingIndex].qty + quantity;
-        newCart[existingIndex].qty = newQty;
-        newCart[existingIndex].unitPrice = getTierPrice(product, newQty);
+        newCart[existingIndex] = {
+          ...newCart[existingIndex],
+          qty: newQty,
+          unitPrice: getTierPrice(product, newQty)
+        };
         return newCart;
       } else {
         const unitPrice = getTierPrice(product, quantity);
         return [...prev, { product, qty: quantity, unitPrice }];
       }
     });
-    showToast(`Added ${quantity}x ${product.name.slice(0, 30)}... to Cart`, 'success');
+    const now = Date.now();
+    if (now - lastCartToastRef.current > 400) {
+      lastCartToastRef.current = now;
+      showToast(`Added ${quantity}x ${product.name.slice(0, 30)}... to Cart`, 'success');
+    }
   };
 
   const updateCartQty = (productId, newQtyOrDelta, isAbsolute = false) => {
@@ -1260,9 +1274,9 @@ export const AppProvider = ({ children }) => {
         if (item.product.id === productId) {
           let updatedQty = item.qty;
           if (isAbsolute) {
-            updatedQty = Math.max(1, parseInt(newQtyOrDelta) || 1);
+            updatedQty = Math.max(1, parseInt(newQtyOrDelta, 10) || 1);
           } else {
-            updatedQty = Math.max(1, item.qty + newQtyOrDelta);
+            updatedQty = Math.max(1, item.qty + Number(newQtyOrDelta));
           }
           const unitPrice = getTierPrice(item.product, updatedQty);
           return { ...item, qty: updatedQty, unitPrice };
@@ -1271,6 +1285,7 @@ export const AppProvider = ({ children }) => {
       });
     });
   };
+
 
   const removeFromCart = (productId) => {
     setCart(prev => prev.filter(item => item.product.id !== productId));
@@ -1645,11 +1660,18 @@ export const AppProvider = ({ children }) => {
       const res = await authService.login(targetEmail, targetPassword, 'admin');
       if (res.data?.user) {
         recordSuccessfulAuth('admin');
-        setUser({
+        const adminUserData = {
           role: 'admin',
           name: res.data.user.name || 'ANUJ ENTERPRISES',
-          email: res.data.user.email || targetEmail
-        });
+          email: res.data.user.email || targetEmail,
+          passwordChangedAt: res.data.user.passwordChangedAt,
+          passwordAgeDays: res.data.user.passwordAgeDays,
+          isPasswordOld: res.data.user.isPasswordOld
+        };
+        setUser(adminUserData);
+        try {
+          localStorage.setItem('anuj_user', JSON.stringify(adminUserData));
+        } catch (e) {}
         setIsSalesmanModalOpen(false);
         showToast('⚡ Enterprise Admin Session Granted', 'success');
         navigateTo('admin-dash');
@@ -1695,11 +1717,19 @@ export const AppProvider = ({ children }) => {
     const safeUser = user || { role: 'guest', name: 'Guest Visitor' };
     const safeCustomerDetails = customerDetails || {};
 
+    let resolvedPayMethod = safeCustomerDetails.paymentMethod || "Cash";
+    if (resolvedPayMethod.toUpperCase().includes('CREDIT') || resolvedPayMethod.toUpperCase().includes('NET')) {
+      resolvedPayMethod = "Credit";
+    } else if (resolvedPayMethod.toUpperCase().includes('SPECIAL')) {
+      resolvedPayMethod = "Cash";
+    }
+
     const payload = {
       customerMode: safeCustomerDetails.customerMode || 'quick',
-      customerName: safeCustomerDetails.customerName || safeUser.shopName || safeUser.name || "Retail Business Store",
-      customerMobile: safeCustomerDetails.customerMobile || safeUser.mobile || safeUser.phone || "+91 98765 43210",
-      customerAddress: safeCustomerDetails.customerAddress || safeUser.address || "Kanpur Wholesale Market",
+      customerId: safeCustomerDetails.customerId || safeUser.customerId || '',
+      customerName: (safeCustomerDetails.customerName || safeUser.shopName || safeUser.name || "").trim(),
+      customerMobile: (safeCustomerDetails.customerMobile || safeUser.mobile || safeUser.phone || "").trim(),
+      customerAddress: (safeCustomerDetails.customerAddress || safeUser.address || "").trim(),
       customerCity: safeCustomerDetails.customerCity || safeUser.city || "Kanpur",
       customerState: safeCustomerDetails.customerState || safeUser.state || "Uttar Pradesh",
       customerPincode: safeCustomerDetails.customerPincode || safeUser.pincode || "",
@@ -1708,13 +1738,14 @@ export const AppProvider = ({ children }) => {
       customerType: safeCustomerDetails.customerType || "Normal Customer",
       salesmanId: safeCustomerDetails.salesmanId || safeUser.salesmanId || "AE-SM-001",
       salesmanName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
-      salesmanPhone: safeCustomerDetails.salesmanPhone || safeUser.phone || "+91 98765 43210",
+      salesmanPhone: safeCustomerDetails.salesmanPhone || safeUser.phone || "",
       salesmanArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "Route #4 — Wholesale Mandi",
+      salesmanRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "",
       shopOwnerName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
       shopOwnerArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
       shopRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "",
-      paymentMethod: safeCustomerDetails.paymentMethod || "Cash",
+      paymentMethod: resolvedPayMethod,
+
       items: cart.map(item => ({
         id: item.product?.id || item.productId || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
         productId: item.product?.id || item.productId || `prod-${Date.now()}`,
@@ -3278,11 +3309,28 @@ export const AppProvider = ({ children }) => {
   const updateAdminPassword = useCallback(async (oldPassword, newPassword, confirmPassword) => {
     const savedAdminPwd = localStorage.getItem('anuj_admin_pwd') || 'Admin@2026';
 
+    const onPasswordUpdated = () => {
+      setUser(prev => {
+        if (!prev) return prev;
+        const updated = {
+          ...prev,
+          passwordChangedAt: new Date().toISOString(),
+          passwordAgeDays: 0,
+          isPasswordOld: false
+        };
+        try {
+          localStorage.setItem('anuj_user', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    };
+
     // 1. If backend API is available
     try {
       const res = await authService.changePassword(oldPassword, newPassword, confirmPassword);
       if (res.data || res.success) {
         localStorage.setItem('anuj_admin_pwd', newPassword);
+        onPasswordUpdated();
         showToast(res.message || '🔒 Admin password successfully updated in database! Security confirmation dispatched.', 'success');
         return { success: true, message: res.message };
       }
@@ -3300,6 +3348,7 @@ export const AppProvider = ({ children }) => {
     }
 
     localStorage.setItem('anuj_admin_pwd', newPassword);
+    onPasswordUpdated();
     showToast('🔒 Admin password successfully updated! New password is now active.', 'success');
     return { success: true };
   }, [showToast]);
@@ -3455,6 +3504,7 @@ export const AppProvider = ({ children }) => {
       removeFromCart,
       clearCart,
       toggleCartItemPriority,
+      toggleOrderUrgent,
       toggleWishlist,
       loginSalesman,
       loginNormalUser,

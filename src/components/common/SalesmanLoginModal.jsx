@@ -59,6 +59,7 @@ export const SalesmanLoginModal = () => {
   const [altchaAdmin, setAltchaAdmin] = useState(false);
 
   const [isVerifying, setIsVerifying] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (salesmanModalMode) {
@@ -159,16 +160,26 @@ export const SalesmanLoginModal = () => {
 
   const handleUserRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!regForm.name.trim() || !regForm.email.trim()) {
-      showToast('Please enter Shop Name and Email Address.', 'warning');
+    if (isSubmittingRef.current || isVerifying) return;
+
+    if (!regForm.name.trim()) {
+      showToast('Please enter Shop / Counter Name.', 'warning');
       return;
     }
     if (!regForm.ownerName.trim()) {
       showToast('Please enter Shop Owner / Proprietor Name.', 'warning');
       return;
     }
-    if (!regForm.password.trim()) {
-      showToast('Please create a password for your account.', 'warning');
+    if (!regForm.email.trim() || !regForm.email.includes('@')) {
+      showToast('Please enter a valid Email Address.', 'warning');
+      return;
+    }
+    if (!regForm.password.trim() || regForm.password.length < 6) {
+      showToast('Please create an account password of at least 6 characters.', 'warning');
+      return;
+    }
+    if (!regForm.mobile.trim() || regForm.mobile.trim().length < 10) {
+      showToast('Please enter a valid 10-digit mobile number.', 'warning');
       return;
     }
     if (!altchaCustomerReg) {
@@ -180,6 +191,8 @@ export const SalesmanLoginModal = () => {
       showToast(`🚫 Registration Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter clean business details.`, 'error');
       return;
     }
+
+    isSubmittingRef.current = true;
     setIsVerifying(true);
     try {
       await saveCustomer({
@@ -198,12 +211,16 @@ export const SalesmanLoginModal = () => {
       });
       await loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim(), regForm.ownerName.trim());
       showToast(`Account registered for "${regForm.name}" (${regForm.ownerName})! Welcome to Anuj Enterprises`, 'success');
+      setIsSalesmanModalOpen(false);
     } catch (err) {
-      loginNormalUser(regForm.email.trim(), regForm.password.trim(), regForm.name.trim(), regForm.ownerName.trim());
+      const errMsg = err?.response?.data?.message || err?.message || 'Registration failed. Please check details and try again.';
+      showToast(`⚠️ ${errMsg}`, 'error');
     } finally {
       setIsVerifying(false);
+      isSubmittingRef.current = false;
     }
   };
+
 
   return (
     <AnimatePresence>
@@ -212,8 +229,9 @@ export const SalesmanLoginModal = () => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-[500px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden my-auto py-2"
+          className="relative w-full max-w-[500px] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 my-auto py-2"
         >
+
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-slate-950 via-brand-950 to-slate-900 text-white p-6 sm:p-7 relative">
             <button
@@ -503,13 +521,14 @@ export const SalesmanLoginModal = () => {
                         onSelectLocation={(loc) => {
                           setRegForm(prev => ({
                             ...prev,
-                            address: loc.label,
+                            address: loc.address || loc.label || prev.address,
                             city: loc.city || prev.city,
                             state: loc.state || prev.state
                           }));
                         }}
                         placeholder="House/Shop No, Market, Mandi, Landmark..."
                       />
+
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">

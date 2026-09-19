@@ -10,6 +10,7 @@ const OrderItemSchema = new Schema({
     packSize: { type: String, default: '1 Unit' },
     bundleSize: { type: String, default: '' },
     caseSize: { type: String, default: '' },
+    isPriority: { type: Boolean, default: false },
     total: { type: Number, required: true }
 }, { _id: false });
 const OrderSchema = new Schema({
@@ -31,9 +32,19 @@ const OrderSchema = new Schema({
         state: String,
         gstin: String
     },
+    shippingAddress: {
+        street: String,
+        city: String,
+        state: String,
+        pincode: String
+    },
     items: [OrderItemSchema],
     totalQuantity: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
+    paymentMethod: { type: String, default: 'Cash' },
+    hasUrgentItems: { type: Boolean, default: false, index: true },
+    expiredItems: { type: Array, default: [] },
+    returnItems: { type: Array, default: [] },
     orderType: { type: String, enum: ['OFFLINE_COLLECTION'], default: 'OFFLINE_COLLECTION' },
     paymentStatus: { type: String, enum: ['OFFLINE'], default: 'OFFLINE' },
     collectionStatus: { type: String, enum: ['PENDING', 'COLLECTED'], default: 'PENDING' },

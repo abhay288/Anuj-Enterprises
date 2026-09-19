@@ -459,15 +459,30 @@ export const updateProduct = async (req, res) => {
                 ? updates.gallery
                 : (updates.image ? [updates.image] : null)));
         if (incomingImgs && incomingImgs.length > 0) {
-            const cleanUrls = incomingImgs.slice(0, 5).map((u) => typeof u === 'object' ? (u.url || u.secure_url || u.src || '') : String(u || '').trim()).filter(Boolean);
-            if (cleanUrls.length > 0) {
-                product.image = cleanUrls[0];
-                product.images = cleanUrls.map((url, idx) => ({
+            const existingImagesMap = new Map();
+            if (Array.isArray(product.images)) {
+                product.images.forEach((img) => {
+                    if (img && img.url)
+                        existingImagesMap.set(img.url, img.publicId);
+                });
+            }
+            const formattedImages = incomingImgs.slice(0, 5).map((u, idx) => {
+                const url = typeof u === 'object' ? (u.url || u.secure_url || u.src || '') : String(u || '').trim();
+                const incomingPublicId = typeof u === 'object' ? (u.publicId || u.imagePublicId || '') : '';
+                const resolvedPublicId = incomingPublicId || existingImagesMap.get(url) || (idx === 0 ? (updates.imagePublicId || product.imagePublicId) : '');
+                return {
                     url,
+                    publicId: resolvedPublicId || '',
                     isPrimary: idx === 0,
                     whiteBackground: true
-                }));
+                };
+            }).filter((img) => Boolean(img.url));
+            if (formattedImages.length > 0) {
+                product.image = formattedImages[0].url;
+                product.imagePublicId = formattedImages[0].publicId || product.imagePublicId || '';
+                product.images = formattedImages;
                 product.markModified('image');
+                product.markModified('imagePublicId');
                 product.markModified('images');
             }
         }
@@ -475,7 +490,7 @@ export const updateProduct = async (req, res) => {
             const clean = updates.image.trim();
             if (clean) {
                 product.image = clean;
-                product.images = [{ url: clean, isPrimary: true, whiteBackground: true }];
+                product.images = [{ url: clean, publicId: updates.imagePublicId || updates.publicId || product.imagePublicId || '', isPrimary: true, whiteBackground: true }];
                 product.markModified('image');
                 product.markModified('images');
             }

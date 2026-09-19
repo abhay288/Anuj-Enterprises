@@ -488,25 +488,39 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
         : (updates.image ? [updates.image] : null)));
 
     if (incomingImgs && incomingImgs.length > 0) {
-      const cleanUrls = incomingImgs.slice(0, 5).map((u: any) => 
-        typeof u === 'object' ? (u.url || u.secure_url || u.src || '') : String(u || '').trim()
-      ).filter(Boolean);
+      const existingImagesMap = new Map();
+      if (Array.isArray(product.images)) {
+        product.images.forEach((img: any) => {
+          if (img && img.url) existingImagesMap.set(img.url, img.publicId);
+        });
+      }
 
-      if (cleanUrls.length > 0) {
-        product.image = cleanUrls[0];
-        product.images = cleanUrls.map((url: string, idx: number) => ({
+      const formattedImages = incomingImgs.slice(0, 5).map((u: any, idx: number) => {
+        const url = typeof u === 'object' ? (u.url || u.secure_url || u.src || '') : String(u || '').trim();
+        const incomingPublicId = typeof u === 'object' ? (u.publicId || u.imagePublicId || '') : '';
+        const resolvedPublicId = incomingPublicId || existingImagesMap.get(url) || (idx === 0 ? (updates.imagePublicId || product.imagePublicId) : '');
+
+        return {
           url,
+          publicId: resolvedPublicId || '',
           isPrimary: idx === 0,
           whiteBackground: true
-        }));
+        };
+      }).filter((img: any) => Boolean(img.url));
+
+      if (formattedImages.length > 0) {
+        product.image = formattedImages[0].url;
+        product.imagePublicId = formattedImages[0].publicId || product.imagePublicId || '';
+        product.images = formattedImages;
         product.markModified('image');
+        product.markModified('imagePublicId');
         product.markModified('images');
       }
     } else if (updates.image && typeof updates.image === 'string') {
       const clean = updates.image.trim();
       if (clean) {
         product.image = clean;
-        product.images = [{ url: clean, isPrimary: true, whiteBackground: true }];
+        product.images = [{ url: clean, publicId: updates.imagePublicId || updates.publicId || product.imagePublicId || '', isPrimary: true, whiteBackground: true }];
         product.markModified('image');
         product.markModified('images');
       }
@@ -516,6 +530,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       product.imagePublicId = String(updates.imagePublicId || updates.publicId).trim();
       product.markModified('imagePublicId');
     }
+
 
     await product.save();
 

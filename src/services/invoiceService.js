@@ -11,7 +11,10 @@ export const invoiceService = {
 
   markRead: async (id) => apiClient(`/invoices/${id}/read`, { method: 'PATCH' }),
 
+  toggleUrgent: async (id, isUrgent) => apiClient(`/invoices/${id}/urgent`, { method: 'PATCH', body: { isUrgent } }),
+
   deleteInvoice: async (id) => apiClient(`/invoices/${id}`, { method: 'DELETE' }),
+
 
   sendInvoiceEmail: async (id, data = {}) => apiClient(`/invoices/${id}/email`, { method: 'POST', body: data })
 };

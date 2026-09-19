@@ -892,9 +892,20 @@ export const CartView = () => {
                                 pattern="[0-9]*"
                                 min="1"
                                 value={item.qty}
-                                onChange={(e) => updateCartQty(item.product.id, e.target.value, true)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === '') {
+                                    updateCartQty(item.product.id, 1, true);
+                                  } else {
+                                    const num = parseInt(val, 10);
+                                    if (!isNaN(num) && num >= 1) {
+                                      updateCartQty(item.product.id, num, true);
+                                    }
+                                  }
+                                }}
                                 className="w-14 py-1 text-center font-extrabold text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-x border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                               />
+
                               <button
                                 type="button"
                                 onClick={() => updateCartQty(item.product.id, 1)}
@@ -1226,17 +1237,16 @@ export const CartView = () => {
                   </div>
                 </div>
 
-                {/* Payment Method Selector (Cash, Credit, Online, Special) */}
+                {/* Payment Method Selector (Cash, Credit, Online) */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
                   <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     Payment Method Selection *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
                       { id: 'Cash', label: '💵 Cash', color: 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300' },
-                      { id: 'Credit', label: '💳 Credit (Net-30)', color: 'border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300' },
-                      { id: 'Online', label: '🌐 Online (UPI/NEFT)', color: 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300' },
-                      { id: 'Special', label: '⭐ Special Scheme', color: 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300' }
+                      { id: 'Credit', label: '💳 Credit', color: 'border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300' },
+                      { id: 'Online', label: '🌐 Online (UPI/NEFT)', color: 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300' }
                     ].map(p => (
                       <button
                         key={p.id}
@@ -1248,6 +1258,7 @@ export const CartView = () => {
                             : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
                       >
+
                         {p.label}
                       </button>
                     ))}

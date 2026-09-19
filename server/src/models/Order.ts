@@ -11,6 +11,7 @@ export interface IOrderItem {
   packSize?: string;
   bundleSize?: string;
   caseSize?: string;
+  isPriority?: boolean;
   total: number;
 }
 
@@ -33,9 +34,19 @@ export interface IOrder extends Document {
     state?: string;
     gstin?: string;
   };
+  shippingAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
   items: IOrderItem[];
   totalQuantity: number;
   totalAmount: number;
+  paymentMethod?: string;
+  hasUrgentItems: boolean;
+  expiredItems?: any[];
+  returnItems?: any[];
   orderType: 'OFFLINE_COLLECTION';
   paymentStatus: 'OFFLINE';
   collectionStatus: 'PENDING' | 'COLLECTED';
@@ -59,6 +70,7 @@ const OrderItemSchema = new Schema(
     packSize: { type: String, default: '1 Unit' },
     bundleSize: { type: String, default: '' },
     caseSize: { type: String, default: '' },
+    isPriority: { type: Boolean, default: false },
     total: { type: Number, required: true }
   },
   { _id: false }
@@ -84,9 +96,19 @@ const OrderSchema: Schema = new Schema(
       state: String,
       gstin: String
     },
+    shippingAddress: {
+      street: String,
+      city: String,
+      state: String,
+      pincode: String
+    },
     items: [OrderItemSchema],
     totalQuantity: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
+    paymentMethod: { type: String, default: 'Cash' },
+    hasUrgentItems: { type: Boolean, default: false, index: true },
+    expiredItems: { type: Array, default: [] },
+    returnItems: { type: Array, default: [] },
     orderType: { type: String, enum: ['OFFLINE_COLLECTION'], default: 'OFFLINE_COLLECTION' },
     paymentStatus: { type: String, enum: ['OFFLINE'], default: 'OFFLINE' },
     collectionStatus: { type: String, enum: ['PENDING', 'COLLECTED'], default: 'PENDING' },
@@ -108,3 +130,4 @@ OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ customerName: 1 });
 
 export const Order = mongoose.model<IOrder>('Order', OrderSchema);
+

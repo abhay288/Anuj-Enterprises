@@ -11,7 +11,8 @@ import {
   RotateCcw, Megaphone, Radio, User, Zap, AlertOctagon, Scale, ShieldCheck,
   BookOpen, FileCheck, HelpCircle, PauseCircle, PlayCircle, Trophy, Flame, Crown, Medal, Target,
   Truck, MessageSquare, Send, ExternalLink, LifeBuoy, Headphones, PhoneCall, CheckCircle,
-  ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Filter, Building2, Globe, Loader2
+  ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Filter, Building2, Globe, Loader2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, 
@@ -105,8 +106,20 @@ export const AdminDashboard = () => {
     createAdminInvoice,
     navigateTo,
     logout, 
-    showToast 
+    showToast,
+    user,
+    toggleOrderUrgent
   } = useApp();
+
+  const [togglingUrgentId, setTogglingUrgentId] = useState(null);
+  const [draggedImageIndex, setDraggedImageIndex] = useState(null);
+
+  const passwordAgeDays = user?.passwordAgeDays ?? (
+    user?.passwordChangedAt 
+      ? Math.floor((new Date().getTime() - new Date(user.passwordChangedAt).getTime()) / (1000 * 60 * 60 * 24))
+      : 0
+  );
+  const isPasswordOld = Boolean(user?.isPasswordOld || passwordAgeDays >= 30);
 
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'orders' | 'schedules' | 'tickets' | 'customers' | 'announcement' | 'policies' | 'products' | 'salesmen' | 'categories' | 'reports'
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
@@ -647,6 +660,19 @@ export const AdminDashboard = () => {
       image: filtered[0] || ''
     }));
     showToast('Photo removed', 'info');
+  };
+
+  const handleMoveProductImage = (fromIdx, toIdx) => {
+    const currentImages = [...(prodForm.images && prodForm.images.length > 0 ? prodForm.images : (prodForm.image ? [prodForm.image] : []))];
+    if (fromIdx < 0 || fromIdx >= currentImages.length || toIdx < 0 || toIdx >= currentImages.length) return;
+    const [moved] = currentImages.splice(fromIdx, 1);
+    currentImages.splice(toIdx, 0, moved);
+    setProdForm(prev => ({
+      ...prev,
+      images: currentImages,
+      image: currentImages[0] || ''
+    }));
+    showToast(`Photo moved to position ${toIdx + 1}`, 'info');
   };
 
   const [prodSearch, setProdSearch] = useState('');
@@ -1252,6 +1278,37 @@ export const AdminDashboard = () => {
             </button>
           </div>
         </div>
+
+        {/* 30-Day Admin Password Rotation Security Reminder Banner */}
+        {isPasswordOld && (
+          <div className="mb-6 bg-gradient-to-r from-amber-950/80 via-rose-950/80 to-amber-950/80 border-2 border-amber-500/80 rounded-2xl p-4 sm:p-5 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur animate-pulse">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold shrink-0 mt-0.5 shadow-md">
+                <AlertCircle className="w-6 h-6 text-slate-950" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-amber-400 text-sm tracking-wide uppercase">
+                    Security Warning: Password Rotation Due
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white uppercase tracking-wider">
+                    {passwordAgeDays} Days Old
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 max-w-2xl font-medium leading-relaxed">
+                  Your administrator password was last updated {passwordAgeDays} days ago. For high enterprise security standards and regulatory compliance, administrative credentials must be refreshed every 30 days.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg hover:shadow-amber-500/20 transition-all flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-center cursor-pointer"
+            >
+              <Key className="w-4 h-4 text-slate-950" />
+              <span>Change Password Now</span>
+            </button>
+          </div>
+        )}
 
         {/* Layout Grid: Sidebar Navigation + Main Panel (Optimized for Mobile, Tablet & Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
@@ -2177,6 +2234,34 @@ export const AdminDashboard = () => {
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
                                     <span>{orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'Unread' : 'Read'}</span>
+                                  </button>
+
+                                  {/* Mark as Urgent Toggle */}
+                                  <button
+                                    onClick={async () => {
+                                      const ordId = order._id || order.id || order.orderId || order.invoiceNumber;
+                                      const currentUrgent = Boolean(order.hasUrgentItems || order.items?.some(i => i.isPriority));
+                                      setTogglingUrgentId(ordId);
+                                      try {
+                                        await toggleOrderUrgent(ordId, !currentUrgent);
+                                      } finally {
+                                        setTogglingUrgentId(null);
+                                      }
+                                    }}
+                                    disabled={togglingUrgentId === (order._id || order.id || order.orderId || order.invoiceNumber)}
+                                    className={`w-full px-3.5 py-1.5 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
+                                      hasUrgent 
+                                        ? 'bg-amber-400 hover:bg-amber-500 text-slate-950 ring-1 ring-amber-500' 
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:text-amber-700'
+                                    }`}
+                                    title={hasUrgent ? 'Click to unmark Urgent' : 'Mark order as Urgent Priority'}
+                                  >
+                                    {togglingUrgentId === (order._id || order.id || order.orderId || order.invoiceNumber) ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Zap className={`w-3.5 h-3.5 ${hasUrgent ? 'fill-current text-slate-950' : 'text-amber-500'}`} />
+                                    )}
+                                    <span>{hasUrgent ? 'Urgent' : 'Mark Urgent'}</span>
                                   </button>
 
                                   {/* Delete Order */}
@@ -5079,28 +5164,54 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Product Photos (Max 3 Photos, Cloudinary CDN Storage, Max 2MB per Photo) */}
+                {/* 3. Product Photos (Max 5 Photos, Cloudinary CDN Storage, Drag & Drop / Arrow Reordering) */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <UploadCloud className="w-4 h-4 text-amber-500" />
-                      <span>Product Photos ({(prodForm.images || []).length}/5)</span>
-                    </label>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <UploadCloud className="w-4 h-4 text-amber-500" />
+                        <span>Product Photos ({(prodForm.images || []).length}/5)</span>
+                      </label>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold block mt-0.5">
+                        💡 Drag photos or use ◀ ▶ arrows to reorder. Slot 1 is Cover Photo.
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 self-start sm:self-auto">
                       Max 5 Photos • Max 6MB each
                     </span>
                   </div>
 
-                  {/* 5 Photos Grid Slots */}
+                  {/* 5 Photos Grid Slots with Drag-and-Drop & Arrow Reorder */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {[0, 1, 2, 3, 4].map((slotIdx) => {
                       const imgUrl = (prodForm.images || [])[slotIdx];
                       return (
                         <div
                           key={slotIdx}
+                          draggable={Boolean(imgUrl)}
+                          onDragStart={(e) => {
+                            if (!imgUrl) return;
+                            setDraggedImageIndex(slotIdx);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragOver={(e) => {
+                            if (draggedImageIndex !== null) {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggedImageIndex !== null && draggedImageIndex !== slotIdx && (prodForm.images || [])[draggedImageIndex]) {
+                              handleMoveProductImage(draggedImageIndex, slotIdx);
+                              setDraggedImageIndex(null);
+                            }
+                          }}
                           className={`relative rounded-2xl border aspect-square overflow-hidden flex flex-col items-center justify-center p-1.5 transition-all ${
-                            imgUrl
-                              ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm'
+                            draggedImageIndex === slotIdx
+                              ? 'opacity-40 border-amber-500 scale-95'
+                              : imgUrl
+                              ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm cursor-grab active:cursor-grabbing hover:border-amber-400'
                               : 'bg-slate-100/50 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-800'
                           }`}
                         >
@@ -5109,7 +5220,7 @@ export const AdminDashboard = () => {
                               <img
                                 src={imgUrl}
                                 alt={`Product slot ${slotIdx + 1}`}
-                                className="w-full h-full object-contain"
+                                className="w-full h-full object-contain pointer-events-none"
                                 onError={(e) => {
                                   e.target.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
                                 }}
@@ -5137,11 +5248,36 @@ export const AdminDashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveProductImage(slotIdx)}
-                                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-transform hover:scale-110"
+                                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-transform hover:scale-110 cursor-pointer"
                                   title="Remove this photo"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
+                              </div>
+
+                              {/* Position Controls: Move Left / Move Right */}
+                              <div className="absolute bottom-2 inset-x-2 flex items-center justify-between z-10 pointer-events-auto">
+                                {slotIdx > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveProductImage(slotIdx, slotIdx - 1)}
+                                    className="p-1 bg-slate-950/80 hover:bg-amber-500 hover:text-slate-950 text-white rounded-lg shadow-md transition-all hover:scale-110 cursor-pointer"
+                                    title="Move Photo Left (Higher Priority)"
+                                  >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : <div />}
+
+                                {slotIdx < ((prodForm.images || []).length - 1) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveProductImage(slotIdx, slotIdx + 1)}
+                                    className="p-1 bg-slate-950/80 hover:bg-amber-500 hover:text-slate-950 text-white rounded-lg shadow-md transition-all hover:scale-110 ml-auto cursor-pointer"
+                                    title="Move Photo Right (Lower Priority)"
+                                  >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
                             </>
                           ) : (

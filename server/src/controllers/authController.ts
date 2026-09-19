@@ -6,6 +6,40 @@ import { Customer } from '../models/Customer.js';
 import { Salesman } from '../models/Salesman.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest, getJwtSecret } from '../middleware/authMiddleware.js';
+import { sendAdminNewDeviceAlertEmail } from '../utils/emailService.js';
+
+const parseUserAgent = (ua: string) => {
+  let browser = 'Chrome (Standard)';
+  let os = 'Windows PC';
+  let deviceType = 'Desktop Computer';
+
+  if (!ua) return { browser, os, deviceType };
+
+  if (/mobile|android|iphone/i.test(ua)) {
+    deviceType = /ipad|tablet/i.test(ua) ? 'Tablet' : 'Mobile Phone';
+  } else if (/macintosh|mac os x/i.test(ua)) {
+    deviceType = 'MacBook / Mac';
+  } else if (/windows/i.test(ua)) {
+    deviceType = 'Windows PC';
+  } else if (/linux/i.test(ua)) {
+    deviceType = 'Linux Desktop';
+  }
+
+  if (/windows nt 10/i.test(ua)) os = 'Windows 10 / 11';
+  else if (/windows nt/i.test(ua)) os = 'Windows';
+  else if (/mac os x ([0-9_]+)/i.test(ua)) os = `macOS ${RegExp.$1.replace(/_/g, '.')}`;
+  else if (/android ([0-9.]+)/i.test(ua)) os = `Android ${RegExp.$1}`;
+  else if (/iphone os ([0-9_]+)/i.test(ua)) os = `iOS ${RegExp.$1.replace(/_/g, '.')}`;
+  else if (/linux/i.test(ua)) os = 'Linux';
+
+  if (/edg\/([0-9.]+)/i.test(ua)) browser = `Microsoft Edge ${RegExp.$1.split('.')[0]}`;
+  else if (/chrome\/([0-9.]+)/i.test(ua) && !/edg/i.test(ua)) browser = `Google Chrome ${RegExp.$1.split('.')[0]}`;
+  else if (/firefox\/([0-9.]+)/i.test(ua)) browser = `Mozilla Firefox ${RegExp.$1.split('.')[0]}`;
+  else if (/safari\/([0-9.]+)/i.test(ua) && !/chrome/i.test(ua)) browser = `Apple Safari ${RegExp.$1.split('.')[0]}`;
+
+  return { browser, os, deviceType };
+};
+
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -136,8 +170,84 @@ export const login = async (req: Request, res: Response) => {
             JWT_SECRET,
             { expiresIn: '24h' }
           );
+
+          // Track Device Security for Admin accounts
+          const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress || '127.0.0.1';
+          const uaString = req.headers['user-agent'] || '';
+          const parsed = parseUserAgent(uaString);
+          const rawDeviceId = (req.headers['x-device-id'] as string) || '';
+          const deviceId = rawDeviceId || `${parsed.deviceType}_${parsed.os}_${parsed.browser}`.replace(/\s+/g, '_');
+
+          const knownList = userObj.knownDevices || [];
+          const existingDevice = knownList.find(d => d.deviceId === deviceId || (d.browser === parsed.browser && d.os === parsed.os));
+          const isNewDevice = !existingDevice;
+
+          if (isNewDevice) {
+            userObj.knownDevices = [
+              ...knownList,
+              {
+                deviceId,
+                browser: parsed.browser,
+                os: parsed.os,
+                deviceType: parsed.deviceType,
+                firstSeenAt: new Date(),
+                lastSeenAt: new Date(),
+                lastIP: clientIp,
+                lastLocation: 'Kanpur Region, Uttar Pradesh (Approximate)',
+                lastLoginAt: new Date()
+              }
+            ];
+
+            // Send Security Alert Email via Nodemailer asynchronously without blocking login
+            const now = new Date();
+            const loginDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+            const loginTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+            sendAdminNewDeviceAlertEmail({
+              adminEmail: userObj.email,
+              adminName: userObj.name,
+              loginDate,
+              loginTime,
+              timezone: 'IST (UTC+05:30)',
+              ipAddress: clientIp,
+              approximateLocation: 'Kanpur / Uttar Pradesh, India (Approximate)',
+              deviceType: parsed.deviceType,
+              os: parsed.os,
+              browser: parsed.browser,
+              userAgent: uaString,
+              deviceId
+            }).catch((emailErr: any) => {
+              console.warn('[AuthController] Non-blocking new device alert email failure caught:', emailErr?.message || emailErr);
+            });
+
+            // Log New Device Login Event in AdminActivity
+            AdminActivity.create({
+              action: 'ADMIN_NEW_DEVICE_LOGIN',
+              adminId: String(userObj._id),
+              adminName: userObj.name,
+              details: `Admin login from new device (${parsed.deviceType}, ${parsed.os}, ${parsed.browser}) at IP ${clientIp}`
+            }).catch(() => {});
+          } else {
+            existingDevice.lastSeenAt = new Date();
+            existingDevice.lastIP = clientIp;
+            existingDevice.lastLoginAt = new Date();
+            userObj.markModified('knownDevices');
+
+            AdminActivity.create({
+              action: 'ADMIN_LOGIN',
+              adminId: String(userObj._id),
+              adminName: userObj.name,
+              details: `Admin login from recognized device (${parsed.deviceType}) at IP ${clientIp}`
+            }).catch(() => {});
+          }
+
           userObj.lastLogin = new Date();
           await userObj.save();
+
+          // Compute Password Age (30-day reminder)
+          const pwdChangedAt = userObj.passwordChangedAt || userObj.createdAt || new Date();
+          const passwordAgeDays = Math.floor((Date.now() - new Date(pwdChangedAt).getTime()) / (1000 * 60 * 60 * 24));
+          const isPasswordOld = passwordAgeDays >= 30;
 
           return res.json({
             success: true,
@@ -148,7 +258,11 @@ export const login = async (req: Request, res: Response) => {
                 name: userObj.name,
                 email: userObj.email,
                 role: userObj.role.toLowerCase(),
-                status: userObj.status
+                status: userObj.status,
+                passwordChangedAt: pwdChangedAt,
+                passwordAgeDays,
+                isPasswordOld,
+                newDeviceDetected: isNewDevice
               }
             },
             message: `${userObj.role} Authentication Granted`
@@ -156,6 +270,7 @@ export const login = async (req: Request, res: Response) => {
         }
       }
     }
+
 
     // 2. Check Salesman Account (Salesman ID or Email)
     if (cleanRole === 'salesman' || cleanId.toUpperCase().startsWith('AE-SM') || cleanId.toUpperCase().startsWith('SLS')) {
@@ -391,6 +506,7 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     // Hash New Password with bcrypt (10 rounds)
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
     accountDoc.passwordHash = newPasswordHash;
+    accountDoc.passwordChangedAt = new Date();
     await accountDoc.save();
 
     // Trace Activity

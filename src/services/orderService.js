@@ -29,7 +29,15 @@ export const orderService = {
     return apiClient(`/orders/${id}/read`, { method: 'PATCH' });
   },
 
+  toggleUrgent: async (id, isUrgent) => {
+    return apiClient(`/orders/${id}/urgent`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isUrgent })
+    });
+  },
+
   deleteOrder: async (id) => {
     return apiClient(`/orders/${id}`, { method: 'DELETE' });
   }
 };
+

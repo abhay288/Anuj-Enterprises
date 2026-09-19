@@ -4,7 +4,7 @@ import {
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
   Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Truck, MapPin, ExternalLink, Trash2
+  ChevronLeft, ChevronRight, Truck, MapPin, ExternalLink, Trash2, Loader2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
@@ -14,9 +14,10 @@ import { getPackagingLevels } from '../../utils/packagingUtils';
 import { invoiceService } from '../../services/invoiceService';
 
 export const InvoiceModal = () => {
-  const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast, user } = useApp();
+  const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast, user, toggleOrderUrgent } = useApp();
   const [previewModalImages, setPreviewModalImages] = useState([]);
   const [previewModalIndex, setPreviewModalIndex] = useState(0);
+  const [isTogglingUrgent, setIsTogglingUrgent] = useState(false);
 
   const openLightbox = (imgs, index = 0) => {
     const list = Array.isArray(imgs) ? imgs : [imgs].filter(Boolean);
@@ -38,6 +39,7 @@ export const InvoiceModal = () => {
   if (!isInvoiceModalOpen || !selectedInvoice) return null;
 
   const inv = selectedInvoice;
+  const isUrgent = Boolean(inv?.hasUrgentItems || inv?.isUrgent || inv?.items?.some(it => it.isPriority));
   const invoiceNumber = inv.invoiceNumber || inv.id || 'AE-2026-000001';
 
   const getInvoiceDateInfo = (order) => {
@@ -200,6 +202,38 @@ export const InvoiceModal = () => {
                 <Mail className="w-4 h-4" /> <span>Email Invoice</span>
               </button>
 
+              {/* Mark as Urgent Toggle Button */}
+              <button
+                onClick={async () => {
+                  if (isTogglingUrgent) return;
+                  setIsTogglingUrgent(true);
+                  try {
+                    const id = inv._id || inv.invoiceNumber || inv.id || inv.orderId;
+                    await toggleOrderUrgent(id, !isUrgent);
+                    inv.hasUrgentItems = !isUrgent;
+                    inv.isUrgent = !isUrgent;
+                  } catch (e) {
+                    // Handled in context
+                  } finally {
+                    setIsTogglingUrgent(false);
+                  }
+                }}
+                disabled={isTogglingUrgent}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow ${
+                  isUrgent
+                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 ring-2 ring-amber-300'
+                    : 'bg-slate-700 hover:bg-amber-600 hover:text-white text-slate-200'
+                }`}
+                title={isUrgent ? 'Click to unmark Urgent' : 'Mark this order as Urgent'}
+              >
+                {isTogglingUrgent ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <Zap className={`w-4 h-4 ${isUrgent ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
+                )}
+                <span>{isUrgent ? 'Urgent' : 'Mark Urgent'}</span>
+              </button>
+
               {/* Admin Actions: Mark as Read & Delete Invoice */}
               {isAdmin && (
                 <>
@@ -342,8 +376,6 @@ export const InvoiceModal = () => {
                       ? 'bg-purple-600 text-white'
                       : (inv.paymentMethod || inv.paymentMode || 'Cash').toUpperCase().includes('ONLINE')
                       ? 'bg-blue-600 text-white'
-                      : (inv.paymentMethod || inv.paymentMode || 'Cash').toUpperCase().includes('SPECIAL')
-                      ? 'bg-amber-500 text-slate-950'
                       : 'bg-emerald-600 text-white'
                   }`}>
                     {inv.paymentMethod || inv.paymentMode || 'Cash'}
@@ -351,6 +383,19 @@ export const InvoiceModal = () => {
                 </div>
               </div>
             </div>
+
+            {/* Urgent / Priority Dispatch Banner if marked */}
+            {isUrgent && (
+              <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 p-3 rounded-xl flex items-center justify-between font-black text-xs uppercase tracking-wider shadow border border-amber-600">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 fill-current text-slate-950 animate-bounce" />
+                  <span>URGENT PRIORITY DISPATCH / FAST-TRACK DELIVERY ORDER</span>
+                </div>
+                <span className="bg-slate-950 text-amber-300 text-[10px] px-2.5 py-1 rounded-md font-black tracking-widest shadow">
+                  PRIORITY
+                </span>
+              </div>
+            )}
 
             {/* Itemized Invoice Table with Pack Specifications */}
             <div className="overflow-x-auto">

@@ -148,14 +148,21 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       ] 
     });
 
+    let resolvedPaymentMethod = req.body.paymentMethod || req.body.paymentMode || 'Cash';
+    if (resolvedPaymentMethod.toUpperCase().includes('CREDIT') || resolvedPaymentMethod.toUpperCase().includes('NET')) {
+      resolvedPaymentMethod = 'Credit';
+    } else if (resolvedPaymentMethod.toUpperCase().includes('SPECIAL')) {
+      resolvedPaymentMethod = 'Cash'; // Special Scheme removed
+    }
+
     if (!customerObj) {
       const custCount = await Customer.countDocuments();
       customerObj = new Customer({
         customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
-        name: customerName,
-        phone: customerMobile || '+91 98200 11223',
-        email: customerEmail || 'orders@customer.demo',
-        address: customerAddress || '',
+        name: customerName.trim(),
+        phone: customerMobile ? String(customerMobile).trim() : '',
+        email: customerEmail ? String(customerEmail).trim() : '',
+        address: customerAddress ? String(customerAddress).trim() : '',
         city: customerCity || 'Kanpur',
         state: customerState || 'Uttar Pradesh',
         classification: normalizedClassification,
@@ -172,28 +179,42 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       if (customerAddress) customerObj.address = customerAddress;
       if (customerCity) customerObj.city = customerCity;
       if (customerState) customerObj.state = customerState;
+      if (customerMobile && !customerObj.phone) customerObj.phone = customerMobile;
+      if (customerEmail && !customerObj.email) customerObj.email = customerEmail;
       await customerObj.save();
     }
+
+    const cleanMobile = customerMobile ? String(customerMobile).trim() : (customerObj.phone || '');
+    const cleanEmail = customerEmail ? String(customerEmail).trim() : (customerObj.email || '');
 
     const order = new Order({
       orderId,
       invoiceNumber,
       customerName: customerObj.name,
       customerClassification: normalizedClassification,
+      customerId: customerObj.customerId,
       salesmanId: salesmanId || req.user?.salesmanId || 'AE-SM-001',
       salesmanName: resolvedShopOwnerName,
       shopOwnerName: resolvedShopOwnerName,
       shopOwnerArea: resolvedShopOwnerArea,
       shopRoute: resolvedShopRoute,
+      customerDetails: {
+        mobile: cleanMobile,
+        email: cleanEmail,
+        address: customerAddress || customerObj.address || '',
+        city: customerCity || customerObj.city || 'Kanpur',
+        state: customerState || customerObj.state || 'Uttar Pradesh'
+      },
       shippingAddress: {
-        street: customerAddress || '',
-        city: customerCity || '',
-        state: customerState || '',
+        street: customerAddress || customerObj.address || '',
+        city: customerCity || customerObj.city || 'Kanpur',
+        state: customerState || customerObj.state || 'Uttar Pradesh',
         pincode: ''
       },
       items: processedItems,
       totalQuantity,
       totalAmount: grandTotal,
+      paymentMethod: resolvedPaymentMethod,
       expiredItems: expiredItems || [],
       returnItems: returnItems || [],
       hasUrgentItems: processedItems.some(i => i.isPriority),
@@ -217,24 +238,35 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       customerId: customerObj.customerId,
       customerName: order.customerName,
       customerClassification: normalizedClassification,
-      customerMobile: customerMobile || '+91 98200 11223',
-      customerAddress: customerAddress || '',
+      customerMobile: cleanMobile,
+      customerEmail: cleanEmail,
+      customerAddress: customerAddress || customerObj.address || '',
+      customerCity: customerCity || customerObj.city || 'Kanpur',
+      customerState: customerState || customerObj.state || 'Uttar Pradesh',
       items: processedItems.map(i => ({
         id: i.productId,
+        productId: i.productId,
         name: i.productName,
+        productName: i.productName,
+        companyName: i.companyName || '',
+        categoryName: i.categoryName || '',
         sku: i.sku,
         qty: i.quantity,
+        quantity: i.quantity,
         price: i.price,
+        unitPrice: i.price,
         packSize: i.packSize,
         bundleSize: i.bundleSize,
         caseSize: i.caseSize,
-        isPriority: Boolean(i.isPriority)
+        isPriority: Boolean(i.isPriority),
+        total: i.total
       })),
       expiredItems: expiredItems || [],
       returnItems: returnItems || [],
       hasUrgentItems: processedItems.some(i => i.isPriority),
       hasExpiredItems: Boolean(expiredItems && expiredItems.length > 0),
       hasReturnItems: Boolean(returnItems && returnItems.length > 0),
+      paymentMethod: resolvedPaymentMethod,
       subtotal: grandTotal,
       grandTotal,
       paymentStatus: 'OFFLINE',
@@ -243,21 +275,22 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     });
     await invoice.save();
 
+
     // Asynchronously dispatch Order Invoice Email via Nodemailer (Gmail / SMTP)
     sendOrderInvoiceEmail({
       orderId,
       invoiceNumber,
       customerName: order.customerName,
       shopOwnerName: resolvedShopOwnerName,
-      customerMobile: customerMobile || '+91 98200 11223',
+      customerMobile: cleanMobile,
       customerAddress: customerAddress || '',
-      customerCity: customerCity || '',
-      customerState: customerState || '',
+      customerCity: customerCity || 'Kanpur',
+      customerState: customerState || 'Uttar Pradesh',
       totalQuantity,
       totalAmount: grandTotal,
       items: processedItems,
       date: new Date().toISOString().split('T')[0]
-    }, customerEmail).catch(err => {
+    }, cleanEmail).catch(err => {
       console.warn('[OrderController] Email dispatch notification caught:', err?.message || err);
     });
 
@@ -269,37 +302,53 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
           invoiceNumber,
           orderId,
           date: new Date().toISOString().split('T')[0],
+          timestamp: order.createdAt,
+          customerId: customerObj.customerId,
           customerName: order.customerName,
-          customerMobile: customerMobile || '+91 98200 11223',
+          customerMobile: cleanMobile,
+          customerEmail: cleanEmail,
           customerAddress: customerAddress || '',
-          customerCity: customerCity || '',
-          customerState: customerState || '',
+          customerCity: customerCity || 'Kanpur',
+          customerState: customerState || 'Uttar Pradesh',
           customerType: customerType || 'Normal Customer',
           salesmanId: order.salesmanId,
           salesmanName: order.salesmanName,
-          salesmanPhone: salesmanPhone || '+91 98765 43210',
+          salesmanPhone: salesmanPhone || '',
+          shopOwnerName: resolvedShopOwnerName,
+          shopOwnerArea: resolvedShopOwnerArea,
+          shopRoute: resolvedShopRoute,
           orderType: 'Offline Collection',
-          paymentMode: 'Offline',
+          paymentMethod: resolvedPaymentMethod,
+          paymentMode: resolvedPaymentMethod,
           collectionStatus: 'Pending',
+          hasUrgentItems: processedItems.some(i => i.isPriority),
+          isPriority: processedItems.some(i => i.isPriority),
           items: processedItems.map(i => ({
             id: i.productId,
+            productId: i.productId,
             name: i.productName,
+            productName: i.productName,
+            companyName: i.companyName || '',
+            categoryName: i.categoryName || '',
             sku: i.sku,
             qty: i.quantity,
+            quantity: i.quantity,
             price: i.price,
+            unitPrice: i.price,
             packSize: i.packSize,
             bundleSize: i.bundleSize,
             caseSize: i.caseSize,
-            isPriority: Boolean(i.isPriority)
+            isPriority: Boolean(i.isPriority),
+            total: i.total
           })),
           expiredItems: expiredItems || [],
           returnItems: returnItems || [],
-          hasUrgentItems: processedItems.some(i => i.isPriority),
           hasExpiredItems: Boolean(expiredItems && expiredItems.length > 0),
           hasReturnItems: Boolean(returnItems && returnItems.length > 0),
           totalQuantity,
           subtotal: grandTotal,
           grandTotal,
+          totalAmount: grandTotal,
           status: 'Invoiced'
         },
         invoice
@@ -310,6 +359,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 export const getOrders = async (req: AuthRequest, res: Response) => {
   try {
@@ -362,31 +412,79 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
       Order.countDocuments(filter)
     ]);
 
-    const formatted = orders.map((o: any) => ({
-      id: o.invoiceNumber || o.orderId,
-      orderId: o.orderId,
-      invoiceNumber: o.invoiceNumber || o.orderId,
-      date: new Date(o.createdAt).toISOString().split('T')[0],
-      customerName: o.customerName,
-      customerType: `${o.customerClassification.charAt(0) + o.customerClassification.slice(1).toLowerCase()} Customer`,
-      salesmanId: o.salesmanId,
-      salesmanName: o.salesmanName,
-      orderType: 'Offline Collection',
-      paymentMode: 'Offline',
-      collectionStatus: o.collectionStatus === 'PENDING' ? 'Pending' : 'Collected',
-      status: o.status,
-      items: o.items.map((i: any) => ({
-        id: i.productId,
-        name: i.productName,
-        sku: i.sku,
-        qty: i.quantity,
-        price: i.price,
-        packSize: i.packSize,
-        bundleSize: i.bundleSize,
-        caseSize: i.caseSize
-      })),
-      totalQuantity: o.totalQuantity
-    }));
+    const formatted = orders.map((o: any) => {
+      const mob = o.customerDetails?.mobile || o.customerMobile || '';
+      const addr = o.customerDetails?.address || o.shippingAddress?.street || o.customerAddress || '';
+      const cCity = o.customerDetails?.city || o.shippingAddress?.city || o.customerCity || 'Kanpur';
+      const cState = o.customerDetails?.state || o.shippingAddress?.state || o.customerState || 'Uttar Pradesh';
+      const cEmail = o.customerDetails?.email || o.customerEmail || '';
+      const hasUrgent = Boolean(o.hasUrgentItems || (Array.isArray(o.items) && o.items.some((i: any) => i.isPriority)));
+
+      let payMethod = o.paymentMethod || o.paymentMode || 'Cash';
+      if (payMethod.toUpperCase().includes('NET') || payMethod.toUpperCase().includes('CREDIT')) {
+        payMethod = 'Credit';
+      } else if (payMethod.toUpperCase().includes('SPECIAL')) {
+        payMethod = 'Cash'; // Special Scheme removed
+      }
+
+      return {
+        id: o.invoiceNumber || o.orderId,
+        orderId: o.orderId,
+        invoiceNumber: o.invoiceNumber || o.orderId,
+        date: new Date(o.createdAt).toISOString().split('T')[0],
+        timestamp: o.createdAt,
+        customerId: o.customerId || '',
+        customerName: o.customerName,
+        customerMobile: mob,
+        customerEmail: cEmail,
+        customerAddress: addr,
+        customerCity: cCity,
+        customerState: cState,
+        customerType: o.customerClassification ? `${o.customerClassification.charAt(0) + o.customerClassification.slice(1).toLowerCase()} Customer` : 'Normal Customer',
+        customerClassification: o.customerClassification || 'NORMAL',
+        salesmanId: o.salesmanId,
+        salesmanName: o.salesmanName,
+        shopOwnerName: o.shopOwnerName || o.salesmanName || 'Shop Owner',
+        shopOwnerArea: o.shopOwnerArea || 'Kanpur Mandi Area',
+        shopRoute: o.shopRoute || '',
+        orderType: o.orderType || 'Offline Collection',
+        paymentMethod: payMethod,
+        paymentMode: payMethod,
+        paymentStatus: o.paymentStatus || 'OFFLINE',
+        collectionStatus: o.collectionStatus === 'PENDING' ? 'Pending' : 'Collected',
+        status: o.status,
+        hasUrgentItems: hasUrgent,
+        isPriority: hasUrgent,
+        expiredItems: o.expiredItems || [],
+        returnItems: o.returnItems || [],
+        hasExpiredItems: Boolean(o.expiredItems && o.expiredItems.length > 0),
+        hasReturnItems: Boolean(o.returnItems && o.returnItems.length > 0),
+        items: (o.items || []).map((i: any) => ({
+          id: i.productId,
+          productId: i.productId,
+          name: i.productName,
+          productName: i.productName,
+          companyName: i.companyName || '',
+          categoryName: i.categoryName || '',
+          sku: i.sku,
+          qty: i.quantity,
+          quantity: i.quantity,
+          price: i.price,
+          unitPrice: i.price,
+          packSize: i.packSize || '1 Unit',
+          bundleSize: i.bundleSize || '',
+          caseSize: i.caseSize || '',
+          isPriority: Boolean(i.isPriority),
+          total: i.total || (i.price * i.quantity)
+        })),
+        totalQuantity: o.totalQuantity,
+        subtotal: o.totalAmount,
+        grandTotal: o.totalAmount,
+        totalAmount: o.totalAmount,
+        isRead: Boolean(o.isRead)
+      };
+    });
+
 
     return res.json({
       success: true,
@@ -513,4 +611,39 @@ export const deleteOrder = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const toggleOrderUrgent = async (req: AuthRequest, res: Response) => {
+  try {
+    const idStr = String(req.params.id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+
+    const order = await Order.findOne({
+      $or: [{ orderId: idStr }, { invoiceNumber: idStr }, { _id: isObjectId ? idStr : null }]
+    });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    const newUrgent = req.body.isUrgent !== undefined ? Boolean(req.body.isUrgent) : !order.hasUrgentItems;
+    order.hasUrgentItems = newUrgent;
+    await order.save();
+
+    // Also synchronize urgency flag with Invoice in MongoDB
+    await Invoice.updateOne(
+      { $or: [{ orderId: order.orderId }, { invoiceNumber: order.invoiceNumber }] },
+      { $set: { hasUrgentItems: newUrgent } }
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        orderId: order.orderId,
+        invoiceNumber: order.invoiceNumber,
+        hasUrgentItems: newUrgent
+      },
+      message: `Order ${order.orderId} marked as ${newUrgent ? 'Urgent Priority' : 'Normal Priority'}`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 

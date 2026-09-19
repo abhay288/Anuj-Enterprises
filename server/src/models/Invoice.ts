@@ -12,9 +12,18 @@ export interface IInvoice extends Document {
   customerName: string;
   customerClassification: 'NORMAL' | 'DAMAGE' | 'EXPIRY';
   customerMobile?: string;
+  customerEmail?: string;
   customerGstin?: string;
   customerAddress?: string;
+  customerCity?: string;
+  customerState?: string;
   items: any[];
+  expiredItems?: any[];
+  returnItems?: any[];
+  hasUrgentItems?: boolean;
+  hasExpiredItems?: boolean;
+  hasReturnItems?: boolean;
+  paymentMethod?: string;
   subtotal: number;
   tax: number;
   grandTotal: number;
@@ -41,9 +50,18 @@ const InvoiceSchema: Schema = new Schema(
     customerName: { type: String, required: true },
     customerClassification: { type: String, enum: ['NORMAL', 'DAMAGE', 'EXPIRY'], default: 'NORMAL' },
     customerMobile: { type: String, default: '' },
+    customerEmail: { type: String, default: '' },
     customerGstin: { type: String, default: '' },
     customerAddress: { type: String, default: '' },
+    customerCity: { type: String, default: 'Kanpur' },
+    customerState: { type: String, default: 'Uttar Pradesh' },
     items: { type: Array, required: true },
+    expiredItems: { type: Array, default: [] },
+    returnItems: { type: Array, default: [] },
+    hasUrgentItems: { type: Boolean, default: false, index: true },
+    hasExpiredItems: { type: Boolean, default: false },
+    hasReturnItems: { type: Boolean, default: false },
+    paymentMethod: { type: String, default: 'Cash' },
     subtotal: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
     grandTotal: { type: Number, default: 0 },
@@ -61,3 +79,4 @@ InvoiceSchema.index({ salesmanId: 1, issuedAt: -1 });
 InvoiceSchema.index({ customerId: 1, issuedAt: -1 });
 
 export const Invoice = mongoose.model<IInvoice>('Invoice', InvoiceSchema);
+

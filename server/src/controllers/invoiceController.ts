@@ -277,4 +277,40 @@ export const sendInvoiceEmail = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const toggleInvoiceUrgent = async (req: AuthRequest, res: Response) => {
+  try {
+    const idStr = String(req.params.id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+    const invoice = await Invoice.findOne({
+      $or: [{ invoiceNumber: idStr }, { orderId: idStr }, { _id: isObjectId ? idStr : null }]
+    });
+
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+    const newUrgent = req.body.isUrgent !== undefined ? Boolean(req.body.isUrgent) : !invoice.hasUrgentItems;
+    invoice.hasUrgentItems = newUrgent;
+    await invoice.save();
+
+    // Synchronize urgent status with MongoDB Order document
+    const { Order } = await import('../models/Order.js');
+    await Order.updateOne(
+      { $or: [{ orderId: invoice.orderId }, { invoiceNumber: invoice.invoiceNumber }] },
+      { $set: { hasUrgentItems: newUrgent } }
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        invoiceNumber: invoice.invoiceNumber,
+        orderId: invoice.orderId,
+        hasUrgentItems: newUrgent
+      },
+      message: `Invoice #${invoice.invoiceNumber} marked as ${newUrgent ? 'Urgent Priority' : 'Normal Priority'}`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 

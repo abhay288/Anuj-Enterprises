@@ -483,3 +483,119 @@ export const verifyTransporterConnection = async () => {
         return false;
     }
 };
+/**
+ * 5. Send Urgent New Device Admin Login Security Alert
+ * Dispatched immediately when an admin successfully authenticates from an unrecognized device/browser.
+ * Strictly adheres to security policies: NO passwords, NO tokens, NO JWTs.
+ */
+export const sendAdminNewDeviceAlertEmail = async (alertData) => {
+    try {
+        const transporter = createEmailTransporter();
+        const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER || 'anujenterprises.fmcg.006@gmail.com';
+        const safeLocation = alertData.approximateLocation || 'Kanpur / Uttar Pradesh Region, India (Approximate)';
+        const safeTimezone = alertData.timezone || 'IST (UTC+05:30)';
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0f172a; margin: 0; padding: 20px; color: #1e293b; }
+          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+          .header { background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); color: #ffffff; padding: 28px 24px; text-align: center; }
+          .alert-badge { display: inline-block; background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
+          .title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+          .subtitle { color: #fecaca; margin: 6px 0 0; font-size: 13px; font-weight: 500; }
+          .content { padding: 28px 24px; font-size: 14px; line-height: 1.6; color: #334155; }
+          .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+          .info-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+          .info-table tr:last-child td { border-bottom: none; }
+          .info-table td.label { font-weight: 700; color: #64748b; width: 38%; }
+          .info-table td.val { font-weight: 600; color: #0f172a; font-family: system-ui, -apple-system, sans-serif; }
+          .warning-box { background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 24px 0; color: #92400e; font-size: 13px; }
+          .warning-box strong { color: #78350f; display: block; margin-bottom: 4px; font-size: 14px; }
+          .footer { background: #f8fafc; padding: 20px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <span class="alert-badge">🛡️ Security Notification</span>
+            <h1 class="title">New Admin Login Detected</h1>
+            <p class="subtitle">Anuj Enterprises Management Portal</p>
+          </div>
+          <div class="content">
+            <p>Hello <strong>${alertData.adminName || 'Administrator'}</strong>,</p>
+            <p>Your Anuj Enterprises Admin account was just accessed from a <strong>new or unrecognized device / browser session</strong>.</p>
+            
+            <table class="info-table">
+              <tr>
+                <td class="label">Admin Account</td>
+                <td class="val"><strong>${alertData.adminEmail}</strong></td>
+              </tr>
+              <tr>
+                <td class="label">Date</td>
+                <td class="val">${alertData.loginDate}</td>
+              </tr>
+              <tr>
+                <td class="label">Time</td>
+                <td class="val">${alertData.loginTime} (${safeTimezone})</td>
+              </tr>
+              <tr>
+                <td class="label">Device Type</td>
+                <td class="val">${alertData.deviceType}</td>
+              </tr>
+              <tr>
+                <td class="label">Operating System</td>
+                <td class="val">${alertData.os}</td>
+              </tr>
+              <tr>
+                <td class="label">Browser</td>
+                <td class="val">${alertData.browser}</td>
+              </tr>
+              <tr>
+                <td class="label">Approximate Location</td>
+                <td class="val">${safeLocation}</td>
+              </tr>
+              <tr>
+                <td class="label">IP Address</td>
+                <td class="val" style="font-family: monospace;">${alertData.ipAddress}</td>
+              </tr>
+              ${alertData.userAgent ? `
+              <tr>
+                <td class="label">Client User-Agent</td>
+                <td class="val" style="font-family: monospace; font-size: 11px; word-break: break-all;">${alertData.userAgent}</td>
+              </tr>` : ''}
+            </table>
+
+            <div class="warning-box">
+              <strong>⚠️ Did not authorize this login?</strong>
+              If you did not perform this login, your account credentials may be compromised. Please change your password immediately in the Admin Dashboard and review your active sessions.
+            </div>
+
+            <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+              * Note: Geographic locations derived from IP addresses are approximate and should be used as guidance only.
+            </p>
+          </div>
+          <div class="footer">
+            <strong>Anuj Enterprises Security Team</strong> • Kanpur, Uttar Pradesh<br>
+            📞 Helpline: +91 88876 83782 / +91 70719 79894 | 📧 anujenterprises.fmcg.006@gmail.com
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+        const info = await transporter.sendMail({
+            from: `"Anuj Enterprises Security" <${FROM_EMAIL}>`,
+            to: alertData.adminEmail,
+            subject: "New Admin Login Detected — Anuj Enterprises",
+            html: htmlContent
+        });
+        console.log(`[EmailService] New device alert email sent to ${alertData.adminEmail} (MessageID: ${info.messageId})`);
+        return { success: true, messageId: info.messageId };
+    }
+    catch (err) {
+        console.error('[EmailService] Failed to send new device alert email:', err?.message || err);
+        return { success: false, error: err?.message || 'Failed to send alert email' };
+    }
+};
