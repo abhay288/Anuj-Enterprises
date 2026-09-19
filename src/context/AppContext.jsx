@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   INITIAL_PRODUCTS, 
@@ -498,6 +498,13 @@ export const AppProvider = ({ children }) => {
 
   // Toast System
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  }, []);
 
   // Floating Headline Announcement State (Admin-Editable)
   const [headlineConfig, setHeadlineConfig] = useState(() => {
@@ -1234,12 +1241,6 @@ export const AppProvider = ({ children }) => {
     };
   }, []);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, show: false }));
-    }, 4000);
-  };
 
   const navigateTo = (targetView, productOrId = null, pushHistory = true) => {
     let resolvedId = null;
@@ -1785,6 +1786,27 @@ export const AppProvider = ({ children }) => {
 
     showToast(`Order #${orderId} updated to ${readableStatus}`, 'success');
     return updatedOrder;
+  };
+
+  const toggleOrderUrgent = async (orderId, newUrgent) => {
+    try {
+      const res = await orderService.toggleUrgent(orderId, newUrgent);
+      setOrders(prev => prev.map(o => {
+        if (
+          (o.id && o.id === orderId) ||
+          (o.orderId && o.orderId === orderId) ||
+          (o.invoiceNumber && o.invoiceNumber === orderId)
+        ) {
+          return { ...o, hasUrgentItems: newUrgent, isPriority: newUrgent };
+        }
+        return o;
+      }));
+      showToast(res.message || `Order urgency updated`, 'success');
+      return true;
+    } catch (err) {
+      showToast(err?.message || 'Failed to update order urgency', 'error');
+      return false;
+    }
   };
 
   // Robust matcher to reliably link products across Mongo ObjectIds, custom IDs, and SKUs

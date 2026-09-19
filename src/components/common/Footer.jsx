@@ -91,8 +91,8 @@ export const Footer = () => {
               {t('top_categories', 'Top Industrial Categories')}
             </h4>
             <ul className="space-y-2 text-xs">
-              {categories.slice(0, 5).map((cat) => (
-                <li key={cat.id}>
+              {categories.slice(0, 5).map((cat, idx) => (
+                <li key={cat._id || cat.id || cat.name || idx}>
                   <button
                     onClick={() => filterByCategory(cat.name)}
                     className="hover:text-amber-400 transition-colors"

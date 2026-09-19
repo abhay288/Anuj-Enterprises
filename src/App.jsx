@@ -154,12 +154,12 @@ const MainContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <AppProvider>
         <MainContent />
         <Analytics />
         <SpeedInsights />
-      </ErrorBoundary>
-    </AppProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
