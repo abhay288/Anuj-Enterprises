@@ -4,16 +4,17 @@ import {
   X, Printer, Download, Share2, CheckCircle2, Building2, 
   ShieldCheck, FileText, AlertCircle, MessageSquare, Mail, Copy,
   Zap, AlertOctagon, RotateCcw, Calendar, Clock, Eye, Camera, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Truck, MapPin, ExternalLink
+  ChevronLeft, ChevronRight, Truck, MapPin, ExternalLink, Trash2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { shareInvoicePDFToWhatsApp, generateInvoicePDF } from '../../utils/pdfGenerator';
 import { sendDeliveryWhatsAppNotification } from '../../utils/deliveryNotificationUtils';
 import { WhatsAppIcon } from '../common/WhatsAppIcon';
 import { getPackagingLevels } from '../../utils/packagingUtils';
+import { invoiceService } from '../../services/invoiceService';
 
 export const InvoiceModal = () => {
-  const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast } = useApp();
+  const { isInvoiceModalOpen, closeInvoiceModal, selectedInvoice, showToast, user } = useApp();
   const [previewModalImages, setPreviewModalImages] = useState([]);
   const [previewModalIndex, setPreviewModalIndex] = useState(0);
 
@@ -23,6 +24,11 @@ export const InvoiceModal = () => {
     setPreviewModalImages(list);
     setPreviewModalIndex(Math.min(index, list.length - 1));
   };
+
+  const isAdmin = user?.role === 'admin';
+  const [invoiceRead, setInvoiceRead] = useState(false);
+  const [showDeleteInvoiceModal, setShowDeleteInvoiceModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isInvoiceModalOpen || !selectedInvoice) return null;
 
@@ -176,6 +182,38 @@ export const InvoiceModal = () => {
               >
                 <WhatsAppIcon className="w-4 h-4 text-white" /> <span>Share PDF</span>
               </button>
+
+              {/* Admin Actions: Mark as Read & Delete Invoice */}
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={async () => {
+                      const id = inv._id || inv.invoiceNumber || inv.id;
+                      try {
+                        await invoiceService.markRead(id);
+                        setInvoiceRead(prev => !prev);
+                        showToast(`Invoice marked as ${invoiceRead ? 'Unread' : 'Read'}`, 'success');
+                      } catch (e) {
+                        showToast('Failed to update invoice read status', 'error');
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow ${
+                      invoiceRead || inv.isRead ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    title={invoiceRead || inv.isRead ? "Mark Invoice Unread" : "Mark Invoice Read"}
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> <span>{invoiceRead || inv.isRead ? 'Unread' : 'Mark Read'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowDeleteInvoiceModal(true)}
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow"
+                    title="Delete Invoice"
+                  >
+                    <Trash2 className="w-4 h-4" /> <span>Delete</span>
+                  </button>
+                </>
+              )}
               
               <button
                 onClick={closeInvoiceModal}
@@ -633,6 +671,57 @@ export const InvoiceModal = () => {
                 <p className="text-center text-[11px] text-slate-500 font-medium">
                   Direct client attachment for invoice verification & claim settlement.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Invoice Confirmation Modal */}
+        {showDeleteInvoiceModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-rose-300 dark:border-rose-800 text-slate-900 dark:text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black">Delete Invoice?</h3>
+                  <p className="text-[11px] text-slate-500">This will remove invoice {invoiceNumber}</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mb-5">
+                Are you sure you want to permanently delete invoice <strong>{invoiceNumber}</strong>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteInvoiceModal(false)}
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={async () => {
+                    const id = inv._id || inv.invoiceNumber || inv.id;
+                    setIsDeleting(true);
+                    try {
+                      await invoiceService.deleteInvoice(id);
+                      showToast(`Invoice ${invoiceNumber} deleted successfully`, 'success');
+                      setShowDeleteInvoiceModal(false);
+                      closeInvoiceModal();
+                      window.location.reload();
+                    } catch (e) {
+                      showToast('Failed to delete invoice: ' + (e?.message || 'Unknown error'), 'error');
+                      setIsDeleting(false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                </button>
               </div>
             </div>
           </div>

@@ -143,15 +143,16 @@ export const getProducts = async (req: Request, res: Response) => {
       queryFilter.newProduct = true;
     }
 
+    const reqRole = (req as AuthRequest).user?.role;
     const cleanStatus = status ? String(status).trim() : '';
-    if (cleanStatus && cleanStatus.toLowerCase() !== 'all') {
-      queryFilter.status = cleanStatus;
-    } else if (!cleanStatus) {
-      // Default to Published unless caller explicitly asks for all or is an Admin
-      const reqRole = (req as AuthRequest).user?.role;
-      if (reqRole !== 'ADMIN') {
-        queryFilter.status = 'Published';
+
+    if (reqRole === 'ADMIN') {
+      if (cleanStatus && cleanStatus.toLowerCase() !== 'all') {
+        queryFilter.status = cleanStatus;
       }
+    } else {
+      // Non-admin callers (customers, public, guests) can ONLY see Published products
+      queryFilter.status = 'Published';
     }
 
     if (search) {
@@ -284,6 +285,15 @@ export const getProductById = async (req: Request, res: Response) => {
     const product = await Product.findOne(query).lean();
 
     if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: `Product not found with ID ${idStr}`,
+        code: 'PRODUCT_NOT_FOUND'
+      });
+    }
+
+    const reqRole = (req as AuthRequest).user?.role;
+    if (product.status === 'Draft' && reqRole !== 'ADMIN') {
       return res.status(404).json({
         success: false,
         message: `Product not found with ID ${idStr}`,
