@@ -87,19 +87,17 @@ export const seedDatabase = async () => {
             console.log('✓ Default Salesmen seeded (AE-SM-001, AE-SM-002)');
         }
         // 4. Ensure Default Admin exists
-        const adminExists = await User.findOne({ email: 'admin@anujfmcg.com' });
-        if (!adminExists) {
-            const adminPasswordHash = await bcrypt.hash('Anuj@2026', 10);
-            await User.create({
-                name: 'Managing Director (Admin)',
-                email: 'admin@anujfmcg.com',
-                phone: '+91 88876 83782',
-                passwordHash: adminPasswordHash,
-                role: 'ADMIN',
-                status: 'Active'
-            });
-            console.log('✓ Default Admin seeded (admin@anujfmcg.com)');
-        }
+        const adminEmail = 'anujenterprises.fmcg.006@gmail.com';
+        const adminPasswordHash = await bcrypt.hash('Anuj@006', 10);
+        await User.findOneAndUpdate({ email: adminEmail }, {
+            name: 'Anuj (Managing Director)',
+            email: adminEmail,
+            phone: '+91 88876 83782',
+            passwordHash: adminPasswordHash,
+            role: 'ADMIN',
+            status: 'Active'
+        }, { upsert: true, new: true });
+        console.log(`✓ Default Admin seeded (${adminEmail})`);
         // Mark system as seeded so deleted items can never be resurrected
         await Setting.findOneAndUpdate({ key: 'system_initial_seeded' }, { key: 'system_initial_seeded', value: true }, { upsert: true });
         console.log('Production seeding check completed successfully!');

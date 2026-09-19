@@ -5468,7 +5468,7 @@ export const AdminDashboard = () => {
                       value={salesmanForm.email}
                       onChange={(e) => setSalesmanForm({ ...salesmanForm, email: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl font-semibold"
-                      placeholder="amit.shukla@anujenterprises.demo"
+                      placeholder="amit.shukla@anujfmcg.com"
                     />
                   </div>
                 </div>
@@ -5518,7 +5518,7 @@ export const AdminDashboard = () => {
                   {/* Fast Presets */}
                   <div className="flex items-center gap-1.5 pt-1">
                     <span className="text-[10px] text-slate-500 font-bold">Quick Presets:</span>
-                    {['Sales@123', 'Kanpur@2026', 'Anuj@2026', 'Field@2026'].map(preset => (
+                    {['Sales@123', 'Kanpur@2026', 'Anuj@006', 'Field@2026'].map(preset => (
                       <button
                         key={preset}
                         type="button"
@@ -5626,7 +5626,7 @@ export const AdminDashboard = () => {
                   {/* Fast Presets */}
                   <div className="flex items-center gap-1.5 pt-1">
                     <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
-                    {['Sales@123', 'Kanpur@2026', 'Anuj@2026', 'Field@2026'].map(preset => (
+                    {['Sales@123', 'Kanpur@2026', 'Anuj@006', 'Field@2026'].map(preset => (
                       <button
                         key={preset}
                         type="button"

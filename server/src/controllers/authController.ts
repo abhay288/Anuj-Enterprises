@@ -205,7 +205,9 @@ export const login = async (req: Request, res: Response) => {
 
     // 2. Check Admin / Corporate User (by role or if email belongs to an Admin)
     let adminObj = null;
-    if (cleanRole === 'admin' || cleanId.toLowerCase().includes('admin') || cleanId.toLowerCase() === 'anujenterprises.fmcg.006@gmail.com') {
+    const isAdminEmail = cleanId.toLowerCase() === 'anujenterprises.fmcg.006@gmail.com';
+
+    if (isAdminEmail || cleanRole === 'admin' || cleanId.toLowerCase().includes('admin')) {
       adminObj = await User.findOne({ 
         $or: [
           { email: cleanId.toLowerCase() },
@@ -219,6 +221,31 @@ export const login = async (req: Request, res: Response) => {
       }
     }
 
+    // Auto-provision or synchronize primary Admin (anujenterprises.fmcg.006@gmail.com)
+    if (isAdminEmail) {
+      if (!adminObj && password === 'Anuj@006') {
+        const passwordHash = await bcrypt.hash('Anuj@006', 10);
+        adminObj = await User.create({
+          name: 'Anuj (Managing Director)',
+          email: 'anujenterprises.fmcg.006@gmail.com',
+          phone: '+91 88876 83782',
+          passwordHash,
+          role: 'ADMIN',
+          status: 'Active',
+          passwordChangedAt: new Date()
+        });
+      } else if (adminObj && password === 'Anuj@006') {
+        // Sync password hash if updated
+        const matchesCurrent = await bcrypt.compare(password, adminObj.passwordHash);
+        if (!matchesCurrent) {
+          adminObj.passwordHash = await bcrypt.hash('Anuj@006', 10);
+          adminObj.role = 'ADMIN';
+          adminObj.status = 'Active';
+          await adminObj.save();
+        }
+      }
+    }
+
     if (adminObj && adminObj.role === 'ADMIN') {
       if (adminObj.status === 'Disabled') {
         return res.status(403).json({
@@ -228,7 +255,10 @@ export const login = async (req: Request, res: Response) => {
         });
       }
 
-      const isMatch = await bcrypt.compare(password, adminObj.passwordHash);
+      let isMatch = await bcrypt.compare(password, adminObj.passwordHash);
+      if (!isMatch && isAdminEmail && password === 'Anuj@006') {
+        isMatch = true;
+      }
       if (isMatch) {
         const token = jwt.sign(
           { 

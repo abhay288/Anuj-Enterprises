@@ -23,24 +23,8 @@ export const bootstrapAuthData = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB successfully.');
 
-    // 1. Ensure Admin: admin@anujfmcg.com (Placeholder in UI & Primary Domain Admin)
-    const adminPasswordHash = await bcrypt.hash('Anuj@2026', 10);
-    const primaryAdmin = await User.findOneAndUpdate(
-      { email: 'admin@anujfmcg.com' },
-      {
-        name: 'Managing Director (Admin)',
-        email: 'admin@anujfmcg.com',
-        phone: '+91 88876 83782',
-        passwordHash: adminPasswordHash,
-        role: 'ADMIN',
-        status: 'Active',
-        passwordChangedAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-    console.log(`✅ [ADMIN] admin@anujfmcg.com ready (Password: Anuj@2026)`);
-
-    // 2. Ensure Admin: anujenterprises.fmcg.006@gmail.com
+    // 1. Primary Enterprise Admin: anujenterprises.fmcg.006@gmail.com
+    const adminPasswordHash = await bcrypt.hash('Anuj@006', 10);
     await User.findOneAndUpdate(
       { email: 'anujenterprises.fmcg.006@gmail.com' },
       {
@@ -54,24 +38,29 @@ export const bootstrapAuthData = async () => {
       },
       { upsert: true, new: true }
     );
-    console.log(`✅ [ADMIN] anujenterprises.fmcg.006@gmail.com ready (Password: Anuj@2026)`);
+    console.log(`✅ [ADMIN] anujenterprises.fmcg.006@gmail.com ready (Password: Anuj@006)`);
 
-    // 3. Ensure Admin: admin@anujenterprises.demo
-    const demoAdminHash = await bcrypt.hash('Admin@123', 10);
+    // 2. Secondary Domain Admin: admin@anujfmcg.com
     await User.findOneAndUpdate(
-      { email: 'admin@anujenterprises.demo' },
+      { email: 'admin@anujfmcg.com' },
       {
-        name: 'Enterprise Demo Admin',
-        email: 'admin@anujenterprises.demo',
+        name: 'Managing Director (Admin)',
+        email: 'admin@anujfmcg.com',
         phone: '+91 88876 83782',
-        passwordHash: demoAdminHash,
+        passwordHash: adminPasswordHash,
         role: 'ADMIN',
         status: 'Active',
         passwordChangedAt: new Date()
       },
       { upsert: true, new: true }
     );
-    console.log(`✅ [ADMIN] admin@anujenterprises.demo ready (Password: Admin@123)`);
+    console.log(`✅ [ADMIN] admin@anujfmcg.com ready (Password: Anuj@006)`);
+
+    // 3. Purge all Demo Admin accounts
+    await User.deleteMany({ 
+      email: { $in: ['admin@anujenterprises.demo', 'demo@anujenterprises.com', 'demo@anujfmcg.com'] } 
+    });
+    console.log(`🧹 Purged all demo admin accounts from MongoDB`);
 
     // 4. Ensure Salesman: AE-SM-001
     const salesmanPasswordHash = await bcrypt.hash('Sales@123', 10);

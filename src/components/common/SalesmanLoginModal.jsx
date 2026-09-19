@@ -332,26 +332,6 @@ export const SalesmanLoginModal = () => {
                 {userSubTab === 'login' ? (
                   /* Option 1: Normal User Sign In */
                   <form onSubmit={handleUserSubmit} className="space-y-4">
-                    {/* Quick Demo Helper */}
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
-                      <div className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        <span className="font-semibold">Demo Customer:</span>
-                        <code className="bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 rounded font-mono text-[11px]">9876543210 / Cust@123</code>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserEmail('9876543210');
-                          setUserPassword('Cust@123');
-                          clearLockout('user');
-                          showToast('⚡ Demo Customer credentials loaded', 'info');
-                        }}
-                        className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 transition-transform active:scale-95 shadow-sm"
-                      >
-                        Auto-Fill
-                      </button>
-                    </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
@@ -659,26 +639,6 @@ export const SalesmanLoginModal = () => {
             {authMode === 'salesman' && (
               /* Option 2: Salesman Login */
               <form onSubmit={handleSalesmanSubmit} className="space-y-4">
-                {/* Quick Demo Helper */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-xs">
-                  <div className="flex items-center gap-1.5 text-brand-900 dark:text-brand-200">
-                    <Sparkles className="w-3.5 h-3.5 text-brand-500 shrink-0" />
-                    <span className="font-semibold">Demo Salesman:</span>
-                    <code className="bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 rounded font-mono text-[11px]">AE-SM-001 / Sales@123</code>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSalesmanId('AE-SM-001');
-                      setSalesmanPassword('Sales@123');
-                      clearLockout('salesman');
-                      showToast('⚡ Demo Salesman credentials loaded', 'info');
-                    }}
-                    className="px-2 py-1 rounded-lg bg-brand-900 hover:bg-brand-800 text-white font-black text-[10px] uppercase tracking-wider shrink-0 transition-transform active:scale-95 shadow-sm"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
@@ -748,27 +708,6 @@ export const SalesmanLoginModal = () => {
             {authMode === 'admin' && (
               /* Option 3: Admin Login */
               <form onSubmit={handleAdminSubmit} className="space-y-4">
-                {/* Quick Demo Helper */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                  <div className="flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span className="font-semibold">Enterprise Admin:</span>
-                    <code className="bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 rounded font-mono text-[11px]">admin@anujfmcg.com / Anuj@2026</code>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdminEmail('admin@anujfmcg.com');
-                      setAdminPassword('Anuj@2026');
-                      clearLockout('admin');
-                      showToast('⚡ Enterprise Admin credentials loaded', 'info');
-                    }}
-                    className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider shrink-0 transition-transform active:scale-95 shadow-sm"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
-
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
                     Admin Email *
@@ -780,7 +719,7 @@ export const SalesmanLoginModal = () => {
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       required
-                      placeholder="admin@anujfmcg.com"
+                      placeholder="anujenterprises.fmcg.006@gmail.com"
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
                     />
                   </div>

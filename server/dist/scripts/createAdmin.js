@@ -11,7 +11,7 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/anuj_enterprises';
 export const createAdminUser = async (email, password, name) => {
     const adminEmail = (email || process.argv[2] || 'anujenterprises.fmcg.006@gmail.com').toLowerCase().trim();
-    const adminPassword = password || process.argv[3] || 'Anuj@2026';
+    const adminPassword = password || process.argv[3] || 'Anuj@006';
     const adminName = name || process.argv[4] || 'ANUJ';
     console.log('----------------------------------------------------');
     console.log('👑 ANUJ ENTERPRISES — ADMIN ACCOUNT CREATOR / RESET');
