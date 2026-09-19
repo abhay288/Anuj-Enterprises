@@ -30,6 +30,11 @@ export const InvoiceModal = () => {
   const [showDeleteInvoiceModal, setShowDeleteInvoiceModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Email via Nodemailer State
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [targetEmail, setTargetEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
   if (!isInvoiceModalOpen || !selectedInvoice) return null;
 
   const inv = selectedInvoice;
@@ -181,6 +186,18 @@ export const InvoiceModal = () => {
                 title="Share Invoice PDF via WhatsApp"
               >
                 <WhatsAppIcon className="w-4 h-4 text-white" /> <span>Share PDF</span>
+              </button>
+
+              {/* Email Real Invoice via Nodemailer */}
+              <button
+                onClick={() => {
+                  setTargetEmail(inv.customerEmail || inv.email || user?.email || '');
+                  setShowEmailModal(true);
+                }}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow"
+                title="Send Real B2B Tax Invoice & PDF via Nodemailer"
+              >
+                <Mail className="w-4 h-4" /> <span>Email Invoice</span>
               </button>
 
               {/* Admin Actions: Mark as Read & Delete Invoice */}
@@ -721,6 +738,100 @@ export const InvoiceModal = () => {
                   className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Send Real Invoice Email via Nodemailer Modal */}
+        {showEmailModal && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-md w-full border border-indigo-200 dark:border-indigo-900 text-slate-900 dark:text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-indigo-600">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black">Email B2B Tax Invoice</h3>
+                  <p className="text-[11px] text-slate-500">Official Nodemailer Delivery (Gmail SMTP)</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 mb-4">
+                Send authentic Tax Invoice <strong>#{invoiceNumber}</strong> with real vector PDF attachment (<code>Tax_Invoice_{invoiceNumber}.pdf</code>) directly to the recipient.
+              </p>
+
+              <div className="space-y-3 mb-5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Recipient Email Address
+                </label>
+                <input
+                  type="email"
+                  value={targetEmail}
+                  onChange={(e) => setTargetEmail(e.target.value)}
+                  placeholder="e.g. store.owner@gmail.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  autoFocus
+                />
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-indigo-700 dark:text-indigo-300">
+                  ✓ Includes itemized breakdown, Kanpur dispatch depot details, GST breakdown & official vector PDF.
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  disabled={isSendingEmail}
+                  onClick={() => setShowEmailModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSendingEmail || !targetEmail}
+                  onClick={async () => {
+                    if (!targetEmail || !targetEmail.includes('@')) {
+                      showToast('Please enter a valid email address', 'error');
+                      return;
+                    }
+                    setIsSendingEmail(true);
+                    try {
+                      let pdfBase64 = null;
+                      try {
+                        const { doc } = generateInvoicePDF(inv);
+                        pdfBase64 = doc.output('datauristring');
+                      } catch (e) {
+                        console.warn('Local PDF generation fallback:', e);
+                      }
+
+                      await invoiceService.sendInvoiceEmail(invoiceNumber, {
+                        email: targetEmail,
+                        pdfBase64
+                      });
+
+                      showToast(`Real Invoice #${invoiceNumber} emailed successfully to ${targetEmail}!`, 'success');
+                      setShowEmailModal(false);
+                    } catch (e) {
+                      showToast('Failed to send email: ' + (e?.message || 'Check SMTP credentials'), 'error');
+                    } finally {
+                      setIsSendingEmail(false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 shadow"
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      <span>Sending Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Send Real Invoice</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
