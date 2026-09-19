@@ -417,8 +417,6 @@ export const sendAdminOrderAlertEmail = async (
       `;
     }).join('');
 
-    const formattedTotal = orderData.totalAmount ? `₹${orderData.totalAmount.toLocaleString('en-IN')}` : 'N/A';
-
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -479,8 +477,8 @@ export const sendAdminOrderAlertEmail = async (
                   <td style="padding: 5px 0; font-weight: 800; color: #ffffff;">${orderData.totalQuantity} Units / Cases</td>
                 </tr>
                 <tr>
-                  <td style="padding: 5px 0; color: #94a3b8;">Grand Total Amount:</td>
-                  <td style="padding: 5px 0; font-weight: 900; color: #f59e0b; font-size: 16px;">${formattedTotal}</td>
+                  <td style="padding: 5px 0; color: #94a3b8;">Dispatch Status:</td>
+                  <td style="padding: 5px 0; font-weight: 900; color: #34d399; font-size: 13px;">READY FOR WAREHOUSE DISPATCH</td>
                 </tr>
               </table>
             </div>
@@ -515,7 +513,7 @@ export const sendAdminOrderAlertEmail = async (
     `;
 
     const finalAttachment: EmailAttachment = pdfAttachment || {
-      filename: `Sales_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
+      filename: `Delivery_Invoice_${orderData.invoiceNumber || orderData.orderId || 'AE-2026'}.pdf`,
       content: generateInvoicePdfBuffer(orderData),
       contentType: 'application/pdf'
     };
@@ -523,7 +521,7 @@ export const sendAdminOrderAlertEmail = async (
     const mailOptions: nodemailer.SendMailOptions = {
       from: FROM_EMAIL,
       to: adminEmail,
-      subject: `🚨 NEW B2B ORDER ALERT: Invoice #${orderData.invoiceNumber || orderData.orderId} | ${orderData.customerName} (${formattedTotal})`,
+      subject: `📦 NEW B2B ORDER ALERT: Invoice #${orderData.invoiceNumber || orderData.orderId} | ${orderData.customerName} (${orderData.totalQuantity} Units)`,
       html: htmlContent,
       attachments: [finalAttachment]
     };
