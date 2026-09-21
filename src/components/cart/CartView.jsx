@@ -146,6 +146,7 @@ export const CartView = () => {
   const [expiredMfdDate, setExpiredMfdDate] = useState('');
   const [expiredNoDate, setExpiredNoDate] = useState(false);
   const [expiredQty, setExpiredQty] = useState(1);
+  const [expiredQtyRaw, setExpiredQtyRaw] = useState('1'); // raw string for free-form typing
   const [expiredImages, setExpiredImages] = useState([]); // Array of clean compressed data URLs
   const [expiredImagesLoading, setExpiredImagesLoading] = useState(false);
 
@@ -235,6 +236,7 @@ export const CartView = () => {
     setExpiredMfdDate('');
     setExpiredNoDate(false);
     setExpiredQty(1);
+    setExpiredQtyRaw('1');
     setExpiredImages([]);
     setEditingExpiredId(null);
   };
@@ -250,7 +252,9 @@ export const CartView = () => {
     setExpiredProductId(item.productId || '');
     setExpiredMfdDate(item.mfdDate || '');
     setExpiredNoDate(Boolean(item.noDateAvailable));
-    setExpiredQty(item.qty || 1);
+    const qty = item.qty || 1;
+    setExpiredQty(qty);
+    setExpiredQtyRaw(String(qty));
     const itemImgs = Array.isArray(item.images) && item.images.length > 0 
       ? item.images 
       : item.image ? [item.image] : [];
@@ -336,6 +340,7 @@ export const CartView = () => {
   const [returnDate, setReturnDate] = useState('');
   const [returnNoDate, setReturnNoDate] = useState(false);
   const [returnQty, setReturnQty] = useState(1);
+  const [returnQtyRaw, setReturnQtyRaw] = useState('1'); // raw string for free-form typing
   const [returnReason, setReturnReason] = useState('Damaged Packaging');
   const [customReturnReason, setCustomReturnReason] = useState('');
   const [isCustomReason, setIsCustomReason] = useState(false);
@@ -424,6 +429,7 @@ export const CartView = () => {
     setReturnDate('');
     setReturnNoDate(false);
     setReturnQty(1);
+    setReturnQtyRaw('1');
     setReturnImages([]);
     setReturnReason('Damaged Packaging');
     setCustomReturnReason('');
@@ -440,7 +446,9 @@ export const CartView = () => {
     setEditingReturnId(item.id);
     setReturnCompany(item.company || '');
     setReturnProductId(item.productId || '');
-    setReturnQty(item.qty || 1);
+    const rqty = item.qty || 1;
+    setReturnQty(rqty);
+    setReturnQtyRaw(String(rqty));
     setReturnDate(item.damageDate || item.date || item.mfdDate || '');
     setReturnNoDate(Boolean(item.noDateAvailable));
     const itemImgs = Array.isArray(item.images) && item.images.length > 0 
@@ -644,6 +652,13 @@ export const CartView = () => {
   const priorityCount = cart.filter(i => i.isPriority).length;
 
   const handleCheckoutClick = () => {
+    // Block guest users — they must log in before generating an invoice
+    if (!user || user.role === 'guest') {
+      showToast('🔐 Please login or register to confirm your order and generate an official B2B invoice.', 'warning');
+      setIsSalesmanModalOpen(true);
+      return;
+    }
+
     // Provide smart defaults so order generation never fails or blocks the user
     const finalShopName = (customerName && customerName.trim()) 
       ? customerName.trim() 
@@ -1475,8 +1490,19 @@ export const CartView = () => {
                         inputMode="numeric"
                         min="1"
                         required
-                        value={expiredQty}
-                        onChange={(e) => setExpiredQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        value={expiredQtyRaw}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setExpiredQtyRaw(raw);
+                          const parsed = parseInt(raw, 10);
+                          if (!isNaN(parsed) && parsed >= 1) setExpiredQty(parsed);
+                        }}
+                        onBlur={() => {
+                          const parsed = parseInt(expiredQtyRaw, 10);
+                          const safe = (!isNaN(parsed) && parsed >= 1) ? parsed : 1;
+                          setExpiredQty(safe);
+                          setExpiredQtyRaw(String(safe));
+                        }}
                         className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                         placeholder="1"
                       />
@@ -1935,8 +1961,19 @@ export const CartView = () => {
                         inputMode="numeric"
                         min="1"
                         required
-                        value={returnQty}
-                        onChange={(e) => setReturnQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        value={returnQtyRaw}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setReturnQtyRaw(raw);
+                          const parsed = parseInt(raw, 10);
+                          if (!isNaN(parsed) && parsed >= 1) setReturnQty(parsed);
+                        }}
+                        onBlur={() => {
+                          const parsed = parseInt(returnQtyRaw, 10);
+                          const safe = (!isNaN(parsed) && parsed >= 1) ? parsed : 1;
+                          setReturnQty(safe);
+                          setReturnQtyRaw(String(safe));
+                        }}
                         className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                         placeholder="1"
                       />

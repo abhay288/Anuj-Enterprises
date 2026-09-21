@@ -1103,7 +1103,7 @@ export const AdminDashboard = () => {
     const finalImages = (prodForm.images && prodForm.images.length > 0 ? prodForm.images : [prodForm.image]).filter(Boolean).slice(0, 5);
     const finalForm = {
       ...prodForm,
-      image: finalImages[0] || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      image: finalImages[0] || '',
       gallery: finalImages,
       images: finalImages,
       status: statusOverride || prodForm.status
@@ -1152,8 +1152,8 @@ export const AdminDashboard = () => {
       isNew: product.isNew ?? false,
       isNrp: product.isNrp ?? false,
       status: product.status || 'Published',
-      image: productImages[0] || product.image || 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-      images: productImages.length > 0 ? productImages : ['https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'],
+      image: productImages[0] || '',
+      images: productImages,
       description: product.description || ''
     });
     setIsAddProductOpen(true);

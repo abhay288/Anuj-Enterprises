@@ -1964,8 +1964,12 @@ export const AppProvider = ({ children }) => {
       cleanImgs = [primaryUrl, ...cleanImgs.filter(u => u !== primaryUrl)].slice(0, 5);
     }
     const defaultPlaceholder = "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80";
-    const imgUrl = cleanImgs[0] || primaryUrl || defaultPlaceholder;
-    const finalGallery = cleanImgs.length > 0 ? cleanImgs : [defaultPlaceholder];
+    // Only use placeholder if images were NOT explicitly cleared (i.e., a new product with no image at all)
+    // For updates, if admin removes all images, cleanImgs will be empty — preserve that intent by NOT adding the placeholder
+    const hasExplicitImages = (Array.isArray(prod.images) && prod.images.length > 0) ||
+      (Array.isArray(prod.gallery) && prod.gallery.length > 0) || !!primaryUrl;
+    const imgUrl = cleanImgs[0] || primaryUrl || (hasExplicitImages ? '' : defaultPlaceholder);
+    const finalGallery = cleanImgs.length > 0 ? cleanImgs : (hasExplicitImages ? [] : [defaultPlaceholder]);
     const imagePublicId = String(prod.imagePublicId || prod.publicId || '').trim();
 
     const unitType = prod.unitType || 'Piece';
