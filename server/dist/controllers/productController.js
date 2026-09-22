@@ -453,6 +453,7 @@ export const updateProduct = async (req, res) => {
             product.sortOrder = Number(updates.sortOrder);
         if (updates.description !== undefined)
             product.description = updates.description;
+        const updatesHasImagesKey = Object.prototype.hasOwnProperty.call(updates, 'images');
         const incomingImgs = (Array.isArray(updates.images) && updates.images.length > 0
             ? updates.images
             : (Array.isArray(updates.gallery) && updates.gallery.length > 0
@@ -485,6 +486,15 @@ export const updateProduct = async (req, res) => {
                 product.markModified('imagePublicId');
                 product.markModified('images');
             }
+        }
+        else if (updatesHasImagesKey && Array.isArray(updates.images) && updates.images.length === 0 && !updates.image && !updates.gallery?.length) {
+            // Admin explicitly cleared all images — respect that by clearing the product image fields
+            product.image = '';
+            product.imagePublicId = '';
+            product.images = [];
+            product.markModified('image');
+            product.markModified('imagePublicId');
+            product.markModified('images');
         }
         else if (updates.image && typeof updates.image === 'string') {
             const clean = updates.image.trim();

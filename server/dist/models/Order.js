@@ -38,6 +38,10 @@ const OrderSchema = new Schema({
         state: String,
         pincode: String
     },
+    description: { type: String, default: '' },
+    generatedByRole: { type: String, default: '' },
+    generatedByName: { type: String, default: '' },
+    generatedById: { type: String, default: '' },
     items: [OrderItemSchema],
     totalQuantity: { type: Number, required: true },
     totalAmount: { type: Number, required: true },

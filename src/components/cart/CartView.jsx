@@ -117,7 +117,7 @@ export const CartView = () => {
   const [customerState, setCustomerState] = useState(() => {
     if (selectedCustomerForOrder?.state) return selectedCustomerForOrder.state;
     if (user?.role === 'customer') return user.state || 'Uttar Pradesh';
-    return '';
+    return 'Uttar Pradesh';
   });
   const [customerEmail, setCustomerEmail] = useState(() => {
     if (selectedCustomerForOrder?.email) return selectedCustomerForOrder.email;
@@ -553,7 +553,7 @@ export const CartView = () => {
       setCustomerMobile(selectedCustomerForOrder.mobile || '');
       setCustomerAddress(selectedCustomerForOrder.address || '');
       setCustomerCity(selectedCustomerForOrder.city || '');
-      setCustomerState(selectedCustomerForOrder.state || '');
+      setCustomerState(selectedCustomerForOrder.state || 'Uttar Pradesh');
       setCustomerEmail(selectedCustomerForOrder.email || '');
       setCustomerPincode(selectedCustomerForOrder.pincode || '');
       if (selectedCustomerForOrder.liveLocation) {
@@ -575,21 +575,24 @@ export const CartView = () => {
       setCustomerPincode(user.pincode || '');
       setSalesmanNameInput(user.ownerName || user.shopOwnerName || user.name || '');
       setSalesmanAreaInput(user.area || user.city || 'Kanpur');
+    } else {
+      setCustomerState(prev => prev || 'Uttar Pradesh');
     }
   }, [selectedCustomerForOrder, user]);
 
   const [salesmanIdInput, setSalesmanIdInput] = useState(() => user?.salesmanId || '');
   const [salesmanNameInput, setSalesmanNameInput] = useState(() => {
-    if (user?.role === 'salesman') return user.name || '';
+    if (selectedCustomerForOrder) return selectedCustomerForOrder.ownerName || selectedCustomerForOrder.shopOwnerName || '';
     if (user?.role === 'customer') return user.ownerName || user.shopOwnerName || user.name || '';
     return '';
   });
   const [salesmanAreaInput, setSalesmanAreaInput] = useState(() => {
-    if (user?.role === 'salesman') return user.region || '';
-    if (user?.role === 'customer') return user.area || user.city || 'Kanpur';
+    if (selectedCustomerForOrder) return selectedCustomerForOrder.area || selectedCustomerForOrder.city || '';
+    if (user?.role === 'customer') return user.area || user.city || '';
     return '';
   });
   const [salesmanRouteInput, setSalesmanRouteInput] = useState('');
+  const [salesmanDescription, setSalesmanDescription] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' | 'Credit' | 'Online' | 'Special'
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -659,52 +662,66 @@ export const CartView = () => {
       return;
     }
 
-    // Provide smart defaults so order generation never fails or blocks the user
-    const finalShopName = (customerName && customerName.trim()) 
-      ? customerName.trim() 
-      : (user?.shopName || user?.name || 'Retail Business Store');
+    if (!customerName || !customerName.trim()) {
+      showToast('⚠️ Shop / Business Name is required to generate the invoice.', 'warning');
+      return;
+    }
 
-    const finalMobile = (customerMobile && customerMobile.trim())
-      ? customerMobile.trim()
-      : (user?.mobile || user?.phone || '+91 98765 43210');
+    const finalShopName = customerName.trim();
+    // Rule 7: If customer mobile is NOT entered, leave it blank! NEVER copy Admin/Salesman phone.
+    const finalMobile = customerMobile && customerMobile.trim() ? customerMobile.trim() : '';
+    const finalAddress = (customerAddress || '').trim();
+    const finalCity = (customerCity || 'Kanpur').trim();
+    const finalState = (customerState || 'Uttar Pradesh').trim();
+    const finalPincode = (customerPincode || '').trim();
+    const finalEmail = (customerEmail || '').trim();
+    // Rule 6: Buyer details must NEVER be replaced with salesman or admin info!
+    const finalBuyerOwnerName = (salesmanNameInput || '').trim();
+    const finalBuyerArea = (salesmanAreaInput || '').trim();
+    const finalBuyerRoute = (salesmanRouteInput || '').trim();
+    const finalDescription = (salesmanDescription || '').trim();
 
-    const finalOwnerName = (salesmanNameInput && salesmanNameInput.trim())
-      ? salesmanNameInput.trim()
-      : (user?.ownerName || user?.shopOwnerName || user?.name || finalShopName || 'Store Owner');
-
-    const finalArea = (salesmanAreaInput && salesmanAreaInput.trim())
-      ? salesmanAreaInput.trim()
-      : (user?.area || user?.region || user?.city || 'Kanpur Central Mandi');
-
-    const fullTextToTest = `${finalShopName} ${finalMobile} ${customerAddress} ${customerCity} ${customerState} ${customerPincode} ${customerEmail} ${finalOwnerName} ${finalArea} ${salesmanRouteInput}`;
+    const fullTextToTest = `${finalShopName} ${finalMobile} ${finalAddress} ${finalCity} ${finalState} ${finalPincode} ${finalEmail} ${finalBuyerOwnerName} ${finalBuyerArea} ${finalBuyerRoute} ${finalDescription}`;
     const check = checkUnwantedContent(fullTextToTest);
     if (check.hasUnwanted) {
       showToast(`🚫 Checkout Blocked: Inappropriate or prohibited words detected ("${check.matchedWord}"). Please enter valid business details.`, 'error');
       return;
     }
 
+    const isSalesman = user.role === 'salesman';
+    const isAdmin = user.role === 'admin';
+
     setIsSubmitting(true);
     setTimeout(async () => {
       try {
         await checkoutOrder({
-          customerMode,
+          customerMode: customerMode || 'quick',
+          customerId: selectedCustomerForOrder?.customerId || selectedCustomerForOrder?.id || '',
           customerName: finalShopName,
           customerMobile: finalMobile,
-          customerAddress: (customerAddress || 'Kanpur Wholesale Market').trim(),
-          customerCity: (customerCity || 'Kanpur').trim(),
-          customerState: (customerState || 'Uttar Pradesh').trim(),
-          customerPincode: (customerPincode || '').trim(),
+          customerAddress: finalAddress,
+          customerCity: finalCity,
+          customerState: finalState,
+          customerPincode: finalPincode,
           customerLiveLocation: customerLiveLocation || null,
-          customerEmail: (customerEmail || '').trim(),
+          customerEmail: finalEmail,
           customerType: customerType || 'Retail Store',
-          shopOwnerName: finalOwnerName,
-          shopOwnerArea: finalArea,
-          shopRoute: (salesmanRouteInput || 'Standard Mandi Route').trim(),
-          salesmanId: salesmanIdInput || user?.salesmanId || 'AE-SM-001',
-          salesmanName: finalOwnerName,
-          salesmanPhone: finalMobile,
-          salesmanArea: finalArea,
-          salesmanRoute: salesmanRouteInput || 'Standard Mandi Route',
+          shopOwnerName: finalBuyerOwnerName,
+          shopOwnerArea: finalBuyerArea,
+          shopRoute: finalBuyerRoute,
+          description: finalDescription,
+          salesmanId: isSalesman ? String(user.salesmanId || user.id || 'AE-SM-001').toUpperCase() : 'AE-SM-001',
+          salesmanName: isSalesman ? (user.name || 'Sales Representative') : 'Central Kanpur HQ',
+          salesmanPhone: isSalesman ? (user.phone || '') : '',
+          salesmanArea: isSalesman ? (user.region || '') : '',
+          salesmanRoute: finalBuyerRoute,
+          generatedByRole: isAdmin ? 'admin' : isSalesman ? 'salesman' : 'salesman',
+          generatedByName: isAdmin 
+            ? (user?.name && user.name !== 'ANUJ ENTERPRISES' ? user.name : 'Mr. Anuj Sharma')
+            : isSalesman 
+            ? (user?.name || 'Sales Representative') 
+            : 'Mr. Anuj Sharma',
+          generatedById: isAdmin ? 'ADMIN' : isSalesman ? (user.salesmanId || user.id || 'AE-SM-001') : '',
           paymentMethod: paymentMethod || 'Cash',
           expiredItems,
           returnItems
@@ -1014,13 +1031,12 @@ export const CartView = () => {
 
                   <div>
                     <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                      {t('contact_number', 'Contact Number (Mobile)')} <span className="text-rose-500 font-black text-sm">*</span>
+                      {t('contact_number', 'Contact Number (Mobile)')} <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional')})</span>
                     </label>
                     <div className="relative">
                       <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                       <input
                         type="tel"
-                        required
                         value={customerMobile}
                         onChange={(e) => setCustomerMobile(e.target.value)}
                         placeholder={t('enter_contact_number', 'e.g. +91 98765 43210')}
@@ -1044,6 +1060,20 @@ export const CartView = () => {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Additional Description Field (Requirement 1) */}
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
+                    Add Description <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional — Saved with invoice')})</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={salesmanDescription}
+                    onChange={(e) => setSalesmanDescription(e.target.value)}
+                    placeholder="Add Description / Notes / Delivery instructions..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
                 </div>
 
                 {/* Store Address & Delivery Location Section with Live GPS Option */}
@@ -1175,7 +1205,7 @@ export const CartView = () => {
                         {t('state', 'State')} <span className="text-rose-500 font-black text-sm">*</span>
                       </label>
                       <select
-                        value={customerState}
+                        value={customerState || 'Uttar Pradesh'}
                         onChange={(e) => setCustomerState(e.target.value)}
                         className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
                       >
@@ -1211,11 +1241,10 @@ export const CartView = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                        {t('shop_owner_name', 'Shop Owner Name')} <span className="text-rose-500 font-black text-sm">*</span>
+                        {t('shop_owner_name', 'Shop Owner Name')} <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional')})</span>
                       </label>
                       <input
                         type="text"
-                        required
                         value={salesmanNameInput}
                         onChange={(e) => setSalesmanNameInput(e.target.value)}
                         placeholder={t('enter_shop_owner_name', 'e.g. Ramesh Chandra / Rajesh Gupta')}
@@ -1225,11 +1254,10 @@ export const CartView = () => {
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
-                        {t('shop_owner_area', 'Shop Owner Area')} <span className="text-rose-500 font-black text-sm">*</span>
+                        {t('shop_owner_area', 'Shop Owner Area')} <span className="text-[10px] font-normal text-slate-400">({t('optional', 'Optional')})</span>
                       </label>
                       <input
                         type="text"
-                        required
                         value={salesmanAreaInput}
                         onChange={(e) => setSalesmanAreaInput(e.target.value)}
                         placeholder={t('enter_shop_owner_area', 'e.g. Koyla Nagar / Anand Vihar / South Kanpur')}

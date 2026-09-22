@@ -12,7 +12,7 @@ export const getInvoices = async (req, res) => {
         if (req.user.role === 'SALESMAN') {
             // Salesman can only access invoices belonging to their authorized salesman ID
             const userSalesmanId = req.user.salesmanId || req.user.id;
-            filter.salesmanId = String(userSalesmanId).toUpperCase();
+            filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(userSalesmanId).trim())}$`, 'i') };
         }
         else if (req.user.role === 'USER' || req.user.role === 'CUSTOMER') {
             // Normal customer can only access their own invoices
@@ -25,7 +25,7 @@ export const getInvoices = async (req, res) => {
         else if (req.user.role === 'ADMIN') {
             // Admin can view all or filter by specific salesman
             if (salesmanId) {
-                filter.salesmanId = String(salesmanId).toUpperCase();
+                filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(salesmanId).trim())}$`, 'i') };
             }
         }
         else {

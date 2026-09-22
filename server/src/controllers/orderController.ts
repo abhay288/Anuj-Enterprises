@@ -29,6 +29,10 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       salesmanPhone,
       salesmanArea,
       salesmanRoute,
+      description,
+      generatedByRole,
+      generatedByName,
+      generatedById,
       expiredItems,
       returnItems
     } = req.body || {};
@@ -49,9 +53,33 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const resolvedShopOwnerName = shopOwnerName || salesmanName || req.user?.name || 'Shop Owner';
-    const resolvedShopOwnerArea = shopOwnerArea || salesmanArea || 'Kanpur Mandi Area';
-    const resolvedShopRoute = shopRoute || salesmanRoute || '';
+    // Buyer details must ALWAYS remain separate from Admin/Salesman details
+    const resolvedShopOwnerName = shopOwnerName ? String(shopOwnerName).trim() : '';
+    const resolvedShopOwnerArea = shopOwnerArea ? String(shopOwnerArea).trim() : '';
+    const resolvedShopRoute = shopRoute ? String(shopRoute).trim() : '';
+    const resolvedDescription = description ? String(description).trim() : '';
+
+    const resolvedSalesmanId = String(salesmanId || req.user?.salesmanId || req.user?.id || 'AE-SM-001').toUpperCase().trim();
+    const resolvedSalesmanName = String(salesmanName || (req.user?.role === 'SALESMAN' ? req.user.name : '') || 'Sales Representative').trim();
+
+    // Determine invoice generator
+    let resolvedGeneratedByRole: 'admin' | 'salesman' | 'customer' = 'salesman';
+    let resolvedGeneratedByName = '';
+    let resolvedGeneratedById = '';
+
+    if (req.user?.role === 'ADMIN' || generatedByRole === 'admin') {
+      resolvedGeneratedByRole = 'admin';
+      resolvedGeneratedByName = generatedByName || (req.user?.name && req.user.name !== 'ANUJ ENTERPRISES' ? req.user.name : 'Mr. Anuj Sharma');
+      resolvedGeneratedById = 'ADMIN';
+    } else if (req.user?.role === 'SALESMAN' || generatedByRole === 'salesman') {
+      resolvedGeneratedByRole = 'salesman';
+      resolvedGeneratedByName = generatedByName || req.user?.name || resolvedSalesmanName;
+      resolvedGeneratedById = generatedById || req.user?.salesmanId || req.user?.id || resolvedSalesmanId;
+    } else {
+      resolvedGeneratedByRole = (generatedByRole as any) || 'salesman';
+      resolvedGeneratedByName = generatedByName || req.user?.name || 'Mr. Anuj Sharma';
+      resolvedGeneratedById = generatedById || req.user?.salesmanId || req.user?.id || '';
+    }
 
     const processedItems = [];
     let grandTotal = 0;
@@ -194,11 +222,14 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     if (customerType === 'Damage Customer' || customerType === 'DAMAGE') normalizedClassification = 'DAMAGE';
     if (customerType === 'Expiry Customer' || customerType === 'EXPIRY') normalizedClassification = 'EXPIRY';
 
+    const cleanCustomerMobile = customerMobile && String(customerMobile).trim() ? String(customerMobile).trim() : '';
+    const cleanCustomerEmail = customerEmail && String(customerEmail).trim() ? String(customerEmail).trim() : '';
+
     // Auto-create or Update Customer in Roster
     let customerObj = await Customer.findOne({ 
       $or: [
-        { phone: customerMobile }, 
-        { name: new RegExp(`^${escapeRegex(customerName)}$`, 'i') }
+        ...(cleanCustomerMobile ? [{ phone: cleanCustomerMobile }] : []), 
+        { name: new RegExp(`^${escapeRegex(customerName.trim())}$`, 'i') }
       ] 
     });
 
@@ -214,8 +245,8 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       customerObj = new Customer({
         customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
         name: customerName.trim(),
-        phone: customerMobile ? String(customerMobile).trim() : '',
-        email: customerEmail ? String(customerEmail).trim() : '',
+        phone: cleanCustomerMobile,
+        email: cleanCustomerEmail,
         address: customerAddress ? String(customerAddress).trim() : '',
         city: customerCity || 'Kanpur',
         state: customerState || 'Uttar Pradesh',
@@ -233,13 +264,14 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       if (customerAddress) customerObj.address = customerAddress;
       if (customerCity) customerObj.city = customerCity;
       if (customerState) customerObj.state = customerState;
-      if (customerMobile && !customerObj.phone) customerObj.phone = customerMobile;
-      if (customerEmail && !customerObj.email) customerObj.email = customerEmail;
+      if (cleanCustomerMobile) customerObj.phone = cleanCustomerMobile;
+      if (cleanCustomerEmail) customerObj.email = cleanCustomerEmail;
       await customerObj.save();
     }
 
-    const cleanMobile = customerMobile ? String(customerMobile).trim() : (customerObj.phone || '');
-    const cleanEmail = customerEmail ? String(customerEmail).trim() : (customerObj.email || '');
+    // Buyer mobile must remain blank if not provided - never fake or copied from salesman/admin
+    const cleanMobile = cleanCustomerMobile;
+    const cleanEmail = cleanCustomerEmail;
 
     const order = new Order({
       orderId,
@@ -247,11 +279,15 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       customerName: customerObj.name,
       customerClassification: normalizedClassification,
       customerId: customerObj.customerId,
-      salesmanId: salesmanId || req.user?.salesmanId || 'AE-SM-001',
-      salesmanName: resolvedShopOwnerName,
+      salesmanId: resolvedSalesmanId,
+      salesmanName: resolvedSalesmanName,
       shopOwnerName: resolvedShopOwnerName,
       shopOwnerArea: resolvedShopOwnerArea,
       shopRoute: resolvedShopRoute,
+      description: resolvedDescription,
+      generatedByRole: resolvedGeneratedByRole,
+      generatedByName: resolvedGeneratedByName,
+      generatedById: resolvedGeneratedById,
       customerDetails: {
         mobile: cleanMobile,
         email: cleanEmail,
@@ -284,11 +320,15 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     const invoice = new Invoice({
       invoiceNumber,
       orderId,
-      salesmanId: order.salesmanId,
-      salesmanName: order.salesmanName,
+      salesmanId: resolvedSalesmanId,
+      salesmanName: resolvedSalesmanName,
       shopOwnerName: resolvedShopOwnerName,
       shopOwnerArea: resolvedShopOwnerArea,
       shopRoute: resolvedShopRoute,
+      description: resolvedDescription,
+      generatedByRole: resolvedGeneratedByRole,
+      generatedByName: resolvedGeneratedByName,
+      generatedById: resolvedGeneratedById,
       customerId: customerObj.customerId,
       customerName: order.customerName,
       customerClassification: normalizedClassification,
@@ -371,6 +411,10 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
           shopOwnerName: resolvedShopOwnerName,
           shopOwnerArea: resolvedShopOwnerArea,
           shopRoute: resolvedShopRoute,
+          description: resolvedDescription,
+          generatedByRole: resolvedGeneratedByRole,
+          generatedByName: resolvedGeneratedByName,
+          generatedById: resolvedGeneratedById,
           orderType: 'Offline Collection',
           paymentMethod: resolvedPaymentMethod,
           paymentMode: resolvedPaymentMethod,
@@ -426,9 +470,9 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
 
     // Horizontal Privilege Access Control:
     if (req.user.role === 'SALESMAN') {
-      // Salesman can only query their own orders
+      // Salesman can only query their own orders (case-insensitive regex match)
       const userSalesmanId = req.user.salesmanId || req.user.id;
-      filter.salesmanId = String(userSalesmanId).toUpperCase();
+      filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(userSalesmanId).trim())}$`, 'i') };
     } else if (req.user.role === 'USER' || req.user.role === 'CUSTOMER') {
       // Normal customer can only see their own customer orders
       filter.$or = [
@@ -441,7 +485,7 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
     } else if (req.user.role === 'ADMIN') {
       // Admin can view all or filter by specific salesman
       if (salesmanId) {
-        filter.salesmanId = String(salesmanId).toUpperCase();
+        filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(salesmanId).trim())}$`, 'i') };
       }
     }
 
@@ -501,9 +545,13 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
         customerClassification: o.customerClassification || 'NORMAL',
         salesmanId: o.salesmanId,
         salesmanName: o.salesmanName,
-        shopOwnerName: o.shopOwnerName || o.salesmanName || 'Shop Owner',
-        shopOwnerArea: o.shopOwnerArea || 'Kanpur Mandi Area',
+        shopOwnerName: o.shopOwnerName || '',
+        shopOwnerArea: o.shopOwnerArea || '',
         shopRoute: o.shopRoute || '',
+        description: o.description || '',
+        generatedByRole: o.generatedByRole || '',
+        generatedByName: o.generatedByName || '',
+        generatedById: o.generatedById || '',
         orderType: o.orderType || 'Offline Collection',
         paymentMethod: payMethod,
         paymentMode: payMethod,

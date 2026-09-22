@@ -17,6 +17,10 @@ export interface IInvoice extends Document {
   customerAddress?: string;
   customerCity?: string;
   customerState?: string;
+  description?: string;
+  generatedByRole?: 'admin' | 'salesman' | 'customer';
+  generatedByName?: string;
+  generatedById?: string;
   items: any[];
   expiredItems?: any[];
   returnItems?: any[];
@@ -55,6 +59,10 @@ const InvoiceSchema: Schema = new Schema(
     customerAddress: { type: String, default: '' },
     customerCity: { type: String, default: 'Kanpur' },
     customerState: { type: String, default: 'Uttar Pradesh' },
+    description: { type: String, default: '' },
+    generatedByRole: { type: String, default: '' },
+    generatedByName: { type: String, default: '' },
+    generatedById: { type: String, default: '' },
     items: { type: Array, required: true },
     expiredItems: { type: Array, default: [] },
     returnItems: { type: Array, default: [] },

@@ -18,14 +18,14 @@ export const BottomNav = () => {
 
   // Role-Aware Navigation Tabs (Requirement 2)
   const getTabs = () => {
-    // SALESMAN TABS: Home, Products, Orders, Invoices, Profile
+    // SALESMAN TABS: Same as customer — Home, Products, Cart, My Invoices, Profile
     if (user.role === 'salesman') {
       return [
         { id: 'home', label: t('nav_home', 'Home'), icon: Home, action: () => navigateTo('home'), active: view === 'home' },
         { id: 'catalogue', label: t('nav_products', 'Products'), icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
-        { id: 'orders', label: t('order_history', 'Orders'), icon: ShoppingBag, action: () => navigateTo('salesman-dash'), active: view === 'salesman-dash' },
-        { id: 'invoices', label: t('download_invoice', 'Invoices'), icon: FileText, action: () => navigateTo('salesman-dash'), active: false },
-        { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+        { id: 'cart', label: t('nav_cart', 'Cart'), icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
+        { id: 'invoices', label: t('download_invoice', 'My Invoices'), icon: FileText, action: () => navigateTo('salesman-dash'), active: view === 'salesman-dash' },
+        { id: 'profile', label: 'Profile', icon: User, action: () => navigateTo('salesman-dash'), active: false },
       ];
     }
 

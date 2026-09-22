@@ -17,7 +17,7 @@ export const getInvoices = async (req: AuthRequest, res: Response) => {
     if (req.user.role === 'SALESMAN') {
       // Salesman can only access invoices belonging to their authorized salesman ID
       const userSalesmanId = req.user.salesmanId || req.user.id;
-      filter.salesmanId = String(userSalesmanId).toUpperCase();
+      filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(userSalesmanId).trim())}$`, 'i') };
     } else if (req.user.role === 'USER' || req.user.role === 'CUSTOMER') {
       // Normal customer can only access their own invoices
       filter.$or = [
@@ -28,7 +28,7 @@ export const getInvoices = async (req: AuthRequest, res: Response) => {
     } else if (req.user.role === 'ADMIN') {
       // Admin can view all or filter by specific salesman
       if (salesmanId) {
-        filter.salesmanId = String(salesmanId).toUpperCase();
+        filter.salesmanId = { $regex: new RegExp(`^${escapeRegex(String(salesmanId).trim())}$`, 'i') };
       }
     } else {
       return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });

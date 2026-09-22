@@ -40,6 +40,10 @@ export interface IOrder extends Document {
     state?: string;
     pincode?: string;
   };
+  description?: string;
+  generatedByRole?: 'admin' | 'salesman' | 'customer';
+  generatedByName?: string;
+  generatedById?: string;
   items: IOrderItem[];
   totalQuantity: number;
   totalAmount: number;
@@ -102,6 +106,10 @@ const OrderSchema: Schema = new Schema(
       state: String,
       pincode: String
     },
+    description: { type: String, default: '' },
+    generatedByRole: { type: String, default: '' },
+    generatedByName: { type: String, default: '' },
+    generatedById: { type: String, default: '' },
     items: [OrderItemSchema],
     totalQuantity: { type: Number, required: true },
     totalAmount: { type: Number, required: true },

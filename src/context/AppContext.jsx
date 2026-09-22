@@ -13,6 +13,7 @@ import { DEFAULT_LEGAL_POLICIES } from '../data/defaultPolicies';
 import { authService } from '../services/authService';
 import { productService } from '../services/productService';
 import { orderService } from '../services/orderService';
+import { invoiceService } from '../services/invoiceService';
 import { salesmanService } from '../services/salesmanService';
 import { companyService, categoryService } from '../services/companyService';
 import { customerService } from '../services/customerService';
@@ -68,6 +69,7 @@ const defaultAppContext = {
   updateCustomerProfile: () => {},
   deleteCustomer: () => {},
   refreshCustomers: async () => [],
+  refreshOrders: async () => [],
   cartSubtotal: 0,
   cartGrandTotal: 0,
   cartTotalQty: 0,
@@ -1045,6 +1047,19 @@ export const AppProvider = ({ children }) => {
     };
   }, []);
 
+  const refreshOrders = useCallback(async () => {
+    try {
+      const ordRes = await orderService.getOrders();
+      if (ordRes?.data?.orders) {
+        setOrders(ordRes.data.orders);
+        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(ordRes.data.orders)); } catch (e) {}
+        broadcastSync('SYNC_ORDERS', ordRes.data.orders);
+        return ordRes.data.orders;
+      }
+    } catch (e) {}
+    return [];
+  }, [broadcastSync]);
+
   // History PopState & URL /product/:slug and /admin Route Detection
   useEffect(() => {
     const checkRouteUrl = () => {
@@ -1484,7 +1499,8 @@ export const AppProvider = ({ children }) => {
         setUser(sUser);
         try { localStorage.setItem('anuj_user', JSON.stringify(sUser)); } catch (e) {}
         setIsSalesmanModalOpen(false);
-        showToast(`Welcome, ${res.data.user.name}! Salesman Session Granted.`, 'success');
+        navigateTo('home');
+        showToast(`Welcome, ${res.data.user.name}! Ready to create invoices.`, 'success');
         return true;
       }
     } catch (e) {
@@ -1680,26 +1696,33 @@ export const AppProvider = ({ children }) => {
       resolvedPayMethod = "Cash";
     }
 
+    const isSalesman = safeUser.role === 'salesman';
+    const isAdmin = safeUser.role === 'admin';
+
     const payload = {
       customerMode: safeCustomerDetails.customerMode || 'quick',
-      customerId: safeCustomerDetails.customerId || safeUser.customerId || '',
-      customerName: (safeCustomerDetails.customerName || safeUser.shopName || safeUser.name || "").trim(),
-      customerMobile: (safeCustomerDetails.customerMobile || safeUser.mobile || safeUser.phone || "").trim(),
-      customerAddress: (safeCustomerDetails.customerAddress || safeUser.address || "").trim(),
-      customerCity: safeCustomerDetails.customerCity || safeUser.city || "Kanpur",
-      customerState: safeCustomerDetails.customerState || safeUser.state || "Uttar Pradesh",
-      customerPincode: safeCustomerDetails.customerPincode || safeUser.pincode || "",
+      customerId: safeCustomerDetails.customerId || '',
+      customerName: (safeCustomerDetails.customerName || "").trim(),
+      customerMobile: (safeCustomerDetails.customerMobile || "").trim(),
+      customerAddress: (safeCustomerDetails.customerAddress || "").trim(),
+      customerCity: safeCustomerDetails.customerCity || "Kanpur",
+      customerState: safeCustomerDetails.customerState || "Uttar Pradesh",
+      customerPincode: safeCustomerDetails.customerPincode || "",
       customerLiveLocation: safeCustomerDetails.customerLiveLocation || null,
-      customerEmail: safeCustomerDetails.customerEmail || safeUser.email || "",
+      customerEmail: safeCustomerDetails.customerEmail || "",
       customerType: safeCustomerDetails.customerType || "Normal Customer",
-      salesmanId: safeCustomerDetails.salesmanId || safeUser.salesmanId || "AE-SM-001",
-      salesmanName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
-      salesmanPhone: safeCustomerDetails.salesmanPhone || safeUser.phone || "",
-      salesmanArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
-      salesmanRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "",
-      shopOwnerName: safeCustomerDetails.shopOwnerName || safeCustomerDetails.salesmanName || safeUser.name || "Shop Owner",
-      shopOwnerArea: safeCustomerDetails.shopOwnerArea || safeCustomerDetails.salesmanArea || "South Kanpur Central",
-      shopRoute: safeCustomerDetails.shopRoute || safeCustomerDetails.salesmanRoute || "",
+      shopOwnerName: (safeCustomerDetails.shopOwnerName || "").trim(),
+      shopOwnerArea: (safeCustomerDetails.shopOwnerArea || "").trim(),
+      shopRoute: (safeCustomerDetails.shopRoute || "").trim(),
+      description: (safeCustomerDetails.description || "").trim(),
+      salesmanId: String(safeCustomerDetails.salesmanId || safeUser.salesmanId || safeUser.id || "AE-SM-001").toUpperCase(),
+      salesmanName: safeCustomerDetails.salesmanName || (isSalesman ? (safeUser.name || 'Sales Representative') : 'Sales Representative'),
+      salesmanPhone: safeCustomerDetails.salesmanPhone || (isSalesman ? (safeUser.phone || '') : ''),
+      salesmanArea: safeCustomerDetails.salesmanArea || (isSalesman ? (safeUser.region || '') : ''),
+      salesmanRoute: safeCustomerDetails.salesmanRoute || '',
+      generatedByRole: safeCustomerDetails.generatedByRole || (isAdmin ? 'admin' : isSalesman ? 'salesman' : 'salesman'),
+      generatedByName: safeCustomerDetails.generatedByName || (isAdmin ? (safeUser.name && safeUser.name !== 'ANUJ ENTERPRISES' ? safeUser.name : 'Mr. Anuj Sharma') : isSalesman ? (safeUser.name || 'Sales Representative') : 'Mr. Anuj Sharma'),
+      generatedById: safeCustomerDetails.generatedById || (isAdmin ? 'ADMIN' : isSalesman ? (safeUser.salesmanId || safeUser.id || 'AE-SM-001') : ''),
       paymentMethod: resolvedPayMethod,
 
       items: cart.map(item => ({
@@ -1742,6 +1765,10 @@ export const AppProvider = ({ children }) => {
           customerState: orderData.customerState || payload.customerState,
           customerPincode: orderData.customerPincode || payload.customerPincode,
           customerLiveLocation: orderData.customerLiveLocation || payload.customerLiveLocation,
+          description: orderData.description || payload.description,
+          generatedByRole: orderData.generatedByRole || payload.generatedByRole,
+          generatedByName: orderData.generatedByName || payload.generatedByName,
+          generatedById: orderData.generatedById || payload.generatedById,
           expiredItems: safeCustomerDetails.expiredItems || [],
           returnItems: safeCustomerDetails.returnItems || []
         };
@@ -1780,14 +1807,19 @@ export const AppProvider = ({ children }) => {
         customerId: payload.customerId || `AE-CUST-${Date.now().toString().slice(-4)}`,
         customerMobile: payload.customerMobile || '',
         customerEmail: payload.customerEmail || '',
-        customerAddress: payload.customerAddress || 'Kanpur Wholesale Market',
+        customerAddress: payload.customerAddress || '',
         customerCity: payload.customerCity || 'Kanpur',
         customerState: payload.customerState || 'Uttar Pradesh',
+        customerPincode: payload.customerPincode || '',
+        shopOwnerName: payload.shopOwnerName || '',
+        shopOwnerArea: payload.shopOwnerArea || '',
+        shopRoute: payload.shopRoute || '',
+        description: payload.description || '',
         salesmanId: payload.salesmanId || 'AE-SM-001',
-        salesmanName: payload.salesmanName || 'Central Kanpur HQ',
-        shopOwnerName: payload.shopOwnerName || payload.salesmanName || 'Store Owner',
-        shopOwnerArea: payload.shopOwnerArea || 'Kanpur Central Mandi',
-        shopRoute: payload.shopRoute || 'Standard Mandi Route',
+        salesmanName: payload.salesmanName || 'Sales Representative',
+        generatedByRole: payload.generatedByRole || 'salesman',
+        generatedByName: payload.generatedByName || 'Sales Representative',
+        generatedById: payload.generatedById || 'AE-SM-001',
         paymentMethod: payload.paymentMethod || 'Cash',
         items: payload.items || [],
         totalQuantity: payload.items?.reduce((sum, i) => sum + (Number(i.qty) || 1), 0) || 0,
@@ -1811,8 +1843,17 @@ export const AppProvider = ({ children }) => {
   };
 
   const createAdminInvoice = async (payload) => {
+    const adminPayload = {
+      ...payload,
+      customerMobile: (payload.customerMobile || '').trim(),
+      shopOwnerName: (payload.shopOwnerName || '').trim(),
+      description: (payload.description || '').trim(),
+      generatedByRole: 'admin',
+      generatedByName: (user?.name && user.name !== 'ANUJ ENTERPRISES' ? user.name : 'Mr. Anuj Sharma'),
+      generatedById: 'ADMIN'
+    };
     try {
-      const res = await orderService.createOrder(payload);
+      const res = await orderService.createOrder(adminPayload);
       if (res?.data?.order || res?.order) {
         const createdOrder = res.data?.order || res.order;
         setOrders(prev => [createdOrder, ...(Array.isArray(prev) ? prev : [])]);
@@ -1830,9 +1871,9 @@ export const AppProvider = ({ children }) => {
         orderId: `ORD-2026-${String(Date.now()).slice(-6)}`,
         date: new Date().toISOString().split('T')[0],
         createdAt: new Date().toISOString(),
-        ...payload,
-        totalQuantity: payload.items?.reduce((sum, i) => sum + (Number(i.qty) || 1), 0) || 0,
-        totalAmount: payload.items?.reduce((sum, i) => sum + ((Number(i.qty) || 1) * (Number(i.price) || 0)), 0) || 0,
+        ...adminPayload,
+        totalQuantity: adminPayload.items?.reduce((sum, i) => sum + (Number(i.qty) || 1), 0) || 0,
+        totalAmount: adminPayload.items?.reduce((sum, i) => sum + ((Number(i.qty) || 1) * (Number(i.price) || 0)), 0) || 0,
         status: 'CONFIRMED',
         collectionStatus: 'PENDING',
         orderType: 'OFFLINE_COLLECTION'
@@ -1915,6 +1956,56 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       showToast(err?.message || 'Failed to update order urgency', 'error');
       return false;
+    }
+  };
+
+  // Admin: Delete Order Permanently (optimistic state update + server delete)
+  const deleteOrderFromAdmin = async (order) => {
+    if (!order) return { success: false, message: 'No order provided' };
+    const id = order._id || order.orderId || order.invoiceNumber || order.id;
+    if (!id) return { success: false, message: 'Order ID not found' };
+
+    // Optimistic removal from state
+    setOrders(prev => {
+      const updated = prev.filter(o =>
+        o.id !== order.id &&
+        o.orderId !== order.orderId &&
+        o.invoiceNumber !== order.invoiceNumber
+      );
+      try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    try {
+      await orderService.deleteOrder(id);
+      return { success: true };
+    } catch (err) {
+      // Rollback on failure
+      setOrders(prev => {
+        const rolled = [order, ...prev];
+        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(rolled)); } catch (e) {}
+        return rolled;
+      });
+      return { success: false, message: err?.message || 'Delete failed' };
+    }
+  };
+
+  // Admin: Delete Invoice Permanently (optimistic state update + server delete)
+  const deleteInvoiceFromAdmin = async (invoiceId) => {
+    if (!invoiceId) return { success: false, message: 'No invoice ID provided' };
+    try {
+      await invoiceService.deleteInvoice(invoiceId);
+      // Also remove the matching order from state
+      setOrders(prev => {
+        const updated = prev.filter(o =>
+          o.invoiceNumber !== invoiceId && o.orderId !== invoiceId && o.id !== invoiceId
+        );
+        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Invoice delete failed' };
     }
   };
 
@@ -3402,6 +3493,8 @@ export const AppProvider = ({ children }) => {
       checkoutOrder,
       createAdminInvoice,
       updateOrderStatus,
+      deleteOrderFromAdmin,
+      deleteInvoiceFromAdmin,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -3425,6 +3518,7 @@ export const AppProvider = ({ children }) => {
       updateCustomerProfile,
       deleteCustomer,
       refreshCustomers,
+      refreshOrders,
       loadCustomerForOrder,
       reorderPreviousOrder,
       restockProduct,
