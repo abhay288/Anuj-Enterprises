@@ -385,6 +385,13 @@ export const AppProvider = ({ children }) => {
     return { role: 'guest', name: 'Guest Visitor' };
   });
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const logoutRef = useRef(null);
+
   const [cart, setCart] = useState(() => {
     const initialUser = (() => {
       const saved = localStorage.getItem('anuj_user');
@@ -1155,6 +1162,44 @@ export const AppProvider = ({ children }) => {
   }, [cart, user, broadcastSync]);
   useEffect(() => { localStorage.setItem('anuj_user', JSON.stringify(user)); }, [user]);
 
+  // Cross-Tab Account Deletion Enforcement (Automatic Logout if Admin deletes this salesman or customer)
+  const checkAndEnforceAccountLogout = useCallback((payload) => {
+    if (!payload) return;
+    const currentUser = userRef.current;
+    if (!currentUser || currentUser.role === 'guest' || currentUser.role === 'admin') return;
+
+    if (payload.role === 'salesman' && currentUser.role === 'salesman') {
+      const activeId = String(currentUser.salesmanId || currentUser.id || '').toUpperCase().trim();
+      const activeEmail = String(currentUser.email || '').toLowerCase().trim();
+      const targetId = String(payload.salesmanId || payload.id || '').toUpperCase().trim();
+      const targetEmail = String(payload.email || '').toLowerCase().trim();
+
+      if ((targetId && activeId === targetId) || (targetEmail && activeEmail === targetEmail)) {
+        if (logoutRef.current) logoutRef.current(true);
+        showToast('⚠️ Your salesman account was deleted by Administrator. You have been automatically logged out.', 'error');
+      }
+    }
+
+    if ((payload.role === 'customer' || payload.role === 'user') && currentUser.role === 'customer') {
+      const activeCustId = String(currentUser.customerId || currentUser.id || '').trim();
+      const activeEmail = String(currentUser.email || '').toLowerCase().trim();
+      const activePhone = String(currentUser.mobile || currentUser.phone || '').trim();
+
+      const targetCustId = String(payload.customerId || payload.id || '').trim();
+      const targetEmail = String(payload.email || '').toLowerCase().trim();
+      const targetPhone = String(payload.phone || payload.mobile || '').trim();
+
+      if (
+        (targetCustId && activeCustId === targetCustId) ||
+        (targetEmail && activeEmail === targetEmail) ||
+        (targetPhone && activePhone && (activePhone === targetPhone || activePhone.endsWith(targetPhone) || targetPhone.endsWith(activePhone)))
+      ) {
+        if (logoutRef.current) logoutRef.current(true);
+        showToast('⚠️ Your customer account was deleted by Administrator. You have been automatically logged out.', 'error');
+      }
+    }
+  }, [showToast]);
+
   // Real-Time Cross-Tab / Cross-Window Live Synchronization
   useEffect(() => {
     let syncChannel;
@@ -1179,6 +1224,9 @@ export const AppProvider = ({ children }) => {
             setNotifications(notifList);
           }
           if (type === 'SYNC_CART' && payload && payload.key === activeCartKeyRef.current) setCart(payload.cart);
+          if (type === 'ACCOUNT_DELETED' && payload) {
+            checkAndEnforceAccountLogout(payload);
+          }
         };
       }
     } catch (e) {}
@@ -1223,6 +1271,12 @@ export const AppProvider = ({ children }) => {
           setNotifications(Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.active) ? parsed.active : []));
         }
         if (e.key === activeCartKeyRef.current) setCart(JSON.parse(e.newValue));
+        if (e.key === 'anuj_account_deleted_event') {
+          try {
+            const payload = JSON.parse(e.newValue);
+            checkAndEnforceAccountLogout(payload);
+          } catch (err) {}
+        }
       } catch (err) {}
     };
 
@@ -1239,20 +1293,50 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
     };
 
+    // Listen for force logout event dispatched from API client (when backend detects ACCOUNT_DELETED / ACCOUNT_DISABLED)
+    const handleForceLogout = (e) => {
+      if (logoutRef.current) logoutRef.current(true);
+      showToast(e.detail?.message || '⚠️ Your account has been deleted by Administrator. Session terminated.', 'error');
+    };
+    window.addEventListener('anuj_force_logout', handleForceLogout);
+
+    // Periodic session heartbeat: verifies that logged in user still exists in database
+    const verifyActiveSession = async () => {
+      const currentUser = userRef.current;
+      if (!currentUser || currentUser.role === 'guest' || currentUser.role === 'admin') return;
+
+      const token = localStorage.getItem('anuj_jwt_token');
+      if (!token) return;
+
+      try {
+        await authService.getMe();
+      } catch (err) {
+        if (err?.code === 'ACCOUNT_DELETED' || err?.code === 'ACCOUNT_DISABLED' || err?.status === 401) {
+          if (logoutRef.current) logoutRef.current(true);
+          showToast(err?.message || '⚠️ Your account has been deleted by Administrator. Session terminated.', 'error');
+        }
+      }
+    };
+
+    const heartbeatInterval = setInterval(verifyActiveSession, 15000);
+
     const handleWindowFocus = () => {
       if (document.visibilityState === 'visible') {
         syncFromDatabase();
+        verifyActiveSession();
       }
     };
 
     window.addEventListener('visibilitychange', handleWindowFocus);
     window.addEventListener('focus', handleWindowFocus);
-
     window.addEventListener('storage', handleStorageChange);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('anuj_force_logout', handleForceLogout);
       window.removeEventListener('visibilitychange', handleWindowFocus);
       window.removeEventListener('focus', handleWindowFocus);
+      clearInterval(heartbeatInterval);
       if (syncChannel) syncChannel.close();
       if (eventSource) eventSource.close();
     };
@@ -1697,12 +1781,23 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
-  const logout = () => {
+  const logout = useCallback((silent = false) => {
     authService.logout();
     setUser({ role: 'guest', name: 'Guest Visitor' });
-    showToast('Logged out of B2B Session', 'info');
+    try {
+      localStorage.removeItem('anuj_user');
+      localStorage.removeItem('anuj_user_v2');
+      localStorage.removeItem('anuj_jwt_token');
+    } catch (e) {}
+    if (!silent) {
+      showToast('Logged out of B2B Session', 'info');
+    }
     navigateTo('home');
-  };
+  }, [navigateTo, showToast]);
+
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
 
   // Modals & Invoices
   const openQuickView = (product) => { setQuickViewProduct(product); setIsQuickViewOpen(true); };
@@ -2559,12 +2654,43 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteSalesman = async (id) => {
+    const target = (Array.isArray(salesmen) ? salesmen : []).find(s => 
+      s.id === id || s.salesmanId === id || s._id === id
+    );
+
+    const currentUser = userRef.current;
+    const activeSalesmanId = String(currentUser?.salesmanId || currentUser?.id || '').toUpperCase().trim();
+    const activeEmail = String(currentUser?.email || '').toLowerCase().trim();
+    const isTargetUser = currentUser?.role === 'salesman' && (
+      activeSalesmanId === String(id).toUpperCase().trim() ||
+      (target && (activeSalesmanId === (target.id || target.salesmanId)?.toUpperCase() || activeEmail === target.email?.toLowerCase()))
+    );
+
     setSalesmen(prev => {
-      const updated = prev.filter(s => s.id !== id);
+      const updated = prev.filter(s => s.id !== id && s.salesmanId !== id && s._id !== id);
       broadcastSync('SYNC_SALESMEN', updated);
       return updated;
     });
+
+    const delPayload = {
+      role: 'salesman',
+      id: id,
+      salesmanId: target?.salesmanId || id,
+      email: target?.email
+    };
+
+    broadcastSync('ACCOUNT_DELETED', delPayload);
+    try {
+      localStorage.setItem('anuj_account_deleted_event', JSON.stringify({ ...delPayload, timestamp: Date.now() }));
+    } catch (e) {}
+
     showToast(`Salesman ${id} permanently removed from roster`, 'info');
+
+    if (isTargetUser) {
+      if (logoutRef.current) logoutRef.current(true);
+      showToast('⚠️ Your salesman account has been deleted by Administrator. You have been logged out.', 'error');
+    }
+
     try {
       await salesmanService.deleteSalesman(id);
     } catch (e) {}
@@ -3347,19 +3473,57 @@ export const AppProvider = ({ children }) => {
 
   const deleteCustomer = useCallback(async (custId) => {
     try {
+      const target = (Array.isArray(customers) ? customers : []).find(c => 
+        c.id === custId || c.customerId === custId || c._id === custId
+      );
+
+      const currentUser = userRef.current;
+      const activeCustomerId = String(currentUser?.customerId || currentUser?.id || '').trim();
+      const activeEmail = String(currentUser?.email || '').toLowerCase().trim();
+      const activePhone = String(currentUser?.mobile || currentUser?.phone || '').trim();
+
+      const isTargetUser = currentUser?.role === 'customer' && (
+        (activeCustomerId && (activeCustomerId === custId || activeCustomerId === target?.customerId)) ||
+        (target?.email && activeEmail === target.email.toLowerCase()) ||
+        (target?.phone && activePhone === target.phone) ||
+        (target?.mobile && activePhone === target.mobile)
+      );
+
       await customerService.deleteCustomer(custId);
+
       setCustomers(prev => {
         const updated = prev.filter(c => c.id !== custId && c.customerId !== custId && c._id !== custId);
         try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+        broadcastSync('SYNC_CUSTOMERS', updated);
         return updated;
       });
+
+      const delPayload = {
+        role: 'customer',
+        id: custId,
+        customerId: target?.customerId || custId,
+        email: target?.email,
+        phone: target?.phone || target?.mobile
+      };
+
+      broadcastSync('ACCOUNT_DELETED', delPayload);
+      try {
+        localStorage.setItem('anuj_account_deleted_event', JSON.stringify({ ...delPayload, timestamp: Date.now() }));
+      } catch (e) {}
+
       showToast('Customer account deleted successfully', 'info');
+
+      if (isTargetUser) {
+        if (logoutRef.current) logoutRef.current(true);
+        showToast('⚠️ Your customer account has been deleted by Administrator. You have been logged out.', 'error');
+      }
+
       return true;
     } catch (err) {
       showToast(`Failed to delete customer: ${err?.message || 'Server error'}`, 'error');
       return false;
     }
-  }, [showToast]);
+  }, [customers, showToast, broadcastSync]);
 
   const refreshCustomers = useCallback(async () => {
     try {

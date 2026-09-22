@@ -1,4 +1,5 @@
 import { Customer } from '../models/Customer.js';
+import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
 import { parsePagination, escapeRegex } from '../utils/securityUtils.js';
 export const getCustomers = async (req, res) => {
@@ -266,6 +267,16 @@ export const deleteCustomer = async (req, res) => {
         });
         if (!customer) {
             return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+        // Also delete any corresponding user authentication credentials
+        if (customer.email || customer.phone || customer.mobile) {
+            await User.deleteMany({
+                $or: [
+                    ...(customer.email ? [{ email: customer.email.toLowerCase() }] : []),
+                    ...(customer.phone ? [{ phone: customer.phone }] : []),
+                    ...(customer.mobile ? [{ phone: customer.mobile }] : [])
+                ]
+            }).catch(() => { });
         }
         return res.json({
             success: true,

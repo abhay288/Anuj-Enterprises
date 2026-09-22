@@ -69,6 +69,18 @@ export const apiClient = async (endpoint, options = {}, isRetry = false) => {
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401 && (data.code === 'ACCOUNT_DELETED' || data.code === 'ACCOUNT_DISABLED')) {
+        try {
+          localStorage.removeItem('anuj_jwt_token');
+          localStorage.removeItem('anuj_user');
+          localStorage.removeItem('anuj_user_v2');
+        } catch (e) {}
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('anuj_force_logout', { 
+            detail: { message: data.message || '⚠️ Your account has been deleted by Administrator. You have been logged out.' } 
+          }));
+        }
+      }
       const error = new Error(data.message || `API Request Failed with status ${response.status}`);
       error.code = data.code;
       error.status = response.status;

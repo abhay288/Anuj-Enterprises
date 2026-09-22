@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { Salesman } from '../models/Salesman.js';
+import { User } from '../models/User.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { parsePagination, escapeRegex } from '../utils/securityUtils.js';
 export const getSalesmen = async (req, res) => {
@@ -264,6 +265,15 @@ export const deleteSalesman = async (req, res) => {
         const salesman = await Salesman.findOneAndDelete({ $or: [{ salesmanId: idStr.toUpperCase() }, { _id: isObjectId ? idStr : null }] });
         if (!salesman)
             return res.status(404).json({ success: false, message: 'Salesman not found' });
+        // Also delete any associated user record
+        if (salesman.email || salesman.phone) {
+            await User.deleteMany({
+                $or: [
+                    ...(salesman.email ? [{ email: salesman.email.toLowerCase() }] : []),
+                    ...(salesman.phone ? [{ phone: salesman.phone }] : [])
+                ]
+            }).catch(() => { });
+        }
         await AdminActivity.create({
             action: 'SALESMAN_DELETED',
             adminId: req.user?.id || 'ADMIN',
