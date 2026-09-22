@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, Sparkles, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
+import { X, Lock, UserCheck, ShieldCheck, Key, ArrowRight, Loader2, User, UserX, Award, LayoutDashboard, UserPlus, LogIn, Store, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { checkUnwantedContent } from '../../utils/securityUtils';
 import { AltchaWidget } from './AltchaWidget';
@@ -638,25 +638,6 @@ export const SalesmanLoginModal = () => {
             {authMode === 'salesman' && (
               /* Option 2: Salesman Login */
               <form onSubmit={handleSalesmanSubmit} className="space-y-4">
-                {/* Default Credentials Helper */}
-                <div className="flex items-center justify-between text-[11px] bg-brand-500/10 dark:bg-brand-500/20 border border-brand-500/20 rounded-xl px-3.5 py-2.5 text-slate-700 dark:text-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>Default: <strong className="font-mono text-brand-700 dark:text-amber-400">AE-SM-001</strong> / <strong className="font-mono text-brand-700 dark:text-amber-400">Sales@123</strong></span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSalesmanId('AE-SM-001');
-                      setSalesmanPassword('Sales@123');
-                      setAltchaSalesman(true);
-                    }}
-                    className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer ml-2"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
-
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
                     Salesman ID *
