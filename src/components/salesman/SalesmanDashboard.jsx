@@ -97,7 +97,7 @@ export const SalesmanDashboard = () => {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
-              onClick={() => navigateTo('products')}
+              onClick={() => navigateTo('catalogue')}
               className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5"
             >
               <ShoppingCart className="w-4 h-4" /> Create Invoice

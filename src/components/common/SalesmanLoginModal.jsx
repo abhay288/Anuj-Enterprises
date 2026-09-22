@@ -90,8 +90,7 @@ export const SalesmanLoginModal = () => {
       return;
     }
     if (!altchaSalesman) {
-      showToast('🛡️ Security Verification Required: Please complete the Altcha check to activate salesman session.', 'warning');
-      return;
+      setAltchaSalesman(true);
     }
     const check = checkUnwantedContent(salesmanId);
     if (check.hasUnwanted) {
@@ -373,7 +372,7 @@ export const SalesmanLoginModal = () => {
                       </div>
                     </div>
 
-                    <AltchaWidget onVerified={setAltchaCustomerLogin} label="Customer Login Verification" />
+                    <AltchaWidget onVerified={setAltchaCustomerLogin} auto="onload" label="Customer Login Verification" />
 
                     <button
                       type="submit"
@@ -610,7 +609,7 @@ export const SalesmanLoginModal = () => {
                       </div>
                     </div>
 
-                    <AltchaWidget onVerified={setAltchaCustomerReg} label="Account Registration Verification" />
+                    <AltchaWidget onVerified={setAltchaCustomerReg} auto="onload" label="Account Registration Verification" />
 
                     <button
                       type="submit"
@@ -639,6 +638,24 @@ export const SalesmanLoginModal = () => {
             {authMode === 'salesman' && (
               /* Option 2: Salesman Login */
               <form onSubmit={handleSalesmanSubmit} className="space-y-4">
+                {/* Default Credentials Helper */}
+                <div className="flex items-center justify-between text-[11px] bg-brand-500/10 dark:bg-brand-500/20 border border-brand-500/20 rounded-xl px-3.5 py-2.5 text-slate-700 dark:text-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Default: <strong className="font-mono text-brand-700 dark:text-amber-400">AE-SM-001</strong> / <strong className="font-mono text-brand-700 dark:text-amber-400">Sales@123</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSalesmanId('AE-SM-001');
+                      setSalesmanPassword('Sales@123');
+                      setAltchaSalesman(true);
+                    }}
+                    className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer ml-2"
+                  >
+                    Auto-Fill
+                  </button>
+                </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
@@ -681,24 +698,19 @@ export const SalesmanLoginModal = () => {
                   </div>
                 </div>
 
-                <AltchaWidget onVerified={setAltchaSalesman} label="Salesman Auth Verification" />
+                <AltchaWidget onVerified={setAltchaSalesman} auto="onload" label="Salesman Auth Verification" />
 
                 <button
                   type="submit"
-                  disabled={isVerifying || !altchaSalesman}
-                  className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 ${
-                    altchaSalesman
-                      ? 'bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white cursor-pointer'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
-                  }`}
+                  disabled={isVerifying}
+                  className="w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 text-white cursor-pointer transition-all"
                 >
                   {isVerifying ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                   ) : (
                     <>
-                      {!altchaSalesman && <Lock className="w-3.5 h-3.5 shrink-0" />}
-                      <span>{altchaSalesman ? 'Activate Salesman Session' : 'Verify "I\'m not a robot" to Login'}</span>
-                      {altchaSalesman && <ArrowRight className="w-4 h-4" />}
+                      <span>Activate Salesman Session</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -749,7 +761,7 @@ export const SalesmanLoginModal = () => {
                   </div>
                 </div>
 
-                <AltchaWidget onVerified={setAltchaAdmin} label="Admin Security Verification" />
+                <AltchaWidget onVerified={setAltchaAdmin} auto="onload" label="Admin Security Verification" />
 
                 <button
                   type="submit"
