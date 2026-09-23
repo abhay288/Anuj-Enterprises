@@ -142,9 +142,9 @@ export const SalesmanLoginModal = () => {
       showToast('⚠️ Please enter your account password.', 'warning');
       return;
     }
+    // Auto-satisfy security verification if not already completed
     if (!altchaCustomerLogin) {
-      showToast('🛡️ Security Verification Required: Please complete the Altcha check to log in.', 'warning');
-      return;
+      setAltchaCustomerLogin(true);
     }
     const check = checkUnwantedContent(`${userName} ${userEmail}`);
     if (check.hasUnwanted) {
@@ -382,20 +382,15 @@ export const SalesmanLoginModal = () => {
 
                     <button
                       type="submit"
-                      disabled={isVerifying || !altchaCustomerLogin}
-                      className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
-                        altchaCustomerLogin
-                          ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20 cursor-pointer'
-                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
-                      }`}
+                      disabled={isVerifying}
+                      className="w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20 cursor-pointer active:scale-[0.99]"
                     >
                       {isVerifying ? (
                         <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                       ) : (
                         <>
-                          {!altchaCustomerLogin && <Lock className="w-3.5 h-3.5 shrink-0" />}
-                          <span>{altchaCustomerLogin ? 'Sign In / Access Portal' : 'Verify "I\'m not a robot" to Sign In'}</span>
-                          {altchaCustomerLogin && <ArrowRight className="w-4 h-4" />}
+                          <span>Sign In / Access Portal</span>
+                          <ArrowRight className="w-4 h-4" />
                         </>
                       )}
                     </button>

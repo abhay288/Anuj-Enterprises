@@ -1774,46 +1774,6 @@ export const AppProvider = ({ children }) => {
         throw err;
       }
 
-      // If backend network error, timeout, or server offline, gracefully activate local customer session
-      const isNetworkOrOffline = err?.code === 'TIMEOUT' || 
-                                 errMsg.toLowerCase().includes('network') || 
-                                 errMsg.toLowerCase().includes('fetch') || 
-                                 errMsg.toLowerCase().includes('json') || 
-                                 errMsg.toLowerCase().includes('504');
-      if (isNetworkOrOffline) {
-        console.warn('[Anuj Register] Server offline/unreachable, activating resilient offline session:', errMsg);
-        recordSuccessfulAuth('user');
-        const fallbackCustId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
-        const localCustUser = {
-          role: 'customer',
-          name: formData.name || formData.shopName || 'Retail Customer',
-          shopName: formData.name || formData.shopName || 'Retail Customer',
-          ownerName: formData.ownerName || formData.name || 'Store Owner',
-          shopOwnerName: formData.ownerName || formData.name || 'Store Owner',
-          email: (formData.email || '').toLowerCase().trim(),
-          mobile: formData.mobile || formData.phone || '',
-          phone: formData.mobile || formData.phone || '',
-          customerId: fallbackCustId,
-          city: formData.city || 'Kanpur',
-          state: formData.state || 'Uttar Pradesh',
-          address: formData.address || '',
-          classification: 'NORMAL',
-          totalOrders: 0,
-          totalSpent: 0,
-          isLocal: true
-        };
-        setUser(localCustUser);
-        try { localStorage.setItem('anuj_user', JSON.stringify(localCustUser)); } catch (e) {}
-        setCustomers(prev => {
-          const updated = [localCustUser, ...prev.filter(c => c.customerId !== localCustUser.customerId && (!c.email || c.email !== localCustUser.email))];
-          try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
-          broadcastSync('SYNC_CUSTOMERS', updated);
-          return updated;
-        });
-        showToast(`Welcome, ${localCustUser.name}! Account registered successfully.`, 'success');
-        return localCustUser;
-      }
-
       showToast(`❌ ${errMsg}`, 'error');
       throw err;
     }

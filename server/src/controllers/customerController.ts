@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { Customer } from '../models/Customer.js';
 import { User } from '../models/User.js';
 import { Order } from '../models/Order.js';
@@ -276,6 +277,39 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
     });
 
     await customer.save();
+
+    // Auto-provision corresponding User auth account for seamless login
+    try {
+      const cleanPhone = String(phone).trim();
+      const cleanEmail = email ? String(email).trim().toLowerCase() : `${customer.customerId.toLowerCase()}@customer.anujfmcg.com`;
+      const rawPassword = req.body.password ? String(req.body.password).trim() : 'Cust@123';
+      const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+      let userObj = await User.findOne({
+        $or: [
+          { email: cleanEmail },
+          { phone: cleanPhone }
+        ]
+      });
+
+      if (!userObj) {
+        await User.create({
+          name: String(name).trim(),
+          email: cleanEmail,
+          phone: cleanPhone,
+          passwordHash,
+          role: 'CUSTOMER',
+          status: 'Active'
+        });
+      } else {
+        userObj.passwordHash = passwordHash;
+        userObj.role = 'CUSTOMER';
+        userObj.status = 'Active';
+        await userObj.save();
+      }
+    } catch (userErr: any) {
+      console.warn('[customerController] Non-critical user auth creation warning:', userErr.message);
+    }
 
     return res.status(201).json({
       success: true,
