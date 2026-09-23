@@ -6,7 +6,7 @@ import { Customer } from '../models/Customer.js';
 import { Salesman } from '../models/Salesman.js';
 import { AdminActivity } from '../models/AdminActivity.js';
 import { AuthRequest, getJwtSecret } from '../middleware/authMiddleware.js';
-import { sendAdminNewDeviceAlertEmail } from '../utils/emailService.js';
+import { sendAdminNewDeviceAlertEmail, sendWelcomeEmail } from '../utils/emailService.js';
 
 const parseUserAgent = (ua: string) => {
   let browser = 'Chrome (Standard)';
@@ -42,6 +42,7 @@ const parseUserAgent = (ua: string) => {
 
 
 export const register = async (req: Request, res: Response) => {
+  let createdUserObj: any = null;
   try {
     const { name, shopName, ownerName, mobile, phone, email, password, address, city, state } = req.body;
     const finalName = String(shopName || name || '').trim();
@@ -66,8 +67,37 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
+    if (cleanMobile && cleanMobile.length >= 10) {
+      const digits = cleanMobile.replace(/\D/g, '').slice(-10);
+      const existingMobile = await User.findOne({
+        $or: [
+          { phone: cleanMobile },
+          { phone: digits },
+          { phone: `+91${digits}` },
+          { phone: `+91 ${digits}` }
+        ]
+      });
+      if (existingMobile) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this mobile number already exists. Please sign in.',
+          code: 'EMAIL_EXISTS'
+        });
+      }
+    }
+
+    // Collision-safe unique customerId generation
+    let customerId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
+    let attempts = 0;
+    while (await Customer.exists({ customerId }) && attempts < 10) {
+      customerId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
+      attempts++;
+    }
+    if (attempts >= 10) {
+      customerId = `CUST-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
-    const customerId = `CUST-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const userObj = await User.create({
       name: finalName,
@@ -77,8 +107,16 @@ export const register = async (req: Request, res: Response) => {
       role: 'CUSTOMER',
       status: 'Active'
     });
+    createdUserObj = userObj;
 
-    let customerDoc = await Customer.findOne({ email: cleanEmail });
+    // Search for existing Customer profile by email or mobile
+    let customerDoc = await Customer.findOne({
+      $or: [
+        { email: cleanEmail },
+        ...(cleanMobile ? [{ mobile: cleanMobile }, { phone: cleanMobile }] : [])
+      ]
+    });
+
     if (!customerDoc) {
       customerDoc = await Customer.create({
         customerId,
@@ -94,8 +132,35 @@ export const register = async (req: Request, res: Response) => {
         customerMode: 'QUICK',
         createdBy: 'SELF_REGISTERED'
       });
+    } else {
+      let modified = false;
+      if (!customerDoc.customerId) {
+        customerDoc.customerId = customerId;
+        modified = true;
+      }
+      if (!customerDoc.email) {
+        customerDoc.email = cleanEmail;
+        modified = true;
+      }
+      if (!customerDoc.mobile && cleanMobile) {
+        customerDoc.mobile = cleanMobile;
+        customerDoc.phone = cleanMobile;
+        modified = true;
+      }
+      if (address && !customerDoc.address) {
+        customerDoc.address = String(address).trim();
+        modified = true;
+      }
+      if (city && !customerDoc.city) {
+        customerDoc.city = String(city).trim();
+        modified = true;
+      }
+      if (modified) {
+        await customerDoc.save().catch(() => {});
+      }
     }
 
+    const safeCustomerId = customerDoc.customerId || customerId;
     const JWT_SECRET = getJwtSecret();
     const token = jwt.sign(
       { 
@@ -103,12 +168,23 @@ export const register = async (req: Request, res: Response) => {
         email: userObj.email, 
         role: 'customer', 
         name: userObj.name,
-        customerId: customerDoc.customerId,
+        customerId: safeCustomerId,
         status: userObj.status
       },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    // Non-blocking welcome email dispatch
+    sendWelcomeEmail({
+      name: customerDoc.name || userObj.name,
+      ownerName: customerDoc.ownerName || userObj.name,
+      email: userObj.email,
+      mobile: customerDoc.mobile || customerDoc.phone || userObj.phone,
+      customerId: safeCustomerId
+    }).catch((emailErr) => {
+      console.warn('[AuthController] Non-blocking welcome email failure caught:', emailErr?.message || emailErr);
+    });
 
     return res.status(201).json({
       success: true,
@@ -122,7 +198,7 @@ export const register = async (req: Request, res: Response) => {
           ownerName: customerDoc.ownerName || userObj.name,
           email: userObj.email,
           role: 'customer',
-          customerId: customerDoc.customerId,
+          customerId: safeCustomerId,
           mobile: customerDoc.mobile || customerDoc.phone || userObj.phone,
           address: customerDoc.address,
           city: customerDoc.city,
@@ -131,7 +207,10 @@ export const register = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
+    if (createdUserObj?._id) {
+      await User.deleteOne({ _id: createdUserObj._id }).catch(() => {});
+    }
+    return res.status(500).json({ success: false, message: error.message || 'Registration failed' });
   }
 };
 

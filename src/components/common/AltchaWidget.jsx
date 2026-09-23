@@ -16,24 +16,21 @@ export const AltchaWidget = ({
   const [status, setStatus] = useState('idle'); // 'idle' | 'verifying' | 'verified'
   const [payload, setPayload] = useState(null);
 
-  // Ensure parent always begins in false/unverified state on mount
+  // Sync verification status with parent callback
   useEffect(() => {
-    if (onVerified) {
-      onVerified(false, null);
+    if (status === 'verified') {
+      if (onVerified) onVerified(true, payload);
+    } else {
+      if (onVerified) onVerified(false, null);
     }
-    return () => {
-      if (onVerified) {
-        onVerified(false, null);
-      }
-    };
-  }, []);
+  }, [onVerified, status, payload]);
 
   // Auto-verify if auto is explicitly set to 'onload'
   useEffect(() => {
     if (auto === 'onload' && status === 'idle') {
       handleTriggerVerification();
     }
-  }, [auto]);
+  }, [auto, status]);
 
   const handleTriggerVerification = async () => {
     if (status === 'verifying' || status === 'verified') return;

@@ -52,10 +52,10 @@ export const checkUnwantedContent = (input) => {
   }
 
   // 2. Check for unwanted / profane words
-  // Match whole words or substrings for explicit profanity
+  // Match whole words using strict word boundaries to avoid false positives on shop names
   for (const word of UNWANTED_WORDS) {
     const wordPattern = new RegExp(`\\b${word}\\b`, 'i');
-    if (wordPattern.test(lowerInput) || (word.length > 4 && lowerInput.includes(word))) {
+    if (wordPattern.test(lowerInput)) {
       return { hasUnwanted: true, matchedWord: word };
     }
   }

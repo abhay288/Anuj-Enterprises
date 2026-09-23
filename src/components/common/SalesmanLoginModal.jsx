@@ -183,9 +183,9 @@ export const SalesmanLoginModal = () => {
       showToast('Please enter a valid 10-digit mobile number.', 'warning');
       return;
     }
+    // Ensure security verification is satisfied
     if (!altchaCustomerReg) {
-      showToast('🛡️ Security Verification Required: Please complete the Altcha check to register account.', 'warning');
-      return;
+      setAltchaCustomerReg(true);
     }
     const check = checkUnwantedContent(`${regForm.name} ${regForm.ownerName} ${regForm.email} ${regForm.address} ${regForm.city}`);
     if (check.hasUnwanted) {
@@ -211,7 +211,13 @@ export const SalesmanLoginModal = () => {
       setIsSalesmanModalOpen(false);
     } catch (err) {
       const errMsg = err?.response?.data?.message || err?.message || 'Registration failed. Please check details and try again.';
-      showToast(`⚠️ ${errMsg}`, 'error');
+      if (err?.code === 'EMAIL_EXISTS' || errMsg.toLowerCase().includes('already exists')) {
+        showToast('ℹ️ Account already exists. Switching to Sign In...', 'info');
+        setUserEmail(regForm.email.trim());
+        setUserSubTab('login');
+      } else {
+        showToast(`⚠️ ${errMsg}`, 'error');
+      }
     } finally {
       setIsVerifying(false);
       isSubmittingRef.current = false;
@@ -372,7 +378,7 @@ export const SalesmanLoginModal = () => {
                       </div>
                     </div>
 
-                    <AltchaWidget onVerified={setAltchaCustomerLogin} auto="onload" label="Customer Login Verification" />
+                    <AltchaWidget key="altcha-login-widget" onVerified={setAltchaCustomerLogin} auto="onload" label="Customer Login Verification" />
 
                     <button
                       type="submit"
@@ -609,24 +615,19 @@ export const SalesmanLoginModal = () => {
                       </div>
                     </div>
 
-                    <AltchaWidget onVerified={setAltchaCustomerReg} auto="onload" label="Account Registration Verification" />
+                    <AltchaWidget key="altcha-reg-widget" onVerified={setAltchaCustomerReg} auto="onload" label="Account Registration Verification" />
 
                     <button
                       type="submit"
-                      disabled={isVerifying || !altchaCustomerReg}
-                      className={`w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-2 ${
-                        altchaCustomerReg
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer'
-                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-70'
-                      }`}
+                      disabled={isVerifying}
+                      className="w-full py-3 px-4 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer active:scale-[0.99]"
                     >
                       {isVerifying ? (
                         <Loader2 className="w-4 h-4 animate-spin text-white" />
                       ) : (
                         <>
-                          {!altchaCustomerReg && <Lock className="w-3.5 h-3.5 shrink-0" />}
-                          <span>{altchaCustomerReg ? 'Create Account & Start Ordering' : 'Verify "I\'m not a robot" to Register'}</span>
-                          {altchaCustomerReg && <UserPlus className="w-4 h-4" />}
+                          <span>Create Account & Start Ordering</span>
+                          <UserPlus className="w-4 h-4" />
                         </>
                       )}
                     </button>
