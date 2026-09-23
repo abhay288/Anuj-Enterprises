@@ -211,8 +211,8 @@ export const SalesmanLoginModal = () => {
       setIsSalesmanModalOpen(false);
     } catch (err) {
       const errMsg = err?.response?.data?.message || err?.message || 'Registration failed. Please check details and try again.';
-      if (err?.code === 'EMAIL_EXISTS' || errMsg.toLowerCase().includes('already exists')) {
-        showToast('ℹ️ Account already exists. Switching to Sign In...', 'info');
+      if (err?.code === 'EMAIL_EXISTS' || errMsg.toLowerCase().includes('already registered') || errMsg.toLowerCase().includes('already exists')) {
+        showToast('⚠️ You are already registered with this email. Please sign in.', 'warning');
         setUserEmail(regForm.email.trim());
         setUserSubTab('login');
       } else {

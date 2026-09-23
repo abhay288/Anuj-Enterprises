@@ -1705,12 +1705,24 @@ export const AppProvider = ({ children }) => {
       }
 
       recordFailedAuth('user', 3);
-      showToast(`❌ ${e.message || 'Incorrect credentials. Please verify your details.'}`, 'error');
+      if (
+        e?.code === 'ACCOUNT_NOT_AVAILABLE' ||
+        e?.code === 'USER_NOT_FOUND' ||
+        e?.status === 404 ||
+        e?.message?.toLowerCase()?.includes('not available') ||
+        e?.message?.toLowerCase()?.includes('not found')
+      ) {
+        showToast('❌ Account not available. Please register or check your details.', 'error');
+      } else if (e?.code === 'INVALID_PASSWORD' || e?.message?.toLowerCase()?.includes('password')) {
+        showToast('❌ Incorrect password. Please verify your credentials.', 'error');
+      } else {
+        showToast(`❌ ${e?.message || 'Account not available. Please register or check your details.'}`, 'error');
+      }
       return false;
     }
 
     recordFailedAuth('user', 3);
-    showToast('❌ Account not found. Please check your details or click "Register Account".', 'error');
+    showToast('❌ Account not available. Please register or check your details.', 'error');
     return false;
   };
 
@@ -1767,7 +1779,7 @@ export const AppProvider = ({ children }) => {
       return res;
     } catch (err) {
       const errMsg = err?.message || 'Registration failed. Please verify your details.';
-      const isAlreadyExists = err?.code === 'EMAIL_EXISTS' || errMsg.toLowerCase().includes('already exists');
+      const isAlreadyExists = err?.code === 'EMAIL_EXISTS' || errMsg.toLowerCase().includes('already registered') || errMsg.toLowerCase().includes('already exists');
       
       // If email or account already exists, rethrow cleanly so UI switches to Sign In without double error toast
       if (isAlreadyExists) {

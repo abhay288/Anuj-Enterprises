@@ -61,28 +61,41 @@ export const register = async (req, res) => {
             });
         }
         const cleanEmail = String(email).trim().toLowerCase();
-        const existing = await User.findOne({ email: cleanEmail });
-        if (existing) {
+        const [existingUserEmail, existingCustomerEmail] = await Promise.all([
+            User.findOne({ email: cleanEmail }),
+            Customer.findOne({ email: cleanEmail })
+        ]);
+        if (existingUserEmail || existingCustomerEmail) {
             return res.status(400).json({
                 success: false,
-                message: 'An account with this email already exists',
+                message: 'You are already registered with this email. Please sign in.',
                 code: 'EMAIL_EXISTS'
             });
         }
         if (cleanMobile && cleanMobile.length >= 10) {
             const digits = cleanMobile.replace(/\D/g, '').slice(-10);
-            const existingMobile = await User.findOne({
-                $or: [
-                    { phone: cleanMobile },
-                    { phone: digits },
-                    { phone: `+91${digits}` },
-                    { phone: `+91 ${digits}` }
-                ]
-            });
-            if (existingMobile) {
+            const [existingMobile, existingCustMobile] = await Promise.all([
+                User.findOne({
+                    $or: [
+                        { phone: cleanMobile },
+                        { phone: digits },
+                        { phone: `+91${digits}` },
+                        { phone: `+91 ${digits}` }
+                    ]
+                }),
+                Customer.findOne({
+                    $or: [
+                        { phone: cleanMobile },
+                        { mobile: cleanMobile },
+                        { phone: digits },
+                        { mobile: digits }
+                    ]
+                })
+            ]);
+            if (existingMobile || existingCustMobile) {
                 return res.status(400).json({
                     success: false,
-                    message: 'An account with this mobile number already exists. Please sign in.',
+                    message: 'You are already registered with this mobile number. Please sign in.',
                     code: 'EMAIL_EXISTS'
                 });
             }
@@ -641,12 +654,19 @@ export const login = async (req, res) => {
                     message: `${userRole === 'admin' ? 'Admin' : 'Customer'} Login Successful`
                 });
             }
+            else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Incorrect password. Please verify your credentials.',
+                    code: 'INVALID_PASSWORD'
+                });
+            }
         }
-        // All authentication paths failed
-        return res.status(401).json({
+        // All authentication paths failed - no account matched identifier
+        return res.status(404).json({
             success: false,
-            message: 'Invalid credentials. Check your identifier and password.',
-            code: 'INVALID_CREDENTIALS'
+            message: 'Account not available. Please register or check your details.',
+            code: 'ACCOUNT_NOT_AVAILABLE'
         });
     }
     catch (error) {
