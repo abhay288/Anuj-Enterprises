@@ -162,7 +162,7 @@ export const register = async (req, res) => {
         const token = jwt.sign({
             id: String(userObj._id),
             email: userObj.email,
-            role: 'customer',
+            role: 'CUSTOMER',
             name: userObj.name,
             customerId: safeCustomerId,
             status: userObj.status

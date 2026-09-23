@@ -166,7 +166,7 @@ export const register = async (req: Request, res: Response) => {
       { 
         id: String(userObj._id), 
         email: userObj.email, 
-        role: 'customer', 
+        role: 'CUSTOMER', 
         name: userObj.name,
         customerId: safeCustomerId,
         status: userObj.status

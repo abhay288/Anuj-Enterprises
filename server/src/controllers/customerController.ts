@@ -11,10 +11,11 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
     }
 
+    const userRole = String(req.user.role || '').toUpperCase();
     const { search, salesmanId } = req.query;
     const filter: any = {};
 
-    if (req.user.role === 'SALESMAN') {
+    if (userRole === 'SALESMAN') {
       const userSalesmanId = String(req.user.salesmanId || '').toUpperCase();
       if (userSalesmanId) {
         filter.$or = [
@@ -22,14 +23,74 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
           { assignedSalesmanId: userSalesmanId }
         ];
       }
-    } else if (req.user.role === 'ADMIN') {
+    } else if (userRole === 'ADMIN') {
       if (salesmanId) {
         filter.$or = [
           { createdBy: String(salesmanId).toUpperCase() },
           { assignedSalesmanId: String(salesmanId).toUpperCase() }
         ];
       }
-    } else if (req.user.role === 'CUSTOMER' || req.user.role === 'USER') {
+
+      // Auto-synchronize registered users from User collection into Customer directory
+      try {
+        const customerUsers = await User.find({
+          role: { $in: ['CUSTOMER', 'USER', 'customer', 'user'] }
+        }).lean();
+
+        if (customerUsers.length > 0) {
+          const existingCustomers = await Customer.find({}, 'email phone mobile customerId').lean();
+          const emailSet = new Set(existingCustomers.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+          const phoneSet = new Set(
+            existingCustomers
+              .flatMap(c => [c.phone, c.mobile])
+              .filter(Boolean)
+              .map(p => String(p).replace(/\D/g, '').slice(-10))
+              .filter(p => p.length >= 10)
+          );
+
+          const toInsert: any[] = [];
+          let custCount = existingCustomers.length;
+
+          for (const u of customerUsers) {
+            const uEmail = (u.email || '').toLowerCase().trim();
+            const uDigits = (u.phone || '').replace(/\D/g, '').slice(-10);
+
+            const hasEmail = uEmail && emailSet.has(uEmail);
+            const hasPhone = uDigits.length >= 10 && phoneSet.has(uDigits);
+
+            if (!hasEmail && !hasPhone) {
+              custCount++;
+              const newCustId = `AE-CUST-${String(custCount + 100).padStart(3, '0')}`;
+              toInsert.push({
+                customerId: newCustId,
+                name: u.name || 'Valued Retailer',
+                ownerName: u.name || 'Valued Retailer',
+                email: uEmail,
+                phone: u.phone || '',
+                mobile: u.phone || '',
+                address: '',
+                city: 'Kanpur',
+                state: 'Uttar Pradesh',
+                classification: 'NORMAL',
+                customerMode: 'QUICK',
+                createdBy: 'SELF_REGISTERED',
+                totalOrders: 0,
+                totalSpent: 0
+              });
+
+              if (uEmail) emailSet.add(uEmail);
+              if (uDigits.length >= 10) phoneSet.add(uDigits);
+            }
+          }
+
+          if (toInsert.length > 0) {
+            await Customer.insertMany(toInsert, { ordered: false }).catch(() => {});
+          }
+        }
+      } catch (syncErr) {
+        console.warn('[customerController] Auto-sync users to customers error:', syncErr);
+      }
+    } else if (userRole === 'CUSTOMER' || userRole === 'USER') {
       filter.$or = [
         { customerId: req.user.customerId },
         { phone: req.user.email || req.user.mobile },
@@ -46,7 +107,10 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
       filter.$and.push({
         $or: [
           { name: regex },
+          { ownerName: regex },
           { phone: regex },
+          { mobile: regex },
+          { email: regex },
           { customerId: regex },
           { city: regex },
           { state: regex }
@@ -54,7 +118,9 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const { limit, skip, page } = parsePagination(req.query, 50, 100);
+    const defaultLimit = userRole === 'ADMIN' ? 1000 : 50;
+    const maxLimit = userRole === 'ADMIN' ? 1000 : 100;
+    const { limit, skip, page } = parsePagination(req.query, defaultLimit, maxLimit);
 
     const [customers, totalCount] = await Promise.all([
       Customer.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -195,12 +261,15 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
     const customer = new Customer({
       customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
       name: String(name).trim(),
+      ownerName: String(req.body.ownerName || name).trim(),
       phone: String(phone).trim(),
+      mobile: String(phone).trim(),
       email: email ? String(email).trim().toLowerCase() : '',
       address: address || '',
       city: city || 'Kanpur',
       state: state || 'Uttar Pradesh',
       classification: classification || 'NORMAL',
+      customerMode: 'QUICK',
       createdBy: req.user?.salesmanId || req.user?.id || 'ADMIN',
       totalOrders: 0,
       totalSpent: 0

@@ -153,6 +153,7 @@ export const AdminDashboard = () => {
   // Retention settings
   const [retentionSettings, setRetentionSettings] = useState({ orderRetentionDays: 0, invoiceRetentionDays: 0 });
   const [retentionSaving, setRetentionSaving] = useState(false);
+  const [isRefreshingCustomers, setIsRefreshingCustomers] = useState(false);
 
   // Admin Direct Invoice Generation State
   const [isAdminCreateInvoiceOpen, setIsAdminCreateInvoiceOpen] = useState(false);
@@ -3146,6 +3147,27 @@ export const AdminDashboard = () => {
                   </div>
 
                   <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={isRefreshingCustomers}
+                      onClick={async () => {
+                        setIsRefreshingCustomers(true);
+                        try {
+                          await refreshCustomers();
+                          showToast('Customer directory refreshed successfully', 'success');
+                        } catch (err) {
+                          showToast('Failed to refresh customer directory', 'error');
+                        } finally {
+                          setIsRefreshingCustomers(false);
+                        }
+                      }}
+                      className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-xs"
+                      title="Sync and refresh latest registered customers from database"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-emerald-500 ${isRefreshingCustomers ? 'animate-spin' : ''}`} />
+                      <span>{isRefreshingCustomers ? 'Refreshing...' : 'Refresh'}</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => exportCustomersCSV(customers)}

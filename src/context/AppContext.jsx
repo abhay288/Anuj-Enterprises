@@ -1011,7 +1011,7 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
 
       try {
-        const custRes = await customerService.getCustomers();
+        const custRes = await customerService.getCustomers({ limit: 1000 });
         if (!isCancelled && custRes.data?.customers) {
           setCustomers(custRes.data.customers);
           try { localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers)); } catch (e) {}
@@ -1744,12 +1744,24 @@ export const AppProvider = ({ children }) => {
           customerId: u.customerId,
           city: u.city || 'Kanpur',
           state: u.state || 'Uttar Pradesh',
-          address: u.address || ''
+          address: u.address || '',
+          classification: 'NORMAL',
+          totalOrders: 0,
+          totalSpent: 0
         };
         setUser(custUser);
         try { localStorage.setItem('anuj_user', JSON.stringify(custUser)); } catch (e) {}
-        setCustomers(prev => [custUser, ...prev.filter(c => c.customerId !== custUser.customerId)]);
+        setCustomers(prev => {
+          const updated = [custUser, ...prev.filter(c => c.customerId !== custUser.customerId && (!c.email || c.email !== custUser.email))];
+          try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+          broadcastSync('SYNC_CUSTOMERS', updated);
+          return updated;
+        });
         showToast(`Welcome, ${custUser.name}! Account registered successfully.`, 'success');
+
+        // Refresh customers list from server in background to sync directory across tabs
+        refreshCustomers().catch(() => {});
+
         return custUser;
       }
       return res;
@@ -1785,11 +1797,19 @@ export const AppProvider = ({ children }) => {
           city: formData.city || 'Kanpur',
           state: formData.state || 'Uttar Pradesh',
           address: formData.address || '',
+          classification: 'NORMAL',
+          totalOrders: 0,
+          totalSpent: 0,
           isLocal: true
         };
         setUser(localCustUser);
         try { localStorage.setItem('anuj_user', JSON.stringify(localCustUser)); } catch (e) {}
-        setCustomers(prev => [localCustUser, ...prev.filter(c => c.customerId !== localCustUser.customerId)]);
+        setCustomers(prev => {
+          const updated = [localCustUser, ...prev.filter(c => c.customerId !== localCustUser.customerId && (!c.email || c.email !== localCustUser.email))];
+          try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+          broadcastSync('SYNC_CUSTOMERS', updated);
+          return updated;
+        });
         showToast(`Welcome, ${localCustUser.name}! Account registered successfully.`, 'success');
         return localCustUser;
       }
@@ -3375,6 +3395,7 @@ export const AppProvider = ({ children }) => {
         setCustomers(prev => {
           const updated = [res.data.customer, ...prev.filter(c => (c.id || c._id) !== (res.data.customer.id || res.data.customer._id))];
           try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+          broadcastSync('SYNC_CUSTOMERS', updated);
           return updated;
         });
         showToast(`Customer "${custData.name || custData.shopName}" registered successfully`, 'success');
@@ -3401,6 +3422,7 @@ export const AppProvider = ({ children }) => {
       setCustomers(prev => {
         const updated = [fallbackCustomer, ...prev.filter(c => (c.id || c._id) !== fallbackCustomer.id)];
         try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (err) {}
+        broadcastSync('SYNC_CUSTOMERS', updated);
         return updated;
       });
       showToast(`Customer "${preparedData.name || preparedData.shopName}" registered successfully`, 'success');
@@ -3618,7 +3640,7 @@ export const AppProvider = ({ children }) => {
 
   const refreshCustomers = useCallback(async () => {
     try {
-      const res = await customerService.getCustomers();
+      const res = await customerService.getCustomers({ limit: 1000 });
       if (res.data?.customers) {
         setCustomers(res.data.customers);
         localStorage.setItem('anuj_customers_v3', JSON.stringify(res.data.customers));

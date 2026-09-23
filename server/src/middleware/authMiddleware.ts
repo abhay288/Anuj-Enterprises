@@ -42,6 +42,9 @@ export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunct
   try {
     const secret = getJwtSecret();
     const decoded = jwt.verify(token, secret) as any;
+    if (decoded && decoded.role) {
+      decoded.role = String(decoded.role).toUpperCase();
+    }
     req.user = decoded;
     next();
   } catch (err) {
@@ -138,7 +141,10 @@ export const requireRoles = (...roles: Array<'USER' | 'CUSTOMER' | 'SALESMAN' | 
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = String(req.user.role).toUpperCase();
+    const uppercaseRoles = roles.map(r => String(r).toUpperCase());
+
+    if (!uppercaseRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: `Forbidden: Access requires one of [${roles.join(', ')}] role`,
