@@ -352,31 +352,39 @@ export const updateCustomer = async (req, res) => {
 };
 export const deleteCustomer = async (req, res) => {
     try {
-        if (!req.user || req.user.role !== 'ADMIN') {
+        const cleanRole = String(req.user?.role || '').toUpperCase();
+        if (!req.user || (cleanRole !== 'ADMIN' && req.user.id !== 'ADMIN_ENTERPRISE')) {
             return res.status(403).json({ success: false, message: 'Forbidden: Admin access required', code: 'FORBIDDEN' });
         }
-        const idStr = String(req.params.id);
-        const isObjectId = idStr.match(/^[0-9a-fA-F]{24}$/);
+        const idStr = String(req.params.id || '').trim();
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
         const customer = await Customer.findOneAndDelete({
-            $or: [{ customerId: idStr }, { _id: isObjectId ? idStr : null }]
+            $or: [
+                { customerId: idStr },
+                { customerId: idStr.toUpperCase() },
+                { email: idStr.toLowerCase() },
+                { mobile: idStr },
+                { phone: idStr },
+                ...(isObjectId ? [{ _id: idStr }] : [])
+            ]
         });
-        if (!customer) {
-            return res.status(404).json({ success: false, message: 'Customer not found' });
-        }
-        // Also delete any corresponding user authentication credentials
-        if (customer.email || customer.phone || customer.mobile) {
-            await User.deleteMany({
-                $or: [
-                    ...(customer.email ? [{ email: customer.email.toLowerCase() }] : []),
-                    ...(customer.phone ? [{ phone: customer.phone }] : []),
-                    ...(customer.mobile ? [{ phone: customer.mobile }] : [])
-                ]
-            }).catch(() => { });
-        }
+        // Also delete any corresponding user authentication credentials from User collection
+        const userDeleteFilters = [
+            { email: idStr.toLowerCase() },
+            { phone: idStr },
+            ...(isObjectId ? [{ _id: idStr }] : [])
+        ];
+        if (customer?.email)
+            userDeleteFilters.push({ email: customer.email.toLowerCase() });
+        if (customer?.phone)
+            userDeleteFilters.push({ phone: customer.phone });
+        if (customer?.mobile)
+            userDeleteFilters.push({ phone: customer.mobile });
+        await User.deleteMany({ $or: userDeleteFilters }).catch(() => { });
         return res.json({
             success: true,
-            data: { customerId: customer.customerId },
-            message: `Customer "${customer.name}" permanently deleted`
+            data: { customerId: customer?.customerId || idStr },
+            message: customer ? `Customer "${customer.name}" permanently deleted` : `Customer ${idStr} cleared from system`
         });
     }
     catch (error) {

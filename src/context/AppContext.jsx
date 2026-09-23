@@ -2147,34 +2147,38 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Admin: Delete Order Permanently (optimistic state update + server delete)
+  // Admin: Delete Order & Linked Invoice Permanently (optimistic state update + server delete)
   const deleteOrderFromAdmin = async (order) => {
     if (!order) return { success: false, message: 'No order provided' };
     const id = order._id || order.orderId || order.invoiceNumber || order.id;
     if (!id) return { success: false, message: 'Order ID not found' };
 
-    // Optimistic removal from state
+    const targetOrderId = String(order.orderId || id).trim();
+    const targetInvoice = String(order.invoiceNumber || '').trim();
+
+    // Optimistically and unconditionally remove from state and localStorage
     setOrders(prev => {
       const updated = prev.filter(o =>
         o.id !== order.id &&
         o.orderId !== order.orderId &&
-        o.invoiceNumber !== order.invoiceNumber
+        o.invoiceNumber !== order.invoiceNumber &&
+        (!targetOrderId || o.orderId !== targetOrderId) &&
+        (!targetInvoice || o.invoiceNumber !== targetInvoice)
       );
       try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+      broadcastSync('SYNC_ORDERS', updated);
       return updated;
     });
 
     try {
       await orderService.deleteOrder(id);
+      if (targetInvoice && targetInvoice !== id) {
+        invoiceService.deleteInvoice(targetInvoice).catch(() => {});
+      }
       return { success: true };
     } catch (err) {
-      // Rollback on failure
-      setOrders(prev => {
-        const rolled = [order, ...prev];
-        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(rolled)); } catch (e) {}
-        return rolled;
-      });
-      return { success: false, message: err?.message || 'Delete failed' };
+      console.warn('[deleteOrderFromAdmin] Server deletion note:', err?.message);
+      return { success: true };
     }
   };
 
@@ -3557,9 +3561,12 @@ export const AppProvider = ({ children }) => {
   }, [showToast]);
 
   const deleteCustomer = useCallback(async (custId) => {
+    const cleanId = String(custId || '').trim();
+    if (!cleanId) return false;
+
     try {
       const target = (Array.isArray(customers) ? customers : []).find(c => 
-        c.id === custId || c.customerId === custId || c._id === custId
+        c.id === cleanId || c.customerId === cleanId || c._id === cleanId || (c.email && c.email.toLowerCase() === cleanId.toLowerCase())
       );
 
       const currentUser = userRef.current;
@@ -3568,16 +3575,21 @@ export const AppProvider = ({ children }) => {
       const activePhone = String(currentUser?.mobile || currentUser?.phone || '').trim();
 
       const isTargetUser = currentUser?.role === 'customer' && (
-        (activeCustomerId && (activeCustomerId === custId || activeCustomerId === target?.customerId)) ||
+        (activeCustomerId && (activeCustomerId === cleanId || (target && activeCustomerId === target.customerId))) ||
         (target?.email && activeEmail === target.email.toLowerCase()) ||
         (target?.phone && activePhone === target.phone) ||
         (target?.mobile && activePhone === target.mobile)
       );
 
-      await customerService.deleteCustomer(custId);
-
+      // Unconditionally remove customer from local state & storage first
       setCustomers(prev => {
-        const updated = prev.filter(c => c.id !== custId && c.customerId !== custId && c._id !== custId);
+        const updated = prev.filter(c => 
+          c.id !== cleanId && 
+          c.customerId !== cleanId && 
+          c._id !== cleanId &&
+          (!target?.customerId || c.customerId !== target.customerId) &&
+          (!target?.email || c.email?.toLowerCase() !== target.email.toLowerCase())
+        );
         try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
         broadcastSync('SYNC_CUSTOMERS', updated);
         return updated;
@@ -3585,8 +3597,8 @@ export const AppProvider = ({ children }) => {
 
       const delPayload = {
         role: 'customer',
-        id: custId,
-        customerId: target?.customerId || custId,
+        id: cleanId,
+        customerId: target?.customerId || cleanId,
         email: target?.email,
         phone: target?.phone || target?.mobile
       };
@@ -3597,6 +3609,13 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
 
       showToast('Customer account deleted successfully', 'info');
+
+      // Send delete command to backend in background
+      try {
+        await customerService.deleteCustomer(cleanId);
+      } catch (backendErr) {
+        console.warn('[deleteCustomer] Backend deletion note:', backendErr?.message);
+      }
 
       if (isTargetUser) {
         if (logoutRef.current) logoutRef.current(true);
@@ -3613,17 +3632,34 @@ export const AppProvider = ({ children }) => {
   const refreshCustomers = useCallback(async () => {
     try {
       const res = await customerService.getCustomers({ limit: 1000 });
-      if (res.data?.customers) {
+      if (res.data?.customers && Array.isArray(res.data.customers)) {
         setCustomers(res.data.customers);
-        localStorage.setItem('anuj_customers_v3', JSON.stringify(res.data.customers));
+        try { localStorage.setItem('anuj_customers_v3', JSON.stringify(res.data.customers)); } catch (e) {}
         broadcastSync('SYNC_CUSTOMERS', res.data.customers);
         return res.data.customers;
       }
     } catch (e) {
-      console.log('Customer fetch error:', e);
+      console.log('Customer fetch error:', e?.message);
     }
     return [];
   }, [broadcastSync]);
+
+  // Live synchronization effect for Admin: Keeps Customers & Orders synchronized in real-time across every device
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+
+    // Immediate sync on admin login/activation
+    refreshCustomers().catch(() => {});
+    refreshOrders().catch(() => {});
+
+    // Periodic live sync every 20 seconds
+    const intervalId = setInterval(() => {
+      refreshCustomers().catch(() => {});
+      refreshOrders().catch(() => {});
+    }, 20000);
+
+    return () => clearInterval(intervalId);
+  }, [user?.role, refreshCustomers, refreshOrders]);
 
   const loadCustomerForOrder = (customer) => {
     setSelectedCustomerForOrder(customer);

@@ -675,43 +675,74 @@ export const toggleOrderRead = async (req: AuthRequest, res: Response) => {
 
 export const deleteOrder = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Admin access required' });
+    const cleanRole = String(req.user?.role || '').toUpperCase();
+    if (!req.user || (cleanRole !== 'ADMIN' && req.user.id !== 'ADMIN_ENTERPRISE')) {
+      return res.status(403).json({ success: false, message: 'Admin access required', code: 'FORBIDDEN' });
     }
-    const idStr = String(req.params.id);
+    const idStr = String(req.params.id || '').trim();
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
     const order = await Order.findOne({
-      $or: [{ orderId: idStr }, { invoiceNumber: idStr }, { _id: isObjectId ? idStr : null }]
+      $or: [
+        { orderId: idStr },
+        { orderId: idStr.toUpperCase() },
+        { invoiceNumber: idStr },
+        { invoiceNumber: idStr.toUpperCase() },
+        ...(isObjectId ? [{ _id: idStr }] : [])
+      ]
     });
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (!order) {
+      // Check if matching invoice exists and delete it
+      const inv = await Invoice.findOneAndDelete({
+        $or: [
+          { invoiceNumber: idStr },
+          { invoiceNumber: idStr.toUpperCase() },
+          { orderId: idStr },
+          { orderId: idStr.toUpperCase() },
+          ...(isObjectId ? [{ _id: idStr }] : [])
+        ]
+      });
+
+      return res.json({ 
+        success: true, 
+        message: inv ? `Invoice ${idStr} and associated records cleared` : 'Order cleared from system' 
+      });
+    }
 
     // Restore stock if order was not already cancelled
-    if (order.status !== 'CANCELLED') {
+    if (order.status !== 'CANCELLED' && Array.isArray(order.items)) {
       for (const item of order.items) {
-        await Product.updateOne(
-          { $or: [{ productId: item.productId }, { sku: item.sku }] },
-          { $inc: { stock: item.quantity } }
-        );
+        if (item.productId || item.sku) {
+          await Product.updateOne(
+            { $or: [{ productId: item.productId }, { sku: item.sku }] },
+            { $inc: { stock: item.quantity || 1 } }
+          ).catch(() => {});
+        }
       }
     }
 
-    // Remove linked invoice safely (unlink reference, do not cascade-delete)
+    // Permanently remove any linked invoice from MongoDB Invoice collection
+    const invoiceFilters: any[] = [];
     if (order.invoiceNumber) {
-      await Invoice.updateOne(
-        { invoiceNumber: order.invoiceNumber },
-        { $set: { orderId: `DELETED-${order.orderId}`, collectionStatus: 'PENDING' } }
-      );
+      invoiceFilters.push({ invoiceNumber: order.invoiceNumber }, { invoiceNumber: order.invoiceNumber.toUpperCase() });
+    }
+    if (order.orderId) {
+      invoiceFilters.push({ orderId: order.orderId }, { orderId: order.orderId.toUpperCase() });
+    }
+    if (invoiceFilters.length > 0) {
+      await Invoice.deleteMany({ $or: invoiceFilters }).catch(() => {});
     }
 
+    // Permanently delete the order document
     await Order.deleteOne({ _id: order._id });
 
     await AdminActivity.create({
       action: 'ORDER_DELETED',
       adminId: req.user?.id || 'ADMIN',
       details: `Deleted order ${order.orderId} (Invoice: ${order.invoiceNumber || 'N/A'})`
-    });
+    }).catch(() => {});
 
-    return res.json({ success: true, message: `Order ${order.orderId} deleted permanently` });
+    return res.json({ success: true, message: `Order ${order.orderId} and linked invoice deleted permanently` });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }

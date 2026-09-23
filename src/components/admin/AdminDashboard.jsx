@@ -114,7 +114,6 @@ export const AdminDashboard = () => {
   } = useApp();
 
   const [isDeletingOrder, setIsDeletingOrder] = useState(false);
-  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
 
   const [togglingUrgentId, setTogglingUrgentId] = useState(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
@@ -146,7 +145,6 @@ export const AdminDashboard = () => {
   const [jumpRankValue, setJumpRankValue] = useState('');
   // Delete confirmation modals
   const [deleteOrderConfirm, setDeleteOrderConfirm] = useState(null); // order object or null
-  const [deleteInvoiceConfirm, setDeleteInvoiceConfirm] = useState(null); // invoice object or null
   // Local read state (optimistic, synced from orders/invoices)
   const [orderReadState, setOrderReadState] = useState({});
   const [invoiceReadState, setInvoiceReadState] = useState({});
@@ -994,6 +992,11 @@ export const AdminDashboard = () => {
     if (logFilterType === 'ALL') return inventoryLogs;
     return inventoryLogs.filter(l => l.changeType === logFilterType);
   }, [inventoryLogs, logFilterType]);
+
+  // Always refresh customer directory and orders on AdminDashboard mount
+  useEffect(() => {
+    if (refreshCustomers) refreshCustomers();
+  }, [refreshCustomers]);
 
   useEffect(() => {
     if (activeTab === 'customers' && refreshCustomers) {
@@ -2294,23 +2297,11 @@ export const AdminDashboard = () => {
                                   <button
                                     onClick={() => setDeleteOrderConfirm(order)}
                                     className="w-full px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
-                                    title="Delete Order permanently"
+                                    title="Delete Order & Invoice permanently"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Del Order</span>
+                                    <span>Delete Order</span>
                                   </button>
-
-                                  {/* Delete Invoice */}
-                                  {order.invoiceNumber && (
-                                    <button
-                                      onClick={() => setDeleteInvoiceConfirm(order)}
-                                      className="w-full px-3.5 py-1.5 bg-rose-800 hover:bg-rose-900 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
-                                      title="Delete Invoice permanently"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                      <span>Del Invoice</span>
-                                    </button>
-                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -2331,12 +2322,12 @@ export const AdminDashboard = () => {
                       <Trash2 className="w-5 h-5 text-rose-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white">Delete Order?</h3>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">Delete Order & Invoice?</h3>
                       <p className="text-[11px] text-slate-500">This action cannot be undone</p>
                     </div>
                   </div>
                   <p className="text-xs text-slate-700 dark:text-slate-300 mb-5">
-                    Are you sure you want to permanently delete order <strong>{deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber}</strong> for <strong>{deleteOrderConfirm.customerName}</strong>? Stock will be restored automatically.
+                    Are you sure you want to permanently delete order <strong>{deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber}</strong> for <strong>{deleteOrderConfirm.customerName}</strong>? The order and its associated B2B invoice will be removed permanently, and stock will be restored automatically.
                   </p>
                   <div className="flex gap-3">
                     <button
@@ -2362,57 +2353,6 @@ export const AdminDashboard = () => {
                       className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                       {isDeletingOrder ? (
-                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting...</>
-                      ) : (
-                        'Delete Permanently'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Delete Invoice Confirmation Modal */}
-            {deleteInvoiceConfirm && (
-              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-rose-200 dark:border-rose-800">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center">
-                      <Trash2 className="w-5 h-5 text-rose-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white">Delete Invoice?</h3>
-                      <p className="text-[11px] text-slate-500">This action cannot be undone</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 mb-5">
-                    Are you sure you want to permanently delete invoice <strong>{deleteInvoiceConfirm.invoiceNumber || deleteInvoiceConfirm.orderId}</strong> for <strong>{deleteInvoiceConfirm.customerName}</strong>? This will also unlink the associated order.
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setDeleteInvoiceConfirm(null)}
-                      disabled={isDeletingInvoice}
-                      className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      disabled={isDeletingInvoice}
-                      onClick={async () => {
-                        setIsDeletingInvoice(true);
-                        const invId = deleteInvoiceConfirm.invoiceNumber || deleteInvoiceConfirm.orderId || deleteInvoiceConfirm.id;
-                        const result = await deleteInvoiceFromAdmin(invId);
-                        setIsDeletingInvoice(false);
-                        if (result.success) {
-                          showToast(`Invoice ${invId} deleted successfully`, 'success');
-                          setDeleteInvoiceConfirm(null);
-                        } else {
-                          showToast('Failed to delete invoice: ' + (result.message || 'Unknown error'), 'error');
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {isDeletingInvoice ? (
                         <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting...</>
                       ) : (
                         'Delete Permanently'
