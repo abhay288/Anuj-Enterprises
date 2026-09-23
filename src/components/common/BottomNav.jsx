@@ -29,14 +29,14 @@ export const BottomNav = () => {
       ];
     }
 
-    // ADMIN TABS: Dashboard, Orders, Products, Brands, Profile
+    // ADMIN TABS: Dashboard, Products, Cart, Orders, Profile
     if (user.role === 'admin') {
       return [
-        { id: 'admin-dash', label: t('nav_admin', 'Dashboard'), icon: LayoutDashboard, action: () => navigateTo('admin-dash'), active: view === 'admin-dash' },
-        { id: 'orders', label: t('order_history', 'Orders'), icon: FileText, action: () => navigateTo('admin-dash'), active: false },
+        { id: 'admin-dash', label: t('nav_admin', 'Admin Panel'), icon: LayoutDashboard, action: () => navigateTo('admin-dash'), active: view === 'admin-dash' },
         { id: 'products', label: t('nav_products', 'Products'), icon: Package, action: () => navigateTo('catalogue'), active: view === 'catalogue' },
-        { id: 'brands', label: t('brands', 'Brands'), icon: Layers, action: () => navigateTo('admin-dash'), active: false },
-        { id: 'profile', label: t('nav_salesman', 'Profile'), icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
+        { id: 'cart', label: t('nav_cart', 'Cart'), icon: ShoppingCart, badge: cartTotalQty, action: () => navigateTo('cart'), active: view === 'cart' },
+        { id: 'orders', label: t('order_history', 'Orders'), icon: FileText, action: () => navigateTo('admin-dash'), active: false },
+        { id: 'profile', label: 'Profile', icon: User, action: () => setIsSalesmanModalOpen(true), active: false },
       ];
     }
 

@@ -13,7 +13,8 @@
     "admin:create": "npx tsx src/scripts/createAdmin.ts",
     "test": "npx tsx src/__tests__/security.test.ts",
     "test:api": "npx tsx src/__tests__/api.test.ts",
-    "test:security": "npx tsx src/__tests__/security.test.ts"
+    "test:security": "npx tsx src/__tests__/security.test.ts",
+    "test:auth": "npx tsx src/__tests__/auth_system.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

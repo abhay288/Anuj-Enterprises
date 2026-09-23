@@ -35,13 +35,13 @@ export const Navbar = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white/75 dark:bg-slate-950/75 backdrop-blur-2xl backdrop-saturate-150 border-b border-slate-200/60 dark:border-slate-800/60 shadow-lg shadow-slate-950/5 transition-all">
       {/* Full Width Navbar Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-22 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-18 sm:h-22 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand Logo */}
         <div 
           onClick={() => navigateTo('home')}
-          className="flex items-center gap-3.5 cursor-pointer group shrink-0"
+          className="flex items-center gap-2 sm:gap-3.5 cursor-pointer group min-w-0"
         >
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white border-2 border-amber-400 p-0.5 sm:p-1 flex items-center justify-center shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 sm:ring-4 ring-amber-500/20">
+          <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white border-2 border-amber-400 p-0.5 sm:p-1 flex items-center justify-center shadow-md sm:shadow-xl group-hover:scale-105 group-hover:border-amber-500 transition-all overflow-hidden flex-shrink-0 relative ring-2 sm:ring-4 ring-amber-500/20">
             <picture>
               <source srcSet="/logo.webp" type="image/webp" />
               <img 
@@ -54,16 +54,16 @@ export const Navbar = () => {
               />
             </picture>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1 leading-tight">
-              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+              <span className="text-base sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 ANUJ
               </span>
-              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-brand-900 dark:text-amber-400">
+              <span className="text-base sm:text-2xl md:text-3xl font-black tracking-tight text-brand-900 dark:text-amber-400">
                 ENTERPRISES
               </span>
             </div>
-            <span className="text-[9px] sm:text-xs font-extrabold tracking-widest text-amber-800 dark:text-amber-300 uppercase block mt-0.5">
+            <span className="text-[8px] sm:text-xs font-extrabold tracking-widest text-amber-800 dark:text-amber-300 uppercase block mt-0.5 truncate max-w-[130px] xs:max-w-none">
               {t('trusted_partner', 'Your Trusted Supply Partner')}
             </span>
           </div>
@@ -126,21 +126,21 @@ export const Navbar = () => {
         </nav>
 
         {/* Action Controls & User Dropdown */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Language Switcher Toggle (EN | हिंदी) */}
           <button
             type="button"
             onClick={toggleLanguage}
             aria-label="Switch Language (English or Hindi)"
             title={language === 'en' ? 'Switch to Easy Hindi (हिंदी)' : 'Switch to English'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-400/60 bg-amber-50 dark:bg-amber-950/60 text-slate-900 dark:text-slate-100 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all font-bold text-xs shadow-xs"
+            className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-amber-400/60 bg-amber-50 dark:bg-amber-950/60 text-slate-900 dark:text-slate-100 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all font-bold text-xs shadow-xs shrink-0"
           >
-            <Globe className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-            <span className={language === 'en' ? 'text-amber-900 dark:text-amber-300 font-extrabold' : 'text-slate-700 dark:text-slate-300'}>
+            <Globe className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
+            <span className={language === 'en' ? 'text-amber-900 dark:text-amber-300 font-extrabold text-[11px] sm:text-xs' : 'text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs'}>
               EN
             </span>
-            <span className="text-slate-400 dark:text-slate-500">|</span>
-            <span className={language === 'hi' ? 'text-amber-900 dark:text-amber-300 font-extrabold' : 'text-slate-700 dark:text-slate-300'}>
+            <span className="text-slate-400 dark:text-slate-500 text-[10px]">|</span>
+            <span className={language === 'hi' ? 'text-amber-900 dark:text-amber-300 font-extrabold text-[11px] sm:text-xs' : 'text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs'}>
               हिंदी
             </span>
           </button>
@@ -155,11 +155,11 @@ export const Navbar = () => {
             type="button"
             onClick={() => navigateTo('cart')}
             aria-label={`View Shopping Cart (${cartTotalQty} items)`}
-            className="relative p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+            className="relative p-1.5 sm:p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center shrink-0"
           >
             <ShoppingCart className="w-5 h-5" />
             {cartTotalQty > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-brand-900 dark:bg-brand-500 text-white font-bold text-[10px] rounded-full flex items-center justify-center shadow">
+              <span className="absolute top-0 right-0 sm:top-1 sm:right-1 w-4 h-4 bg-brand-900 dark:bg-brand-500 text-white font-bold text-[10px] rounded-full flex items-center justify-center shadow">
                 {cartTotalQty}
               </span>
             )}
