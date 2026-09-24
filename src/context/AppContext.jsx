@@ -3518,6 +3518,7 @@ export const AppProvider = ({ children }) => {
   const saveCustomer = async (custData) => {
     const preparedData = {
       ...custData,
+      adminTag: custData.adminTag || 'No Tag',
       password: custData.password || 'Cust@123'
     };
 
@@ -3547,6 +3548,7 @@ export const AppProvider = ({ children }) => {
         city: preparedData.city || 'Kanpur',
         state: preparedData.state || 'Uttar Pradesh',
         classification: preparedData.classification || 'NORMAL',
+        adminTag: preparedData.adminTag || 'No Tag',
         customerMode: 'QUICK',
         totalOrders: 0,
         totalSpent: 0
@@ -3575,6 +3577,7 @@ export const AppProvider = ({ children }) => {
           return c;
         });
         try { localStorage.setItem('anuj_customers_v3', JSON.stringify(updated)); } catch (e) {}
+        broadcastSync('SYNC_CUSTOMERS', updated);
         return updated;
       });
       showToast(`Customer "${custData.name || 'Account'}" updated successfully`, 'success');

@@ -115,10 +115,20 @@ export const getCustomers = async (req, res) => {
             Customer.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
             Customer.countDocuments(filter)
         ]);
+        const sanitizedCustomers = customers.map((c) => {
+            if (userRole === 'ADMIN') {
+                return {
+                    ...c,
+                    adminTag: c.adminTag || 'No Tag'
+                };
+            }
+            const { adminTag, ...rest } = c;
+            return rest;
+        });
         return res.json({
             success: true,
             data: {
-                customers,
+                customers: sanitizedCustomers,
                 pagination: {
                     total: totalCount,
                     page,
@@ -159,7 +169,14 @@ export const getCustomerById = async (req, res) => {
         else if (req.user.role !== 'ADMIN') {
             return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });
         }
-        return res.json({ success: true, data: { customer } });
+        const custObj = customer.toObject();
+        if (req.user.role !== 'ADMIN') {
+            delete custObj.adminTag;
+        }
+        else {
+            custObj.adminTag = custObj.adminTag || 'No Tag';
+        }
+        return res.json({ success: true, data: { customer: custObj } });
     }
     catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -209,10 +226,17 @@ export const getCustomerOrderHistory = async (req, res) => {
             }
         }
         const frequentlyOrdered = Object.values(productFrequencyMap).sort((a, b) => b.totalQty - a.totalQty).slice(0, 5);
+        const custObj = customer.toObject();
+        if (req.user.role !== 'ADMIN') {
+            delete custObj.adminTag;
+        }
+        else {
+            custObj.adminTag = custObj.adminTag || 'No Tag';
+        }
         return res.json({
             success: true,
             data: {
-                customer,
+                customer: custObj,
                 orders,
                 totalOrders: orders.length,
                 lastOrderDate: orders.length > 0 ? new Date(orders[0].createdAt).toISOString().split('T')[0] : null,
@@ -226,7 +250,7 @@ export const getCustomerOrderHistory = async (req, res) => {
 };
 export const createCustomer = async (req, res) => {
     try {
-        const { name, phone, email, address, city, state, classification } = req.body || {};
+        const { name, phone, email, address, city, state, classification, adminTag } = req.body || {};
         if (!name || !phone) {
             return res.status(400).json({ success: false, message: 'Name and phone are required' });
         }
@@ -234,6 +258,8 @@ export const createCustomer = async (req, res) => {
         if (existing) {
             return res.status(400).json({ success: false, message: 'Customer with this phone number already exists' });
         }
+        const validTags = ['No Tag', 'Lazy', 'Super Lazy', 'Best Customer'];
+        const safeAdminTag = (req.user?.role === 'ADMIN' && validTags.includes(adminTag)) ? adminTag : 'No Tag';
         const custCount = await Customer.countDocuments();
         const customer = new Customer({
             customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
@@ -246,6 +272,7 @@ export const createCustomer = async (req, res) => {
             city: city || 'Kanpur',
             state: state || 'Uttar Pradesh',
             classification: classification || 'NORMAL',
+            adminTag: safeAdminTag,
             customerMode: 'QUICK',
             createdBy: req.user?.salesmanId || req.user?.id || 'ADMIN',
             totalOrders: 0,
@@ -284,9 +311,16 @@ export const createCustomer = async (req, res) => {
         catch (userErr) {
             console.warn('[customerController] Non-critical user auth creation warning:', userErr.message);
         }
+        const returnCust = customer.toObject();
+        if (req.user?.role !== 'ADMIN') {
+            delete returnCust.adminTag;
+        }
+        else {
+            returnCust.adminTag = returnCust.adminTag || 'No Tag';
+        }
         return res.status(201).json({
             success: true,
-            data: { customer },
+            data: { customer: returnCust },
             message: 'Customer registered successfully'
         });
     }
@@ -322,7 +356,7 @@ export const updateCustomer = async (req, res) => {
         else if (req.user.role !== 'ADMIN') {
             return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });
         }
-        const { name, phone, email, address, city, state, area, classification } = req.body || {};
+        const { name, phone, email, address, city, state, area, classification, adminTag } = req.body || {};
         if (name)
             customer.name = String(name).trim();
         if (phone)
@@ -339,10 +373,23 @@ export const updateCustomer = async (req, res) => {
             customer.area = area;
         if (classification && req.user.role === 'ADMIN')
             customer.classification = classification;
+        if (adminTag !== undefined && req.user.role === 'ADMIN') {
+            const validTags = ['No Tag', 'Lazy', 'Super Lazy', 'Best Customer'];
+            if (validTags.includes(adminTag)) {
+                customer.adminTag = adminTag;
+            }
+        }
         await customer.save();
+        const returnCust = customer.toObject();
+        if (req.user.role !== 'ADMIN') {
+            delete returnCust.adminTag;
+        }
+        else {
+            returnCust.adminTag = returnCust.adminTag || 'No Tag';
+        }
         return res.json({
             success: true,
-            data: { customer },
+            data: { customer: returnCust },
             message: 'Customer updated successfully'
         });
     }

@@ -493,6 +493,7 @@ export const AdminDashboard = () => {
     state: 'Uttar Pradesh',
     pincode: '208021',
     classification: 'NORMAL',
+    adminTag: 'No Tag',
     password: ''
   });
 
@@ -1236,6 +1237,7 @@ export const AdminDashboard = () => {
       state: 'Uttar Pradesh',
       pincode: '208021',
       classification: 'NORMAL',
+      adminTag: 'No Tag',
       password: 'Cust@123'
     });
     setIsAddCustomerOpen(true);
@@ -1252,6 +1254,7 @@ export const AdminDashboard = () => {
       state: customer.state || 'Uttar Pradesh',
       pincode: customer.pincode || '208021',
       classification: customer.classification || 'NORMAL',
+      adminTag: customer.adminTag || 'No Tag',
       password: customer.password || 'Cust@123'
     });
     setIsAddCustomerOpen(true);
@@ -1279,6 +1282,7 @@ export const AdminDashboard = () => {
       state: 'Uttar Pradesh',
       pincode: '208021',
       classification: 'NORMAL',
+      adminTag: 'No Tag',
       password: 'Cust@123'
     });
   };
@@ -2983,6 +2987,7 @@ export const AdminDashboard = () => {
                         <th className="py-3.5 px-4 min-w-[180px]">Contact & Mobile</th>
                         <th className="py-3.5 px-4 min-w-[180px]">Location / Territory</th>
                         <th className="py-3.5 px-4 text-center min-w-[140px]">Classification</th>
+                        <th className="py-3.5 px-4 text-center min-w-[140px]">Admin Tag</th>
                         <th className="py-3.5 px-4 text-center min-w-[120px]">Account Password</th>
                         <th className="py-3.5 px-6 text-center min-w-[160px]">Actions</th>
                       </tr>
@@ -2990,7 +2995,7 @@ export const AdminDashboard = () => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {customers.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="py-12 text-center text-slate-400 text-xs font-semibold">
+                          <td colSpan="8" className="py-12 text-center text-slate-400 text-xs font-semibold">
                             No registered customers found. Click &quot;Register Customer Account&quot; to add one.
                           </td>
                         </tr>
@@ -3089,6 +3094,35 @@ export const AdminDashboard = () => {
                                   }`}>
                                     {classType === 'DAMAGE' ? '⚠️ Damage Account' : classType === 'EXPIRY' ? '🔄 Expiry Account' : '🟢 Standard'}
                                   </span>
+                                </td>
+
+                                {/* Admin Tag (Interactive Dropdown for Admin) */}
+                                <td className="py-3.5 px-4 text-center">
+                                  <select
+                                    value={cust.adminTag || 'No Tag'}
+                                    onChange={(e) => {
+                                      const newTag = e.target.value;
+                                      updateCustomer({
+                                        ...cust,
+                                        adminTag: newTag
+                                      });
+                                    }}
+                                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black cursor-pointer border transition-colors outline-none focus:ring-2 focus:ring-amber-500 ${
+                                      cust.adminTag === 'Lazy'
+                                        ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                        : cust.adminTag === 'Super Lazy'
+                                        ? 'bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800'
+                                        : cust.adminTag === 'Best Customer'
+                                        ? 'bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                    }`}
+                                    title="Assign Admin Customer Tag"
+                                  >
+                                    <option value="No Tag">No Tag</option>
+                                    <option value="Lazy">Lazy</option>
+                                    <option value="Super Lazy">Super Lazy</option>
+                                    <option value="Best Customer">Best Customer</option>
+                                  </select>
                                 </td>
 
                                 {/* Account Password */}
@@ -5665,28 +5699,42 @@ export const AdminDashboard = () => {
                       Customer Classification
                     </label>
                     <select
-                      value={custForm.classification}
+                      value={custForm.classification || 'NORMAL'}
                       onChange={(e) => setCustForm({ ...custForm, classification: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
                     >
                       <option value="NORMAL">NORMAL (सामान्य ग्राहक — Standard)</option>
-                      <option value="DAMAGE">DAMAGE (डैमेज ग्राहक — Return/Claims)</option>
-                      <option value="EXPIRY">EXPIRY (एक्सपायरी ग्राहक — Replacements)</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                      Account Password
+                      Admin Customer Tag <span className="text-[10px] text-amber-500 font-bold">(Admin Only)</span>
                     </label>
-                    <input
-                      type="text"
-                      value={custForm.password}
-                      onChange={(e) => setCustForm({ ...custForm, password: e.target.value })}
-                      placeholder="Cust@123"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold font-mono"
-                    />
+                    <select
+                      value={custForm.adminTag || 'No Tag'}
+                      onChange={(e) => setCustForm({ ...custForm, adminTag: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold"
+                    >
+                      <option value="No Tag">No Tag</option>
+                      <option value="Lazy">Lazy</option>
+                      <option value="Super Lazy">Super Lazy</option>
+                      <option value="Best Customer">Best Customer</option>
+                    </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Account Password
+                  </label>
+                  <input
+                    type="text"
+                    value={custForm.password}
+                    onChange={(e) => setCustForm({ ...custForm, password: e.target.value })}
+                    placeholder="Cust@123"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold font-mono"
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">

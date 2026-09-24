@@ -13,6 +13,7 @@ export interface ICustomer extends Document {
   area?: string;
   gstin?: string;
   classification: 'NORMAL' | 'DAMAGE' | 'EXPIRY';
+  adminTag?: 'No Tag' | 'Lazy' | 'Super Lazy' | 'Best Customer';
   customerMode: 'QUICK' | 'FULL';
   createdBy?: string;
   assignedSalesmanId?: string;
@@ -37,6 +38,7 @@ const CustomerSchema: Schema = new Schema(
     area: { type: String, default: '' },
     gstin: { type: String, default: '' },
     classification: { type: String, enum: ['NORMAL', 'DAMAGE', 'EXPIRY'], default: 'NORMAL' },
+    adminTag: { type: String, enum: ['No Tag', 'Lazy', 'Super Lazy', 'Best Customer'], default: 'No Tag' },
     customerMode: { type: String, enum: ['QUICK', 'FULL'], default: 'QUICK' },
     createdBy: { type: String, default: 'SALESMAN' },
     assignedSalesmanId: { type: String, default: '' },
