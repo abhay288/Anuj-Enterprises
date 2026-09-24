@@ -529,6 +529,7 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
       }
 
       return {
+        _id: String(o._id),
         id: o.invoiceNumber || o.orderId,
         orderId: o.orderId,
         invoiceNumber: o.invoiceNumber || o.orderId,
@@ -680,14 +681,18 @@ export const deleteOrder = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ success: false, message: 'Admin access required', code: 'FORBIDDEN' });
     }
     const idStr = String(req.params.id || '').trim();
+    if (!idStr || idStr === 'undefined' || idStr === 'null') {
+      return res.status(400).json({ success: false, message: 'Valid order ID is required', code: 'INVALID_ID' });
+    }
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+    const escaped = escapeRegex(idStr);
     const order = await Order.findOne({
       $or: [
+        ...(isObjectId ? [{ _id: idStr }] : []),
         { orderId: idStr },
-        { orderId: idStr.toUpperCase() },
+        { orderId: { $regex: new RegExp(`^${escaped}$`, 'i') } },
         { invoiceNumber: idStr },
-        { invoiceNumber: idStr.toUpperCase() },
-        ...(isObjectId ? [{ _id: idStr }] : [])
+        { invoiceNumber: { $regex: new RegExp(`^${escaped}$`, 'i') } }
       ]
     });
 
@@ -695,17 +700,25 @@ export const deleteOrder = async (req: AuthRequest, res: Response) => {
       // Check if matching invoice exists and delete it
       const inv = await Invoice.findOneAndDelete({
         $or: [
+          ...(isObjectId ? [{ _id: idStr }] : []),
           { invoiceNumber: idStr },
-          { invoiceNumber: idStr.toUpperCase() },
+          { invoiceNumber: { $regex: new RegExp(`^${escaped}$`, 'i') } },
           { orderId: idStr },
-          { orderId: idStr.toUpperCase() },
-          ...(isObjectId ? [{ _id: idStr }] : [])
+          { orderId: { $regex: new RegExp(`^${escaped}$`, 'i') } }
         ]
       });
 
-      return res.json({ 
-        success: true, 
-        message: inv ? `Invoice ${idStr} and associated records cleared` : 'Order cleared from system' 
+      if (inv) {
+        return res.json({ 
+          success: true, 
+          message: `Invoice ${idStr} and associated records cleared permanently` 
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found in database',
+        code: 'ORDER_NOT_FOUND'
       });
     }
 
@@ -724,17 +737,30 @@ export const deleteOrder = async (req: AuthRequest, res: Response) => {
     // Permanently remove any linked invoice from MongoDB Invoice collection
     const invoiceFilters: any[] = [];
     if (order.invoiceNumber) {
-      invoiceFilters.push({ invoiceNumber: order.invoiceNumber }, { invoiceNumber: order.invoiceNumber.toUpperCase() });
+      const invEsc = escapeRegex(order.invoiceNumber);
+      invoiceFilters.push(
+        { invoiceNumber: order.invoiceNumber },
+        { invoiceNumber: { $regex: new RegExp(`^${invEsc}$`, 'i') } }
+      );
     }
     if (order.orderId) {
-      invoiceFilters.push({ orderId: order.orderId }, { orderId: order.orderId.toUpperCase() });
+      const ordEsc = escapeRegex(order.orderId);
+      invoiceFilters.push(
+        { orderId: order.orderId },
+        { orderId: { $regex: new RegExp(`^${ordEsc}$`, 'i') } }
+      );
     }
     if (invoiceFilters.length > 0) {
       await Invoice.deleteMany({ $or: invoiceFilters }).catch(() => {});
     }
 
-    // Permanently delete the order document
-    await Order.deleteOne({ _id: order._id });
+    // Permanently delete the order document(s) matching _id or orderId
+    await Order.deleteMany({
+      $or: [
+        { _id: order._id },
+        ...(order.orderId ? [{ orderId: order.orderId }] : [])
+      ]
+    });
 
     await AdminActivity.create({
       action: 'ORDER_DELETED',

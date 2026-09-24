@@ -246,20 +246,18 @@ export const ProductGrid = () => {
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
 
-      // Default & Featured Sort: Prioritize products by custom Admin sequence (sortOrder), then Brand priority
-      const aSortOrder = typeof a.sortOrder === 'number' && a.sortOrder > 0 ? a.sortOrder : 999999;
-      const bSortOrder = typeof b.sortOrder === 'number' && b.sortOrder > 0 ? b.sortOrder : 999999;
-      if (aSortOrder !== bSortOrder) {
-        return aSortOrder - bSortOrder;
-      }
-
+      // Default & Featured Sort: Prioritize products by Company Ranking
       const aBrandRank = brandRankMap[normalizeBrandName(a.brand)] ?? 999;
       const bBrandRank = brandRankMap[normalizeBrandName(b.brand)] ?? 999;
       if (aBrandRank !== bBrandRank) {
         return aBrandRank - bBrandRank;
       }
 
-      return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      if ((b.isFeatured ? 1 : 0) !== (a.isFeatured ? 1 : 0)) {
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      }
+
+      return (b.rating || 0) - (a.rating || 0);
     });
   }, [products, selectedCategories, selectedBrands, featuredOnly, newOnly, bulkOnly, searchQuery, sortBy, brandRankMap]);
 

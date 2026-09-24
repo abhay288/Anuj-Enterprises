@@ -38,6 +38,53 @@ export const createCategory = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+export const updateCategory = async (req, res) => {
+    try {
+        const idStr = String(req.params.id || '').trim();
+        const { name, description, image, status } = req.body || {};
+        if (!idStr) {
+            return res.status(400).json({ success: false, message: 'Category id or name is required' });
+        }
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+        const filter = isObjectId
+            ? { _id: idStr }
+            : { name: new RegExp(`^${idStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+        const category = await Category.findOne(filter);
+        if (!category) {
+            return res.status(404).json({ success: false, message: `Category "${idStr}" not found` });
+        }
+        const oldName = category.name;
+        if (name && String(name).trim() && String(name).trim() !== oldName) {
+            const trimmed = String(name).trim();
+            const duplicate = await Category.findOne({
+                _id: { $ne: category._id },
+                name: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+            });
+            if (duplicate) {
+                return res.status(400).json({ success: false, message: `Category "${trimmed}" already exists` });
+            }
+            category.name = trimmed;
+            // Update categoryName in products collection
+            const { Product } = await import('../models/Product.js');
+            await Product.updateMany({ categoryName: new RegExp(`^${oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }, { $set: { categoryName: trimmed } });
+        }
+        if (description !== undefined)
+            category.description = description;
+        if (image !== undefined)
+            category.image = image;
+        if (status !== undefined)
+            category.status = status;
+        await category.save();
+        return res.json({
+            success: true,
+            data: { category },
+            message: `Category updated successfully`
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
 export const deleteCategory = async (req, res) => {
     try {
         const idStr = String(req.params.id || '').trim();

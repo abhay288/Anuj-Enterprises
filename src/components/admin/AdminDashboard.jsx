@@ -86,6 +86,7 @@ export const AdminDashboard = () => {
     toggleSalesmanStatus,
     resetSalesmanPassword,
     addCategory,
+    updateCategory,
     deleteCategory,
     addBrand,
     deleteBrand,
@@ -110,7 +111,8 @@ export const AdminDashboard = () => {
     user,
     toggleOrderUrgent,
     deleteOrderFromAdmin,
-    deleteInvoiceFromAdmin
+    deleteInvoiceFromAdmin,
+    refreshOrders
   } = useApp();
 
   const [isDeletingOrder, setIsDeletingOrder] = useState(false);
@@ -128,30 +130,39 @@ export const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = sessionStorage.getItem('anuj_admin_active_tab');
-      if (saved) return saved;
+      if (saved && saved !== 'reports') return saved;
     } catch (e) {}
     return 'analytics';
   });
 
   useEffect(() => {
     try {
-      if (activeTab) {
+      if (activeTab && activeTab !== 'reports') {
         sessionStorage.setItem('anuj_admin_active_tab', activeTab);
       }
     } catch (e) {}
   }, [activeTab]);
   const [selectedOrderForDeliveryModal, setSelectedOrderForDeliveryModal] = useState(null);
-  const [jumpRankProduct, setJumpRankProduct] = useState(null);
-  const [jumpRankValue, setJumpRankValue] = useState('');
+  // Category inline editing state
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
   // Delete confirmation modals
   const [deleteOrderConfirm, setDeleteOrderConfirm] = useState(null); // order object or null
   // Local read state (optimistic, synced from orders/invoices)
   const [orderReadState, setOrderReadState] = useState({});
   const [invoiceReadState, setInvoiceReadState] = useState({});
   // Retention settings
-  const [retentionSettings, setRetentionSettings] = useState({ orderRetentionDays: 0, invoiceRetentionDays: 0 });
+  const [retentionSettings, setRetentionSettings] = useState({ orderRetentionDays: 0 });
   const [retentionSaving, setRetentionSaving] = useState(false);
   const [isRefreshingCustomers, setIsRefreshingCustomers] = useState(false);
+
+  useEffect(() => {
+    settingService.getSettings().then(res => {
+      if (res?.data?.orderRetentionDays !== undefined) {
+        setRetentionSettings({ orderRetentionDays: Number(res.data.orderRetentionDays) });
+      }
+    }).catch(() => {});
+  }, []);
 
   // Admin Direct Invoice Generation State
   const [isAdminCreateInvoiceOpen, setIsAdminCreateInvoiceOpen] = useState(false);
@@ -1363,8 +1374,7 @@ export const AdminDashboard = () => {
               { id: 'policies', label: 'Legal Policies Editor', icon: Scale },
               { id: 'products', label: 'Products Master (CRUD)', icon: Package },
               { id: 'salesmen', label: 'Sales Force Roster', icon: Users },
-              { id: 'categories', label: 'Categories & Brands', icon: Layers },
-              { id: 'reports', label: 'Reports & Export Center', icon: FileText }
+              { id: 'categories', label: 'Categories & Brands', icon: Layers }
             ].map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -1641,12 +1651,6 @@ export const AdminDashboard = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => exportProductsCSV(products)}
-                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-500" /> Export Catalog Excel (.XLSX)
-                    </button>
-                    <button
                       onClick={() => {
                         setEditingProduct(null);
                         setProdForm({
@@ -1668,49 +1672,10 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Real-Time Sequencing Banner */}
-                <div className="bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-emerald-500/10 border border-blue-200/70 dark:border-blue-800/50 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                          Live Real-Time Product Ordering & Sequence
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px]">
-                          STOREFRONT SYNC ACTIVE
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Use the <strong>Up/Down arrows</strong> or click on any <strong>#Rank badge</strong> to move products. Products appear on the customer catalog and home page in this exact live order!
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Reset all product orders to alphabetical sequence?')) {
-                          resetProductRanks();
-                        }
-                      }}
-                      className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-xl text-[11px] font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
-                      title="Reset sequence to A-Z"
-                    >
-                      <RotateCcw className="w-3 h-3" /> Reset A-Z
-                    </button>
-                  </div>
-                </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
                       <tr>
-                        <th className="py-3 px-4 text-center">Priority / Order</th>
                         <th className="py-3 px-4">Product & SKU</th>
                         <th className="py-3 px-4">Brand</th>
                         <th className="py-3 px-4">Packaging & Unit Info</th>
@@ -1720,77 +1685,9 @@ export const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {orderedAdminProducts.map((prod, index) => {
-                        const rankNum = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : (index + 1);
-                        const isTop = index === 0;
-                        const isBottom = index === orderedAdminProducts.length - 1;
-                        const isGlobalTop = (typeof prod.sortOrder === 'number' && prod.sortOrder === 1) || (index === 0 && !prodSearch);
-
+                      {orderedAdminProducts.map((prod) => {
                         return (
                           <tr key={prod.id || prod._id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
-                            {/* Priority / Up Down Controls */}
-                            <td className="py-3 px-4 text-center shrink-0">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setJumpRankProduct(prod);
-                                    setJumpRankValue(String(rankNum));
-                                  }}
-                                  className={`px-2 py-1 rounded-xl text-xs font-black transition-all flex items-center gap-1 border shadow-xs ${
-                                    isGlobalTop
-                                      ? 'bg-amber-400 text-slate-950 border-amber-300 font-black ring-2 ring-amber-400/30'
-                                      : rankNum <= 3
-                                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
-                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                                  }`}
-                                  title="Click to jump directly to any priority position"
-                                >
-                                  {isGlobalTop && <Crown className="w-3 h-3 fill-slate-950 text-slate-950" />}
-                                  <span>#{rankNum}</span>
-                                </button>
-
-                                <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs divide-x divide-slate-200 dark:divide-slate-700">
-                                  <button
-                                    type="button"
-                                    disabled={isTop}
-                                    onClick={() => moveProductToExtreme(prod, 'TOP', orderedAdminProducts)}
-                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                    title="Move to Very Top (Rank #1 Flagship)"
-                                  >
-                                    <ChevronsUp className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={isTop}
-                                    onClick={() => moveProductRank(prod, 'UP', orderedAdminProducts)}
-                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                    title="Move Up 1 Position"
-                                  >
-                                    <ArrowUp className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={isBottom}
-                                    onClick={() => moveProductRank(prod, 'DOWN', orderedAdminProducts)}
-                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                    title="Move Down 1 Position"
-                                  >
-                                    <ArrowDown className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={isBottom}
-                                    onClick={() => moveProductToExtreme(prod, 'BOTTOM', orderedAdminProducts)}
-                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-700 dark:text-slate-300 transition-colors"
-                                    title="Move to Very Bottom"
-                                  >
-                                    <ChevronsDown className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
                                 <img 
@@ -1865,88 +1762,6 @@ export const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
-
-                {/* Jump-to-Rank Modal */}
-                {jumpRankProduct && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
-                            <Crown className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-black text-slate-900 dark:text-white">Set Priority Position</h3>
-                            <p className="text-[11px] text-slate-500">Target rank in catalogue (1 - {products.length})</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setJumpRankProduct(null)}
-                          className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
-                        <img 
-                          src={getProductImageUrl(jumpRankProduct)} 
-                          alt={jumpRankProduct.name} 
-                          className="w-10 h-10 object-contain rounded-lg border bg-white shrink-0" 
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80';
-                          }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">{jumpRankProduct.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">Current: #{jumpRankProduct.sortOrder || 1} • SKU: {jumpRankProduct.sku}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                          New Priority Position (1 - {products.length})
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max={products.length}
-                          value={jumpRankValue}
-                          onChange={(e) => setJumpRankValue(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
-                          placeholder="e.g. 1"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              updateProductRank(jumpRankProduct, jumpRankValue);
-                              setJumpRankProduct(null);
-                            }
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setJumpRankProduct(null)}
-                          className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateProductRank(jumpRankProduct, jumpRankValue);
-                            setJumpRankProduct(null);
-                          }}
-                          className="flex-1 py-2 rounded-xl text-xs font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-500 shadow-sm"
-                        >
-                          Apply Position
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -2004,12 +1819,6 @@ export const AdminDashboard = () => {
                       className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition-all hover:scale-105"
                     >
                       <Plus className="w-4 h-4 text-slate-950" /> Generate B2B Invoice
-                    </button>
-                    <button
-                      onClick={() => exportOrdersCSV(orders)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-4 h-4 text-emerald-400" /> Export Orders Excel (.XLSX)
                     </button>
                   </div>
                 </div>
@@ -2248,59 +2057,15 @@ export const AdminDashboard = () => {
                                     <span>Invoice</span>
                                   </button>
 
-                                  {/* Mark as Read / Unread */}
-                                  <button
-                                    onClick={async () => {
-                                      const ordId = order._id || order.orderId || order.invoiceNumber;
-                                      try {
-                                        await orderService.markRead(ordId);
-                                        setOrderReadState(prev => ({ ...prev, [ordId]: !prev[ordId] }));
-                                        showToast(`Order marked as ${orderReadState[ordId] ? 'Unread' : 'Read'}`, 'success');
-                                      } catch (e) { showToast('Failed to update read status', 'error'); }
-                                    }}
-                                    className={`w-full px-3.5 py-1.5 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] ${orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                                    title={orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'Mark as Unread' : 'Mark as Read'}
-                                  >
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                    <span>{orderReadState[order._id || order.orderId || order.invoiceNumber] || order.isRead ? 'Unread' : 'Read'}</span>
-                                  </button>
-
-                                  {/* Mark as Urgent Toggle */}
-                                  <button
-                                    onClick={async () => {
-                                      const ordId = order._id || order.id || order.orderId || order.invoiceNumber;
-                                      const currentUrgent = Boolean(order.hasUrgentItems || order.items?.some(i => i.isPriority));
-                                      setTogglingUrgentId(ordId);
-                                      try {
-                                        await toggleOrderUrgent(ordId, !currentUrgent);
-                                      } finally {
-                                        setTogglingUrgentId(null);
-                                      }
-                                    }}
-                                    disabled={togglingUrgentId === (order._id || order.id || order.orderId || order.invoiceNumber)}
-                                    className={`w-full px-3.5 py-1.5 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
-                                      hasUrgent 
-                                        ? 'bg-amber-400 hover:bg-amber-500 text-slate-950 ring-1 ring-amber-500' 
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:text-amber-700'
-                                    }`}
-                                    title={hasUrgent ? 'Click to unmark Urgent' : 'Mark order as Urgent Priority'}
-                                  >
-                                    {togglingUrgentId === (order._id || order.id || order.orderId || order.invoiceNumber) ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <Zap className={`w-3.5 h-3.5 ${hasUrgent ? 'fill-current text-slate-950' : 'text-amber-500'}`} />
-                                    )}
-                                    <span>{hasUrgent ? 'Urgent' : 'Mark Urgent'}</span>
-                                  </button>
-
                                   {/* Delete Order */}
                                   <button
                                     onClick={() => setDeleteOrderConfirm(order)}
-                                    className="w-full px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02]"
+                                    disabled={isDeletingOrder}
+                                    className="w-full px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] disabled:opacity-50"
                                     title="Delete Order & Invoice permanently"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Delete Order</span>
+                                    <span>Del Order</span>
                                   </button>
                                 </div>
                               </td>
@@ -2340,14 +2105,20 @@ export const AdminDashboard = () => {
                     <button
                       disabled={isDeletingOrder}
                       onClick={async () => {
+                        if (isDeletingOrder) return;
                         setIsDeletingOrder(true);
-                        const result = await deleteOrderFromAdmin(deleteOrderConfirm);
-                        setIsDeletingOrder(false);
-                        if (result.success) {
-                          showToast(`Order ${deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber} deleted successfully`, 'success');
-                          setDeleteOrderConfirm(null);
-                        } else {
-                          showToast('Failed to delete order: ' + (result.message || 'Unknown error'), 'error');
+                        try {
+                          const result = await deleteOrderFromAdmin(deleteOrderConfirm);
+                          if (result.success) {
+                            showToast(`Order ${deleteOrderConfirm.orderId || deleteOrderConfirm.invoiceNumber} deleted successfully`, 'success');
+                            setDeleteOrderConfirm(null);
+                          } else {
+                            showToast('Failed to delete order: ' + (result.message || 'Unknown error'), 'error');
+                          }
+                        } catch (err) {
+                          showToast('Failed to delete order', 'error');
+                        } finally {
+                          setIsDeletingOrder(false);
                         }
                       }}
                       className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2"
@@ -2904,11 +2675,11 @@ export const AdminDashboard = () => {
 
                           const cleanPhone = ticket.phone ? String(ticket.phone).replace(/\D/g, '') : '';
                           const rawClean = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-                          const waMessage = `Namaste ${ticket.name || 'Valued Retailer'}, regarding your Priority Support Ticket #${ticket.id} (${ticket.category}) with Anuj Enterprises:\n\n`;
+                          const waMessage = `Namaste ${ticket.name || 'Valued Retailer'}, regarding your Priority Support Ticket #${ticket.ticketId || ticket.id} (${ticket.category}) with Anuj Enterprises:\n\n`;
 
                           return (
                             <tr 
-                              key={ticket.id}
+                              key={ticket._id || ticket.ticketId || ticket.id}
                               className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors ${
                                 ticket.status === 'OPEN' ? 'bg-amber-50/15 dark:bg-amber-950/10' : ''
                               }`}
@@ -2916,7 +2687,7 @@ export const AdminDashboard = () => {
                               {/* Ticket ID & Priority Badge */}
                               <td className="py-3.5 px-4">
                                 <span className="font-mono font-bold text-brand-900 dark:text-brand-400 block">
-                                  {ticket.id}
+                                  {ticket.ticketId || ticket.id}
                                 </span>
                                 {isUrgent ? (
                                   <span className="mt-1 px-2 py-0.5 rounded bg-rose-500 text-white font-black text-[9px] uppercase inline-flex items-center gap-0.5 shadow-sm">
@@ -3040,8 +2811,9 @@ export const AdminDashboard = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (window.confirm(`Delete Support Ticket #${ticket.id}?`)) {
-                                        deleteSupportTicket(ticket.id);
+                                      const targetId = ticket.ticketId || ticket.id || ticket._id;
+                                      if (window.confirm(`Delete Support Ticket #${targetId}?`)) {
+                                        deleteSupportTicket(ticket._id || ticket.ticketId || ticket.id);
                                       }
                                     }}
                                     className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 dark:bg-slate-800 rounded-xl transition-colors"
@@ -3570,23 +3342,79 @@ export const AdminDashboard = () => {
                             const catName = typeof c === 'string' ? c : (c.name || `Category ${idx + 1}`);
                             const catId = (typeof c === 'object' && (c.id || c._id)) || catName;
                             const count = products.filter(p => p.category?.toLowerCase() === catName.toLowerCase()).length;
+                            const isEditing = editingCategoryId === catId;
+
                             return (
-                              <div key={catId || idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-amber-500/30 transition-all">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                                  <div className="min-w-0">
-                                    <span className="font-extrabold text-slate-900 dark:text-white truncate block">{catName}</span>
-                                    <span className="text-[10px] text-slate-400">{count} Products</span>
-                                  </div>
-                                </div>
-                                <button 
-                                  type="button"
-                                  onClick={() => deleteCategory(catId)} 
-                                  className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0"
-                                  title={`Delete ${catName}`}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                              <div key={catId || idx} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-amber-500/30 transition-all gap-2">
+                                {isEditing ? (
+                                  <form 
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      if (!editingCategoryName.trim()) return;
+                                      await updateCategory(catId, editingCategoryName.trim());
+                                      setEditingCategoryId(null);
+                                    }}
+                                    className="flex items-center gap-1.5 flex-1 min-w-0"
+                                  >
+                                    <input
+                                      type="text"
+                                      value={editingCategoryName}
+                                      onChange={(e) => setEditingCategoryName(e.target.value)}
+                                      className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-amber-500 rounded-lg text-xs font-bold text-slate-900 dark:text-white flex-1 min-w-0 focus:outline-none"
+                                      autoFocus
+                                    />
+                                    <button 
+                                      type="submit" 
+                                      className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors" 
+                                      title="Save Changes"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setEditingCategoryId(null)} 
+                                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" 
+                                      title="Cancel"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </form>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                      <div className="min-w-0">
+                                        <span className="font-extrabold text-slate-900 dark:text-white truncate block">{catName}</span>
+                                        <span className="text-[10px] text-slate-400">{count} Products</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingCategoryId(catId);
+                                          setEditingCategoryName(catName);
+                                        }} 
+                                        className="text-slate-400 hover:text-amber-500 p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+                                        title={`Edit ${catName}`}
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          if (window.confirm(`Delete category "${catName}"?`)) {
+                                            deleteCategory(catId);
+                                          }
+                                        }} 
+                                        className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                        title={`Delete ${catName}`}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             );
                           })
@@ -4086,75 +3914,6 @@ export const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ================= TAB 7: REPORTS & EXPORT CENTER ================= */}
-            {activeTab === 'reports' && (
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-amber-500" />
-                    Business Reports & Microsoft Excel (.XLSX) Export Center
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Generate instant, auto-formatted Microsoft Excel workbooks for audit, accounting, and inventory tracking.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Orders & Invoices Export</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Complete record of {orders.length} order invoices & collections</p>
-                    </div>
-                    <button
-                      onClick={() => exportOrdersCSV(orders)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
-                    </button>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Product Catalogue Master</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">All {products.length} SKUs with packaging details</p>
-                    </div>
-                    <button
-                      onClick={() => exportProductsCSV(products)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
-                    </button>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Sales Force Performance Roster</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Roster of {salesmen.length} sales representatives and territories</p>
-                    </div>
-                    <button
-                      onClick={() => exportSalesmenCSV(salesmen)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
-                    </button>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Inventory Stock Risk Report</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Current warehouse stock levels and replenishment alerts</p>
-                    </div>
-                    <button
-                      onClick={() => exportInventoryReportCSV(products)}
-                      className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Excel (.XLSX)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* ================= AUTO-DELETE RETENTION SETTINGS PANEL (in announcement tab) ================= */}
             {activeTab === 'announcement' && (
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5 mb-4">
@@ -4164,52 +3923,33 @@ export const AdminDashboard = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Auto-Delete Retention Policy</h3>
-                    <p className="text-[11px] text-slate-400">Automatically delete old orders/invoices after retention period (0 = Never delete)</p>
+                    <p className="text-[11px] text-slate-400">Automatically delete old orders after retention period (0 = Never delete)</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Order Retention Period</label>
-                    <select
-                      value={retentionSettings.orderRetentionDays}
-                      onChange={e => setRetentionSettings(prev => ({ ...prev, orderRetentionDays: Number(e.target.value) }))}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <option value={0}>Never (Keep Forever)</option>
-                      <option value={7}>7 Days</option>
-                      <option value={15}>15 Days</option>
-                      <option value={30}>30 Days</option>
-                      <option value={60}>60 Days</option>
-                      <option value={90}>90 Days</option>
-                      <option value={180}>180 Days</option>
-                      <option value={365}>365 Days</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Invoice Retention Period</label>
-                    <select
-                      value={retentionSettings.invoiceRetentionDays}
-                      onChange={e => setRetentionSettings(prev => ({ ...prev, invoiceRetentionDays: Number(e.target.value) }))}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <option value={0}>Never (Keep Forever)</option>
-                      <option value={7}>7 Days</option>
-                      <option value={15}>15 Days</option>
-                      <option value={30}>30 Days</option>
-                      <option value={60}>60 Days</option>
-                      <option value={90}>90 Days</option>
-                      <option value={180}>180 Days</option>
-                      <option value={365}>365 Days</option>
-                    </select>
-                  </div>
+                <div className="max-w-md space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Order Retention Period</label>
+                  <select
+                    value={retentionSettings.orderRetentionDays}
+                    onChange={e => setRetentionSettings({ orderRetentionDays: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value={0}>Never (Keep Forever)</option>
+                    <option value={7}>7 Days</option>
+                    <option value={15}>15 Days</option>
+                    <option value={30}>30 Days</option>
+                    <option value={60}>60 Days</option>
+                    <option value={90}>90 Days</option>
+                    <option value={180}>180 Days</option>
+                    <option value={365}>365 Days</option>
+                  </select>
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button
                     onClick={async () => {
                       setRetentionSaving(true);
                       try {
-                        await settingService.updateRetention(retentionSettings);
-                        showToast('Retention policy saved successfully', 'success');
+                        await settingService.updateRetention({ orderRetentionDays: retentionSettings.orderRetentionDays });
+                        showToast(`Retention policy saved: ${retentionSettings.orderRetentionDays === 0 ? 'Never (Keep Forever)' : `${retentionSettings.orderRetentionDays} Days`}`, 'success');
                       } catch (e) {
                         showToast('Failed to save retention settings', 'error');
                       } finally { setRetentionSaving(false); }
@@ -4222,10 +3962,14 @@ export const AdminDashboard = () => {
                   </button>
                   <button
                     onClick={async () => {
-                      if (!window.confirm('Run auto-cleanup now? This will permanently delete orders/invoices older than the retention period.')) return;
+                      if (!window.confirm('Run auto-cleanup now? This will permanently delete orders older than the configured Order Retention Period.')) return;
                       try {
                         const res = await settingService.runCleanup();
-                        showToast(`Cleanup complete: ${res.data?.deletedOrders || 0} orders, ${res.data?.deletedInvoices || 0} invoices deleted`, 'info');
+                        const deleted = res.data?.deletedOrders || 0;
+                        showToast(`Cleanup complete: ${deleted} orders deleted`, 'info');
+                        if (deleted > 0) {
+                          refreshOrders();
+                        }
                       } catch (e) { showToast('Cleanup failed', 'error'); }
                     }}
                     className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs flex items-center gap-2 transition-all"
@@ -6142,7 +5886,7 @@ export const AdminDashboard = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-extrabold text-sm text-slate-900 dark:text-white font-mono">
-                        {selectedTicketForDetails.id}
+                        {selectedTicketForDetails.ticketId || selectedTicketForDetails.id}
                       </h3>
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-[9px] uppercase">
                         {selectedTicketForDetails.priority || 'HIGH'}
@@ -6239,7 +5983,7 @@ export const AdminDashboard = () => {
                   <label className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Direct Chat:</label>
                   {selectedTicketForDetails.phone ? (
                     <a
-                      href={`https://wa.me/${String(selectedTicketForDetails.phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste ${selectedTicketForDetails.name}, regarding your Priority Support Ticket #${selectedTicketForDetails.id} with Anuj Enterprises:\n\n`)}`}
+                      href={`https://wa.me/${String(selectedTicketForDetails.phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste ${selectedTicketForDetails.name}, regarding your Priority Support Ticket #${selectedTicketForDetails.ticketId || selectedTicketForDetails.id} with Anuj Enterprises:\n\n`)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="w-full py-2 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-black rounded-xl inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs"
@@ -6257,8 +6001,9 @@ export const AdminDashboard = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`Delete Support Ticket #${selectedTicketForDetails.id}?`)) {
-                      deleteSupportTicket(selectedTicketForDetails.id);
+                    const targetId = selectedTicketForDetails.ticketId || selectedTicketForDetails.id || selectedTicketForDetails._id;
+                    if (window.confirm(`Delete Support Ticket #${targetId}?`)) {
+                      deleteSupportTicket(selectedTicketForDetails._id || selectedTicketForDetails.ticketId || selectedTicketForDetails.id);
                       setSelectedTicketForDetails(null);
                     }
                   }}

@@ -13,5 +13,7 @@ export const companyService = {
 export const categoryService = {
   getCategories: async () => apiClient('/categories'),
   createCategory: async (name) => apiClient('/categories', { method: 'POST', body: JSON.stringify({ name }) }),
+  updateCategory: async (id, data) => apiClient(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(typeof data === 'string' ? { name: data } : data) }),
   deleteCategory: async (id) => apiClient(`/categories/${id}`, { method: 'DELETE' })
 };
+

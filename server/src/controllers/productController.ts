@@ -75,36 +75,30 @@ export const buildProductLookupQuery = (idParam: string, extra?: any) => {
   const isObjectId = /^[0-9a-fA-F]{24}$/.test(cleanId);
   const orConditions: any[] = [];
 
+  if (isObjectId) {
+    orConditions.push({ _id: new mongoose.Types.ObjectId(cleanId) });
+  }
+
   if (cleanId) {
     orConditions.push({ productId: cleanId });
     orConditions.push({ sku: cleanId });
     orConditions.push({ sku: cleanId.toUpperCase() });
-    if (isObjectId) {
-      orConditions.push({ _id: new mongoose.Types.ObjectId(cleanId) });
-    }
   }
 
   if (extra && typeof extra === 'object') {
-    if (extra.sku) {
-      const s = String(extra.sku).trim();
-      orConditions.push({ sku: s });
-      orConditions.push({ sku: s.toUpperCase() });
+    if (extra._id && /^[0-9a-fA-F]{24}$/.test(String(extra._id).trim())) {
+      orConditions.push({ _id: new mongoose.Types.ObjectId(String(extra._id).trim()) });
     }
     if (extra.productId) {
       orConditions.push({ productId: String(extra.productId).trim() });
     }
     if (extra.id) {
       const idStr = String(extra.id).trim();
-      orConditions.push({ productId: idStr });
       if (/^[0-9a-fA-F]{24}$/.test(idStr)) {
         orConditions.push({ _id: new mongoose.Types.ObjectId(idStr) });
+      } else {
+        orConditions.push({ productId: idStr });
       }
-    }
-    if (extra._id && /^[0-9a-fA-F]{24}$/.test(String(extra._id).trim())) {
-      orConditions.push({ _id: new mongoose.Types.ObjectId(String(extra._id).trim()) });
-    }
-    if (extra.name) {
-      orConditions.push({ name: String(extra.name).trim() });
     }
   }
 
@@ -608,6 +602,14 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     const returnedProduct = {
       ...product.toObject(),
       id: product.productId || product._id.toString(),
+      _id: product._id,
+      productId: product.productId,
+      brand: product.companyName,
+      company: product.companyName,
+      category: product.categoryName,
+      isFeatured: product.featured,
+      isNew: product.newProduct,
+      isNrp: product.isNrp || false,
       image: product.image || (product.images && product.images.length > 0 ? product.images[0].url : ''),
       imagePublicId: product.imagePublicId || '',
       images: (product.images || []).map((i: any) => i.url),

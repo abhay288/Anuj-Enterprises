@@ -28,12 +28,6 @@ export const FeaturedProducts = () => {
       if (activeTab === 'bulk') return p.bulkTiers && p.bulkTiers.length > 0;
       return p.isFeatured;
     }).sort((a, b) => {
-      const aSortOrder = typeof a.sortOrder === 'number' && a.sortOrder > 0 ? a.sortOrder : 999999;
-      const bSortOrder = typeof b.sortOrder === 'number' && b.sortOrder > 0 ? b.sortOrder : 999999;
-      if (aSortOrder !== bSortOrder) {
-        return aSortOrder - bSortOrder;
-      }
-
       const aBrandRank = brandRankMap[normalizeBrandName(a.brand)] ?? 999;
       const bBrandRank = brandRankMap[normalizeBrandName(b.brand)] ?? 999;
       if (aBrandRank !== bBrandRank) {

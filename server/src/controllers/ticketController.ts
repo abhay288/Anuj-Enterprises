@@ -4,7 +4,11 @@ import { AuthRequest } from '../middleware/authMiddleware.js';
 
 export const getTickets = async (req: AuthRequest, res: Response) => {
   try {
-    const tickets = await Ticket.find().sort({ createdAt: -1 }).lean();
+    const rawTickets = await Ticket.find().sort({ createdAt: -1 }).lean();
+    const tickets = rawTickets.map((t: any) => ({
+      ...t,
+      id: t.ticketId || String(t._id)
+    }));
     return res.json({ success: true, data: { tickets }, message: 'Tickets fetched successfully' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -31,7 +35,9 @@ export const createTicket = async (req: AuthRequest, res: Response) => {
       resolutionNote: ''
     });
     await ticket.save();
-    return res.status(201).json({ success: true, data: { ticket }, message: 'Ticket created successfully' });
+    const ticketObj: any = ticket.toObject();
+    ticketObj.id = ticket.ticketId;
+    return res.status(201).json({ success: true, data: { ticket: ticketObj }, message: 'Ticket created successfully' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -40,9 +46,17 @@ export const createTicket = async (req: AuthRequest, res: Response) => {
 export const updateTicket = async (req: AuthRequest, res: Response) => {
   try {
     const idStr = String(req.params.id || '').trim();
+    if (!idStr || idStr === 'undefined' || idStr === 'null') {
+      return res.status(400).json({ success: false, message: 'Valid ticket ID or _id is required' });
+    }
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+    const escaped = idStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const ticket = await Ticket.findOne({
-      $or: [{ ticketId: idStr }, { _id: isObjectId ? idStr : null }]
+      $or: [
+        ...(isObjectId ? [{ _id: idStr }] : []),
+        { ticketId: idStr },
+        { ticketId: { $regex: new RegExp(`^${escaped}$`, 'i') } }
+      ]
     });
     if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
 
@@ -52,7 +66,9 @@ export const updateTicket = async (req: AuthRequest, res: Response) => {
     if (priority) ticket.priority = priority;
     await ticket.save();
 
-    return res.json({ success: true, data: { ticket }, message: 'Ticket updated successfully' });
+    const ticketObj: any = ticket.toObject();
+    ticketObj.id = ticket.ticketId;
+    return res.json({ success: true, data: { ticket: ticketObj }, message: 'Ticket updated successfully' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -61,9 +77,17 @@ export const updateTicket = async (req: AuthRequest, res: Response) => {
 export const deleteTicket = async (req: AuthRequest, res: Response) => {
   try {
     const idStr = String(req.params.id || '').trim();
+    if (!idStr || idStr === 'undefined' || idStr === 'null') {
+      return res.status(400).json({ success: false, message: 'Valid ticket ID or _id is required' });
+    }
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idStr);
+    const escaped = idStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const ticket = await Ticket.findOneAndDelete({
-      $or: [{ ticketId: idStr }, { _id: isObjectId ? idStr : null }]
+      $or: [
+        ...(isObjectId ? [{ _id: idStr }] : []),
+        { ticketId: idStr },
+        { ticketId: { $regex: new RegExp(`^${escaped}$`, 'i') } }
+      ]
     });
     if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
     return res.json({ success: true, message: `Ticket ${ticket.ticketId} deleted permanently` });

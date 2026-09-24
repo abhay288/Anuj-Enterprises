@@ -56,12 +56,14 @@ export const updateCompanyRanks = async (req: AuthRequest, res: Response) => {
     }
 
     const bulkOps = ranks.map((item: any, idx: number) => {
-      const rankNum = typeof item.rank === 'number' ? item.rank : idx + 1;
-      const itemId = item.id || item._id;
+      const rankNum = typeof item === 'object' && typeof item.rank === 'number' ? item.rank : idx + 1;
+      const itemId = typeof item === 'object' ? (item.id || item._id) : null;
+      const itemName = typeof item === 'object' ? item.name : item;
       const isObjectId = itemId && String(itemId).match(/^[0-9a-fA-F]{24}$/);
+      const safeName = String(itemName || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const filter = isObjectId 
         ? { _id: itemId } 
-        : { name: new RegExp(`^${String(item.name || '').trim()}$`, 'i') };
+        : { name: new RegExp(`^${safeName}$`, 'i') };
 
       return {
         updateOne: {

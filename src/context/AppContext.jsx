@@ -65,6 +65,7 @@ const defaultAppContext = {
   loginAdmin: async () => false,
   logout: () => {},
   saveCustomer: async () => {},
+  updateCategory: async () => {},
   updateCustomer: () => {},
   updateCustomerProfile: () => {},
   deleteCustomer: () => {},
@@ -712,7 +713,15 @@ export const AppProvider = ({ children }) => {
   const [supportTickets, setSupportTickets] = useState(() => {
     const saved = localStorage.getItem('anuj_support_tickets_v1');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(t => ({
+            ...t,
+            id: t.id || t.ticketId || String(t._id || '')
+          }));
+        }
+      } catch (e) {}
     }
     return [];
   });
@@ -752,9 +761,13 @@ export const AppProvider = ({ children }) => {
         message: newTicket.message
       });
       if (res.data?.ticket) {
-        // Replace optimistic ticket with MongoDB document (has real _id)
+        // Replace optimistic ticket with MongoDB document (has real _id and id)
+        const serverTicket = {
+          ...res.data.ticket,
+          id: res.data.ticket.id || res.data.ticket.ticketId || String(res.data.ticket._id || '')
+        };
         setSupportTickets(prev => {
-          const updated = prev.map(t => (t.id === randomId ? { ...t, ...res.data.ticket } : t));
+          const updated = prev.map(t => (t.id === randomId || t.ticketId === randomId ? serverTicket : t));
           try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
           return updated;
         });
@@ -778,10 +791,18 @@ export const AppProvider = ({ children }) => {
   }, [broadcastSync, addNotification]);
 
   const updateTicketStatus = useCallback(async (ticketId, newStatus, resolutionNote = '') => {
+    if (!ticketId) return;
+    const target = String(ticketId).toLowerCase().trim();
+    let displayId = ticketId;
+
     setSupportTickets(prev => {
       const updated = prev.map(t => {
-        const tId = t._id || t.ticketId || t.id;
-        if (tId === ticketId || t.id === ticketId) {
+        if (!t) return t;
+        const matchId = String(t.id || '').toLowerCase().trim();
+        const matchTicketId = String(t.ticketId || '').toLowerCase().trim();
+        const matchMongoId = String(t._id || '').toLowerCase().trim();
+        if (matchId === target || matchTicketId === target || matchMongoId === target) {
+          displayId = t.ticketId || t.id || ticketId;
           return { ...t, status: newStatus, ...(resolutionNote !== undefined ? { resolutionNote } : {}) };
         }
         return t;
@@ -803,28 +824,47 @@ export const AppProvider = ({ children }) => {
 
     setToast({
       show: true,
-      message: `Ticket #${ticketId} status updated to ${statusReadable}`,
+      message: `Ticket #${displayId} status updated to ${statusReadable}`,
       type: 'success'
     });
   }, [broadcastSync]);
 
   const deleteSupportTicket = useCallback(async (ticketId) => {
-    const target = String(ticketId || '').toLowerCase().trim();
+    if (!ticketId) return;
+    const target = String(ticketId).toLowerCase().trim();
+    let displayId = ticketId;
+
     setSupportTickets(prev => {
+      const found = prev.find(t => {
+        if (!t) return false;
+        const matchId = String(t.id || '').toLowerCase().trim();
+        const matchTicketId = String(t.ticketId || '').toLowerCase().trim();
+        const matchMongoId = String(t._id || '').toLowerCase().trim();
+        return matchId === target || matchTicketId === target || matchMongoId === target;
+      });
+      if (found) {
+        displayId = found.ticketId || found.id || found._id || ticketId;
+      }
       const updated = prev.filter(t => {
         if (!t) return false;
-        const tId = String(t._id || t.ticketId || t.id || '').toLowerCase().trim();
-        return tId !== target;
+        const matchId = String(t.id || '').toLowerCase().trim();
+        const matchTicketId = String(t.ticketId || '').toLowerCase().trim();
+        const matchMongoId = String(t._id || '').toLowerCase().trim();
+        return matchId !== target && matchTicketId !== target && matchMongoId !== target;
       });
       try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_SUPPORT_TICKETS', updated);
       return updated;
     });
-    setToast({ show: true, message: `Support Ticket #${ticketId} removed successfully.`, type: 'info' });
+
+    setToast({ show: true, message: `Support Ticket #${displayId} removed successfully.`, type: 'info' });
+
     // Permanently delete from MongoDB
     try {
       await ticketService.deleteTicket(ticketId);
-    } catch (e) {}
+    } catch (e) {
+      console.error('[deleteSupportTicket] Error deleting from MongoDB:', e);
+    }
   }, [broadcastSync]);
 
   // Delivery Route & Area Schedule Management (Marked exclusively by Admin)
@@ -1021,8 +1061,12 @@ export const AppProvider = ({ children }) => {
       try {
         const ticketRes = await ticketService.getTickets();
         if (!isCancelled && ticketRes.data?.tickets) {
-          setSupportTickets(ticketRes.data.tickets);
-          try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(ticketRes.data.tickets)); } catch (e) {}
+          const normalized = ticketRes.data.tickets.map(t => ({
+            ...t,
+            id: t.id || t.ticketId || String(t._id || '')
+          }));
+          setSupportTickets(normalized);
+          try { localStorage.setItem('anuj_support_tickets_v1', JSON.stringify(normalized)); } catch (e) {}
         }
       } catch (e) {}
 
@@ -2147,38 +2191,61 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const activeOrderDeletes = useRef(new Set());
+
   // Admin: Delete Order & Linked Invoice Permanently (optimistic state update + server delete)
   const deleteOrderFromAdmin = async (order) => {
     if (!order) return { success: false, message: 'No order provided' };
-    const id = order._id || order.orderId || order.invoiceNumber || order.id;
+    const id = order._id || order.id || order.orderId || order.invoiceNumber;
     if (!id) return { success: false, message: 'Order ID not found' };
 
-    const targetOrderId = String(order.orderId || id).trim();
-    const targetInvoice = String(order.invoiceNumber || '').trim();
+    const cleanId = String(id).trim();
+    if (activeOrderDeletes.current.has(cleanId)) {
+      return { success: true, message: 'Deletion already in progress' };
+    }
+    activeOrderDeletes.current.add(cleanId);
 
-    // Optimistically and unconditionally remove from state and localStorage
-    setOrders(prev => {
-      const updated = prev.filter(o =>
-        o.id !== order.id &&
-        o.orderId !== order.orderId &&
-        o.invoiceNumber !== order.invoiceNumber &&
-        (!targetOrderId || o.orderId !== targetOrderId) &&
-        (!targetInvoice || o.invoiceNumber !== targetInvoice)
-      );
-      try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
-      broadcastSync('SYNC_ORDERS', updated);
-      return updated;
-    });
+    const targetMongoId = String(order._id || '').trim().toLowerCase();
+    const targetCustomId = String(order.id || '').trim().toLowerCase();
+    const targetOrderId = String(order.orderId || '').trim().toLowerCase();
+    const targetInvoice = String(order.invoiceNumber || '').trim().toLowerCase();
 
     try {
-      await orderService.deleteOrder(id);
-      if (targetInvoice && targetInvoice !== id) {
-        invoiceService.deleteInvoice(targetInvoice).catch(() => {});
+      const res = await orderService.deleteOrder(cleanId);
+
+      // Clean up linked invoice if needed
+      if (order.invoiceNumber && order.invoiceNumber !== cleanId) {
+        invoiceService.deleteInvoice(order.invoiceNumber).catch(() => {});
       }
-      return { success: true };
+
+      // Remove permanently from state and localStorage
+      setOrders(prev => {
+        const updated = prev.filter(o => {
+          if (!o) return false;
+          const oMongoId = String(o._id || '').trim().toLowerCase();
+          const oCustomId = String(o.id || '').trim().toLowerCase();
+          const oOrderId = String(o.orderId || '').trim().toLowerCase();
+          const oInv = String(o.invoiceNumber || '').trim().toLowerCase();
+
+          const isMatch =
+            (targetMongoId && (oMongoId === targetMongoId || oCustomId === targetMongoId)) ||
+            (targetCustomId && (oMongoId === targetCustomId || oCustomId === targetCustomId)) ||
+            (targetOrderId && oOrderId === targetOrderId) ||
+            (targetInvoice && oInv === targetInvoice);
+
+          return !isMatch;
+        });
+        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+        broadcastSync('SYNC_ORDERS', updated);
+        return updated;
+      });
+
+      return { success: true, message: res?.message || 'Order deleted successfully' };
     } catch (err) {
-      console.warn('[deleteOrderFromAdmin] Server deletion note:', err?.message);
-      return { success: true };
+      console.error('[deleteOrderFromAdmin] Server deletion failed:', err);
+      return { success: false, message: err?.message || 'Server deletion failed' };
+    } finally {
+      activeOrderDeletes.current.delete(cleanId);
     }
   };
 
@@ -2821,10 +2888,99 @@ export const AppProvider = ({ children }) => {
       broadcastSync('SYNC_CATEGORIES', updated);
       return updated;
     });
-    showToast('Category removed from catalog filters', 'info');
     try {
       await categoryService.deleteCategory(backendId);
     } catch (e) {}
+  };
+
+  const updateCategory = async (catIdOrName, newName) => {
+    const trimmed = String(newName || '').trim();
+    if (!trimmed) {
+      showToast('Category name cannot be empty', 'warning');
+      return false;
+    }
+
+    let backendId = catIdOrName;
+    let oldName = '';
+
+    const currentCat = categories.find(c => {
+      if (typeof c === 'object') return c.id === catIdOrName || c._id === catIdOrName || c.name === catIdOrName;
+      return c === catIdOrName;
+    });
+
+    if (currentCat && typeof currentCat === 'object') {
+      backendId = currentCat._id || currentCat.id || currentCat.name;
+      oldName = currentCat.name;
+    } else if (typeof catIdOrName === 'string') {
+      oldName = catIdOrName;
+    }
+
+    if (oldName.toLowerCase() === trimmed.toLowerCase()) {
+      return true;
+    }
+
+    const duplicate = categories.some(c => {
+      const cName = typeof c === 'object' ? c.name : c;
+      const cId = typeof c === 'object' ? (c._id || c.id) : c;
+      return (cId !== backendId) && (cName?.toLowerCase() === trimmed.toLowerCase());
+    });
+
+    if (duplicate) {
+      showToast(`Category "${trimmed}" already exists in catalog`, 'warning');
+      return false;
+    }
+
+    // Optimistically update categories in local state
+    setCategories(prev => {
+      const updated = prev.map(c => {
+        const matches = typeof c === 'object' 
+          ? (c.id === catIdOrName || c._id === catIdOrName || c.name === catIdOrName)
+          : (c === catIdOrName);
+        if (matches) {
+          return typeof c === 'object' ? { ...c, name: trimmed } : { id: `cat-${Date.now()}`, name: trimmed };
+        }
+        return c;
+      });
+      try { localStorage.setItem('anuj_categories_v3', JSON.stringify(updated)); } catch (e) {}
+      broadcastSync('SYNC_CATEGORIES', updated);
+      return updated;
+    });
+
+    // Also update any products in state that used oldName
+    if (oldName) {
+      setProducts(prev => {
+        const updated = prev.map(p => {
+          if (p.category?.toLowerCase() === oldName.toLowerCase()) {
+            return { ...p, category: trimmed };
+          }
+          return p;
+        });
+        try { localStorage.setItem('anuj_products_v3', JSON.stringify(updated)); } catch (e) {}
+        broadcastSync('SYNC_PRODUCTS', updated);
+        return updated;
+      });
+    }
+
+    try {
+      const res = await categoryService.updateCategory(backendId, { name: trimmed });
+      if (res?.data?.category) {
+        setCategories(prev => {
+          const confirmed = prev.map(c => {
+            const matches = typeof c === 'object' 
+              ? (c.id === catIdOrName || c._id === backendId || c.name === oldName)
+              : (c === catIdOrName);
+            return matches ? { ...c, ...res.data.category, name: trimmed } : c;
+          });
+          try { localStorage.setItem('anuj_categories_v3', JSON.stringify(confirmed)); } catch (e) {}
+          return confirmed;
+        });
+      }
+      showToast(`Category renamed to "${trimmed}" successfully`, 'success');
+      return true;
+    } catch (e) {
+      showToast(`Failed to update category: ${e.message || 'Server error'}`, 'error');
+      return false;
+    }
   };
 
   const addBrand = async (brandData, addToTop = false) => {
@@ -3826,6 +3982,7 @@ export const AppProvider = ({ children }) => {
       toggleSalesmanStatus,
       resetSalesmanPassword,
       addCategory,
+      updateCategory,
       deleteCategory,
       addBrand,
       deleteBrand,
