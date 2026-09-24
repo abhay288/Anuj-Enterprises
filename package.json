@@ -8,9 +8,9 @@
     "dev:client": "vite",
     "dev:server": "npm --prefix server run dev",
     "build:client": "vite build",
-    "build:server": "npm --prefix server run build",
-    "build": "npm --prefix server run build && vite build",
-    "build:all": "npm --prefix server run build && vite build",
+    "build:server": "npm --prefix server install --include=dev && npm --prefix server run build",
+    "build": "npm --prefix server install --include=dev && npm --prefix server run build && vite build",
+    "build:all": "npm --prefix server install --include=dev && npm --prefix server run build && vite build",
     "start": "npm --prefix server start",
     "single": "npm run build && npm start",
     "lint": "eslint .",
@@ -55,6 +55,7 @@
     "concurrently": "^9.1.2",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
     "vite": "^5.4.11"
   }
 }
