@@ -13,12 +13,14 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
     }
 
     const userRole = String(req.user.role || '').toUpperCase();
-    const { search, salesmanId } = req.query;
+    const { search, salesmanId, autocomplete } = req.query;
+    const isAutocomplete = autocomplete === 'true' || req.query.all === 'true';
     const filter: any = {};
 
     if (userRole === 'SALESMAN') {
       const userSalesmanId = String(req.user.salesmanId || '').toUpperCase();
-      if (userSalesmanId) {
+      // Allow autocomplete or search across all registered customers for order booking
+      if (userSalesmanId && !isAutocomplete && !search) {
         filter.$or = [
           { createdBy: userSalesmanId },
           { assignedSalesmanId: userSalesmanId }
@@ -119,12 +121,13 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const defaultLimit = userRole === 'ADMIN' ? 1000 : 50;
-    const maxLimit = userRole === 'ADMIN' ? 1000 : 100;
+    const defaultLimit = (userRole === 'ADMIN' || isAutocomplete) ? 1000 : 50;
+    const maxLimit = (userRole === 'ADMIN' || isAutocomplete) ? 1000 : 100;
     const { limit, skip, page } = parsePagination(req.query, defaultLimit, maxLimit);
 
+    const sortOptions: any = isAutocomplete ? { name: 1 } : { createdAt: -1 };
     const [customers, totalCount] = await Promise.all([
-      Customer.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Customer.find(filter).sort(sortOptions).skip(skip).limit(limit).lean(),
       Customer.countDocuments(filter)
     ]);
 

@@ -359,8 +359,8 @@ export const AdminDashboard = () => {
   };
 
   const handleOpenScheduleModal = (cust) => {
-    const cId = cust.id || cust.customerId;
-    const existing = deliverySchedules?.[cId] || [];
+    const cId = cust.customerId || cust.id;
+    const existing = deliverySchedules?.[cId] || deliverySchedules?.[cust.customerId] || deliverySchedules?.[cust.id] || [];
     setSelectedCustForSchedule(cust);
     setCustScheduleDateInputs([...existing]);
     setSingleNewDateInput('');
@@ -370,7 +370,7 @@ export const AdminDashboard = () => {
   const handleSaveCustomerSchedule = (e) => {
     e.preventDefault();
     if (!selectedCustForSchedule) return;
-    const cId = selectedCustForSchedule.id || selectedCustForSchedule.customerId;
+    const cId = selectedCustForSchedule.customerId || selectedCustForSchedule.id;
     setCustomerDeliveryDates(cId, custScheduleDateInputs);
     setIsScheduleModalOpen(false);
     setSelectedCustForSchedule(null);
@@ -2317,7 +2317,7 @@ export const AdminDashboard = () => {
                               if (!a.includes(scheduleAreaFilter.toLowerCase())) return false;
                             }
                             if (scheduleDateFilter) {
-                              const cDates = deliverySchedules[c.id || c.customerId] || [];
+                              const cDates = deliverySchedules[c.customerId] || deliverySchedules[c.id] || [];
                               if (!cDates.includes(scheduleDateFilter)) return false;
                             }
                             if (scheduleSearchQuery) {
@@ -2333,7 +2333,7 @@ export const AdminDashboard = () => {
                             return true;
                           })
                           .map((cust, idx) => {
-                            const cId = cust.id || cust.customerId || `CUST-${1000 + idx}`;
+                            const cId = cust.customerId || cust.id || `CUST-${1000 + idx}`;
                             const cName = cust.name || cust.shopName || 'Retail Store';
                             const cOwner = cust.ownerName || '';
                             const cMobile = cust.mobile || cust.phone || '';
@@ -2342,7 +2342,7 @@ export const AdminDashboard = () => {
                             const cArea = cust.area || cust.city || 'Kanpur Central Mandi';
                             const cCity = cust.city || 'Kanpur';
                             const cAddress = cust.address || 'Central Market Zone';
-                            const assignedDates = (deliverySchedules[cId] || []).slice().sort();
+                            const assignedDates = (deliverySchedules[cId] || deliverySchedules[cust.customerId] || deliverySchedules[cust.id] || []).slice().sort();
 
                             const todayStr = new Date().toISOString().split('T')[0];
                             const futureDates = assignedDates.filter(d => d >= todayStr);

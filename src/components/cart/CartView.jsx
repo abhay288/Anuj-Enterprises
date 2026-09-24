@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, UploadCloud, Navigation, Loader2, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { customerService } from '../../services/customerService';
 import { InvoiceModal } from './InvoiceModal';
 import { ALL_INDIAN_STATES, getDistrictsByState } from '../../data/indiaStatesAndDistricts';
 import { getPackagingLevels } from '../../utils/packagingUtils';
@@ -83,6 +84,10 @@ export const CartView = () => {
     setIsSalesmanModalOpen,
     checkoutOrder,
     selectedCustomerForOrder,
+    setSelectedCustomerForOrder,
+    customers,
+    deliverySchedules,
+    refreshDeliverySchedules,
     showToast,
     t
   } = useApp();
@@ -135,6 +140,188 @@ export const CartView = () => {
   });
   const [isLocating, setIsLocating] = useState(false);
   const [customerType, setCustomerType] = useState('Retail Store');
+
+  // 🏪 Shop Name Autocomplete & Auto-Fill from MongoDB Registered Customers
+  const [showShopSuggestions, setShowShopSuggestions] = useState(false);
+  const [serverCustomerResults, setServerCustomerResults] = useState([]);
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  const shopInputContainerRef = React.useRef(null);
+  const searchDebounceRef = React.useRef(null);
+
+  // Close suggestions popover when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (shopInputContainerRef.current && !shopInputContainerRef.current.contains(e.target)) {
+        setShowShopSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle typing in Shop Name input: starts showing suggestions on first character (>= 1)
+  const handleShopNameChange = (e) => {
+    const val = e.target.value;
+    setCustomerName(val);
+
+    const trimmed = val.trim();
+    if (trimmed.length >= 1) {
+      setShowShopSuggestions(true);
+
+      // Fast debounced live search directly from MongoDB via customerService
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = setTimeout(async () => {
+        try {
+          setIsSearchingCustomers(true);
+          const res = await customerService.getCustomers({ 
+            search: trimmed, 
+            autocomplete: 'true', 
+            limit: 25 
+          });
+          if (res.data?.customers && Array.isArray(res.data.customers)) {
+            setServerCustomerResults(res.data.customers);
+          }
+        } catch (err) {
+          // If network/offline, in-memory MongoDB customers continue serving suggestions seamlessly
+        } finally {
+          setIsSearchingCustomers(false);
+        }
+      }, 150);
+    } else {
+      setShowShopSuggestions(false);
+      setServerCustomerResults([]);
+    }
+  };
+
+  // Combine MongoDB registered customers from context and live server search, deduplicate by ID/name
+  const matchingShopSuggestions = useMemo(() => {
+    const q = customerName.trim().toLowerCase();
+    if (!q) return [];
+
+    const combined = [...(customers || []), ...serverCustomerResults];
+    const uniqueMap = new Map();
+    for (const c of combined) {
+      if (!c || !c.name) continue;
+      const key = String(c.customerId || c._id || c.id || c.name).toLowerCase().trim();
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, c);
+      }
+    }
+    const allList = Array.from(uniqueMap.values());
+
+    // Search by Shop Name (fast & case-insensitive)
+    // Starts-with matches first, followed by contains matches
+    const startsWith = allList.filter(c => (c.name || '').toLowerCase().startsWith(q));
+    const contains = allList.filter(c => !(c.name || '').toLowerCase().startsWith(q) && (c.name || '').toLowerCase().includes(q));
+
+    return [...startsWith, ...contains].slice(0, 15);
+  }, [customerName, customers, serverCustomerResults]);
+
+  // When a registered customer is selected, automatically fill existing customer/buyer details
+  const handleSelectShopSuggestion = (cust) => {
+    if (!cust) return;
+
+    // 1. Shop Name
+    setCustomerName(cust.name || cust.shopName || '');
+    // 2. Customer / Shop Owner Name
+    setSalesmanNameInput(cust.ownerName || cust.shopOwnerName || cust.name || '');
+    // 3. Mobile Number
+    setCustomerMobile(cust.mobile || cust.phone || '');
+    // 4. Area
+    setSalesmanAreaInput(cust.area || cust.city || '');
+    // 5. City
+    setCustomerCity(cust.city || 'Kanpur');
+    // 6. Address
+    setCustomerAddress(cust.address || '');
+    // 7. State
+    setCustomerState(cust.state || 'Uttar Pradesh');
+    // 8. Pincode (if available)
+    if (cust.pincode) setCustomerPincode(cust.pincode);
+    // 9. Email (if available)
+    if (cust.email) setCustomerEmail(cust.email);
+    // 10. Route (if available)
+    if (cust.route) setSalesmanRouteInput(cust.route);
+    // 11. Live Location GPS (if available)
+    if (cust.liveLocation) setCustomerLiveLocation(cust.liveLocation);
+
+    // Bind selected customer reference to prevent duplicate customer creation on checkout
+    if (setSelectedCustomerForOrder) {
+      setSelectedCustomerForOrder(cust);
+    }
+
+    setShowShopSuggestions(false);
+  };
+
+  // 🚚 Revalidate delivery schedules directly from MongoDB whenever cart opens or user changes
+  React.useEffect(() => {
+    if (refreshDeliverySchedules) {
+      refreshDeliverySchedules();
+    }
+  }, [refreshDeliverySchedules, user]);
+
+  // Logged-in Customer's Unique ID for delivery schedule matching (strictly customerId)
+  const loggedInCustomerId = useMemo(() => {
+    if (!user) return null;
+    // 1. Direct customerId on user
+    if (user.customerId) return String(user.customerId).trim();
+
+    // 2. If user is customer role, look up registered customer record by unique user.id or email/phone
+    if (user.role === 'customer' || user.role === 'user') {
+      const match = (customers || []).find(c => 
+        (c.customerId && (c.customerId === user.id || c.customerId === user.customerId)) ||
+        (c._id && String(c._id) === String(user.id)) ||
+        (user.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+        (user.phone && (c.phone === user.phone || c.mobile === user.phone)) ||
+        (user.mobile && (c.mobile === user.mobile || c.phone === user.mobile))
+      );
+      if (match?.customerId) return String(match.customerId).trim();
+    }
+    return user.id ? String(user.id).trim() : null;
+  }, [user, customers]);
+
+  // Format schedule date helper: e.g. "2026-09-28" -> "28 September 2026"
+  const formatDeliveryDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const parts = String(dateStr).split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  // Derive ONLY this logged-in customer's applicable upcoming delivery dates
+  const customerScheduledDates = useMemo(() => {
+    // Only show for logged-in customer (or selected customer if salesman/admin is booking)
+    if (!user || user.role === 'guest') return [];
+
+    const targetId = (user.role === 'customer' || user.role === 'user')
+      ? loggedInCustomerId
+      : (selectedCustomerForOrder?.customerId || selectedCustomerForOrder?.id || null);
+
+    if (!targetId) return [];
+
+    // Strictly match by customer ID - do NOT match by area, name, or phone!
+    const cleanTargetId = String(targetId).trim();
+    const rawDates = deliverySchedules?.[cleanTargetId]
+      || (user?.customerId && deliverySchedules?.[String(user.customerId).trim()])
+      || (user?.id && deliverySchedules?.[String(user.id).trim()])
+      || [];
+
+    if (!Array.isArray(rawDates) || rawDates.length === 0) return [];
+
+    // Applicable upcoming dates according to existing delivery schedule system (today or future)
+    const todayStr = new Date().toISOString().split('T')[0];
+    return rawDates.filter(d => Boolean(d) && d >= todayStr).sort();
+  }, [user, loggedInCustomerId, selectedCustomerForOrder, deliverySchedules]);
 
   // Expired Products Claim System State
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
@@ -1009,10 +1196,48 @@ export const CartView = () => {
                 </div>
               )}
 
+              {/* Scheduled Delivery Information for Logged-In Customer */}
+              {customerScheduledDates.length > 0 && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-500/30 text-emerald-950 dark:text-emerald-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs uppercase tracking-wider">
+                      <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      Scheduled Delivery
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] shadow-sm uppercase tracking-wide">
+                      {customerScheduledDates.length > 1 ? `${customerScheduledDates.length} Upcoming Dates` : 'Confirmed Route'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                    {customerScheduledDates.map((dateStr, idx) => (
+                      <span
+                        key={dateStr}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs shadow-sm transition-transform ${
+                          idx === 0
+                            ? 'bg-emerald-600 text-white shadow-emerald-500/20 ring-2 ring-emerald-400/40'
+                            : 'bg-white dark:bg-slate-900 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        📅 {formatDeliveryDate(dateStr)}
+                        {idx === 0 && customerScheduledDates.length > 1 && (
+                          <span className="text-[10px] font-bold opacity-90 uppercase ml-0.5">(Next)</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium italic pt-0.5">
+                    "Your delivery vehicle will visit your area on the scheduled date."
+                  </p>
+                </div>
+              )}
+
               {/* Form Input Fields */}
               <div className="space-y-4 pt-2">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
+                  <div className="relative" ref={shopInputContainerRef}>
                     <label className="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-1">
                       {t('shop_name', 'Shop Name')} <span className="text-rose-500 font-black text-sm">*</span>
                     </label>
@@ -1022,11 +1247,103 @@ export const CartView = () => {
                         type="text"
                         required
                         value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
+                        onChange={handleShopNameChange}
+                        onFocus={() => {
+                          if (customerName.trim().length >= 1) {
+                            setShowShopSuggestions(true);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setShowShopSuggestions(false);
+                        }}
                         placeholder={t('enter_shop_name', 'e.g. Shree Ganesh Kirana')}
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        autoComplete="off"
                       />
+                      {isSearchingCustomers && (
+                        <Loader2 className="w-3.5 h-3.5 absolute right-3 top-3 text-amber-500 animate-spin" />
+                      )}
                     </div>
+
+                    {/* Shop Name Autocomplete Suggestions Dropdown */}
+                    <AnimatePresence>
+                      {showShopSuggestions && customerName.trim().length >= 1 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80"
+                        >
+                          {matchingShopSuggestions.length > 0 ? (
+                            <>
+                              <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-950 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                                <span>Registered Stores ({matchingShopSuggestions.length})</span>
+                                <span className="text-amber-600 dark:text-amber-400">Click to Auto-Fill</span>
+                              </div>
+                              {matchingShopSuggestions.map((cust) => {
+                                const custKey = cust.customerId || cust._id || cust.id || cust.name;
+                                return (
+                                  <button
+                                    key={custKey}
+                                    type="button"
+                                    onClick={() => handleSelectShopSuggestion(cust)}
+                                    className="w-full text-left px-3.5 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors flex items-start gap-2.5 group"
+                                  >
+                                    <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                                      <Building2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                                          {cust.name}
+                                        </span>
+                                        {cust.customerId && (
+                                          <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                                            {cust.customerId}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                        {(cust.ownerName || cust.shopOwnerName) && (
+                                          <span className="flex items-center gap-1 font-medium">
+                                            <User className="w-3 h-3 text-slate-400" />
+                                            {cust.ownerName || cust.shopOwnerName}
+                                          </span>
+                                        )}
+                                        {(cust.mobile || cust.phone) && (
+                                          <span className="flex items-center gap-1 font-mono">
+                                            <Phone className="w-3 h-3 text-slate-400" />
+                                            {cust.mobile || cust.phone}
+                                          </span>
+                                        )}
+                                        {(cust.area || cust.city || cust.address) && (
+                                          <span className="flex items-center gap-1 truncate max-w-[200px]">
+                                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                            {[cust.area, cust.city || 'Kanpur'].filter(Boolean).join(', ') || cust.address}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          ) : (
+                            <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                              {isSearchingCustomers ? (
+                                <span className="flex items-center justify-center gap-2">
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                                  Searching MongoDB...
+                                </span>
+                              ) : (
+                                <span>No registered shop found matching "{customerName}"</span>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div>
@@ -2400,6 +2717,24 @@ export const CartView = () => {
                     <LogIn className="w-3.5 h-3.5" />
                     <span>Login / Register to Place Order</span>
                   </button>
+                </div>
+              )}
+
+              {/* Scheduled Delivery in Order Summary */}
+              {customerScheduledDates.length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-300 font-extrabold">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Scheduled Delivery
+                    </span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400">
+                      📅 {formatDeliveryDate(customerScheduledDates[0])}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                    "Your delivery vehicle will visit your area on the scheduled date."
+                  </p>
                 </div>
               )}
 

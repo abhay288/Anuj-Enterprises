@@ -44,6 +44,18 @@ export const generateDeliveryWhatsAppMessage = (order, custom = {}) => {
   const estimatedTime = custom.estimatedTime || 'Today (In-Transit)';
   const customNote = custom.customNote ? `\n📝 *Note:* ${custom.customNote}` : '';
 
+  // Extract all ordered product names and quantities
+  const itemsList = Array.isArray(order.items) ? order.items : [];
+  let productsSection = '';
+  if (itemsList.length > 0) {
+    const productLines = itemsList.map((item, idx) => {
+      const pName = item.productName || item.name || item.product?.name || `Product #${idx + 1}`;
+      const qty = item.qty || item.quantity;
+      return qty ? `• ${pName} (${qty} Units)` : `• ${pName}`;
+    }).join('\n');
+    productsSection = `\n📦 *Products Ordered:*\n${productLines}\n`;
+  }
+
   return `🚚 *ANUJ ENTERPRISES — OUT FOR DELIVERY!* 📦
 
 Namaste *${customerName}*, your FMCG wholesale order has been dispatched from our Kanpur Central Hub and is on the way! 🚀
@@ -53,7 +65,7 @@ Namaste *${customerName}*, your FMCG wholesale order has been dispatched from ou
 📍 *Delivery Destination:* ${city}
 ⏰ *Est. Arrival:* ${estimatedTime}
 👨‍💼 *Delivery Rep:* ${driverName} (📞 ${driverPhone})${customNote}
-
+${productsSection}
 📞 *Helpline:* +91 88876 83782 / +91 70719 79894
 🏢 *Anuj Enterprises — FMCG Wholesale Partner*`;
 };

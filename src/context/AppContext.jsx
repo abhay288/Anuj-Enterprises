@@ -885,13 +885,14 @@ export const AppProvider = ({ children }) => {
 
   const addCustomerDeliveryDate = useCallback((customerId, dateStr) => {
     if (!customerId || !dateStr) return;
+    const cleanId = String(customerId).trim();
     setDeliverySchedules(prev => {
-      const currentDates = Array.isArray(prev[customerId]) ? [...prev[customerId]] : [];
+      const currentDates = Array.isArray(prev[cleanId]) ? [...prev[cleanId]] : [];
       if (!currentDates.includes(dateStr)) {
         currentDates.push(dateStr);
         currentDates.sort();
       }
-      const updated = { ...prev, [customerId]: currentDates };
+      const updated = { ...prev, [cleanId]: currentDates };
       try {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
@@ -904,9 +905,10 @@ export const AppProvider = ({ children }) => {
 
   const removeCustomerDeliveryDate = useCallback((customerId, dateStr) => {
     if (!customerId || !dateStr) return;
+    const cleanId = String(customerId).trim();
     setDeliverySchedules(prev => {
-      const currentDates = Array.isArray(prev[customerId]) ? prev[customerId].filter(d => d !== dateStr) : [];
-      const updated = { ...prev, [customerId]: currentDates };
+      const currentDates = Array.isArray(prev[cleanId]) ? prev[cleanId].filter(d => d !== dateStr) : [];
+      const updated = { ...prev, [cleanId]: currentDates };
       try {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
@@ -919,14 +921,17 @@ export const AppProvider = ({ children }) => {
 
   const setCustomerDeliveryDates = useCallback((customerId, datesArray) => {
     if (!customerId) return;
+    const cleanId = String(customerId).trim();
     const cleanDates = Array.from(new Set((datesArray || []).filter(Boolean))).sort();
     setDeliverySchedules(prev => {
-      const updated = { ...prev, [customerId]: cleanDates };
+      const updated = { ...prev, [cleanId]: cleanDates };
       try {
         localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(updated));
       } catch (e) {}
       broadcastSync('SYNC_DELIVERY_SCHEDULES', updated);
-      settingService.updateSetting('deliverySchedules', updated).catch(() => {});
+      settingService.updateSetting('deliverySchedules', updated).catch((err) => {
+        console.error('[setCustomerDeliveryDates] MongoDB update error:', err);
+      });
       return updated;
     });
     setToast({ show: true, message: `✅ Route schedule updated (${cleanDates.length} delivery dates)`, type: 'success' });
@@ -944,10 +949,12 @@ export const AppProvider = ({ children }) => {
         const cArea = (c.area || '').toLowerCase();
         const cCity = (c.city || '').toLowerCase();
         const cAddress = (c.address || '').toLowerCase();
-        const cId = c.id || c.customerId;
+        const cId = c.customerId || c.id || c._id;
         if (cArea.includes(targetQ) || cCity.includes(targetQ) || cAddress.includes(targetQ) || targetQ.includes(cCity) || targetQ.includes(cArea)) {
-          updated[cId] = cleanDates;
-          matchCount++;
+          if (cId) {
+            updated[String(cId).trim()] = cleanDates;
+            matchCount++;
+          }
         }
       });
       try {
@@ -959,6 +966,21 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
   }, [customers, broadcastSync]);
+
+  // Direct revalidation from MongoDB for delivery schedules
+  const refreshDeliverySchedules = useCallback(async () => {
+    try {
+      const res = await settingService.getSettings();
+      if (res.data?.deliverySchedules && typeof res.data.deliverySchedules === 'object') {
+        setDeliverySchedules(res.data.deliverySchedules);
+        try { localStorage.setItem('anuj_delivery_schedules_v1', JSON.stringify(res.data.deliverySchedules)); } catch (e) {}
+        return res.data.deliverySchedules;
+      }
+    } catch (e) {
+      console.warn('[refreshDeliverySchedules] Error fetching from MongoDB:', e?.message);
+    }
+    return null;
+  }, []);
 
   // Retryable Product Fetch Callback
   const retryFetchProducts = useCallback(async () => {
@@ -1055,7 +1077,7 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
 
       try {
-        const custRes = await customerService.getCustomers({ limit: 1000 });
+        const custRes = await customerService.getCustomers({ limit: 1000, autocomplete: 'true' });
         if (!isCancelled && custRes.data?.customers) {
           setCustomers(custRes.data.customers);
           try { localStorage.setItem('anuj_customers_v3', JSON.stringify(custRes.data.customers)); } catch (e) {}
@@ -3794,7 +3816,7 @@ export const AppProvider = ({ children }) => {
 
   const refreshCustomers = useCallback(async () => {
     try {
-      const res = await customerService.getCustomers({ limit: 1000 });
+      const res = await customerService.getCustomers({ limit: 1000, autocomplete: 'true' });
       if (res.data?.customers && Array.isArray(res.data.customers)) {
         setCustomers(res.data.customers);
         try { localStorage.setItem('anuj_customers_v3', JSON.stringify(res.data.customers)); } catch (e) {}
@@ -4033,6 +4055,7 @@ export const AppProvider = ({ children }) => {
       updateNormalUserPassword,
       updateAdminPassword,
       deliverySchedules,
+      refreshDeliverySchedules,
       addCustomerDeliveryDate,
       removeCustomerDeliveryDate,
       setCustomerDeliveryDates,
