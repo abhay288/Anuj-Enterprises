@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Megaphone, X, ArrowRight, Sparkles, AlertCircle, Phone, MessageSquare } from 'lucide-react';
+import { Megaphone, X, Sparkles, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const HeadlineBar = () => {
-  const { headlineConfig } = useApp();
-  const [isDismissed, setIsDismissed] = useState(false);
+  const { headlineConfig, isHeadlineDismissed, dismissHeadline } = useApp();
 
-  if (!headlineConfig || !headlineConfig.isVisible || isDismissed) {
+  if (!headlineConfig || !headlineConfig.isVisible || isHeadlineDismissed) {
     return null;
   }
 
@@ -40,23 +39,23 @@ export const HeadlineBar = () => {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        className={`fixed top-20 sm:top-22 left-0 right-0 z-40 w-full backdrop-blur-xl border-b ${style.border} ${style.bg} py-2 px-3 sm:px-6 shadow-sm transition-all`}
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        className={`w-full border-t ${style.border} ${style.bg} py-1.5 sm:py-2 px-3 sm:px-6 shadow-xs transition-all`}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 text-xs">
           
           {/* Badge & Continuous Scrolling Headline Text */}
-          <div className="flex items-center gap-3 flex-1 overflow-hidden min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden min-w-0">
             {/* Pulsing Alert Tag */}
-            <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm ${style.badge} z-10`}>
-              <Megaphone className="w-3 h-3 animate-pulse" />
-              <span>{headlineConfig.tag || 'ANNOUNCEMENT'}</span>
+            <span className={`px-2 py-0.5 rounded-full font-black text-[9px] sm:text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs ${style.badge} z-10`}>
+              <Megaphone className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
+              <span className="truncate max-w-[120px] sm:max-w-none">{headlineConfig.tag || 'ANNOUNCEMENT'}</span>
             </span>
 
             {/* Continuous Marquee Text Container */}
-            <div className="overflow-hidden flex-1 relative select-none">
+            <div className="overflow-hidden flex-1 relative select-none min-w-0">
               <div className="animate-marquee whitespace-nowrap flex items-center">
                 <span className={`font-extrabold text-xs sm:text-sm tracking-tight ${style.text} pr-20 inline-flex items-center gap-2`}>
                   <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -79,22 +78,23 @@ export const HeadlineBar = () => {
           </div>
 
           {/* Quick Action Links & Close */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <a
               href="https://wa.me/918887683782?text=Hello%20Anuj%20Enterprises,%20I%20am%20inquiring%20about%20the%20latest%20FMCG%20wholesale%20announcement."
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[11px] transition-colors shadow-sm"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[10px] sm:text-[11px] transition-colors shadow-xs shrink-0 whitespace-nowrap"
+              title="WhatsApp Inquiry"
             >
-              <MessageSquare className="w-3 h-3" />
+              <MessageSquare className="w-3 h-3 shrink-0" />
               <span>WhatsApp Inquiry</span>
             </a>
 
             <button
-              onClick={() => setIsDismissed(true)}
+              onClick={dismissHeadline}
               aria-label="Dismiss announcement"
               title="Dismiss announcement"
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>

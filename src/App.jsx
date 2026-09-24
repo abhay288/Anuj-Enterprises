@@ -102,13 +102,12 @@ class ErrorBoundary extends React.Component {
 }
 
 const MainContent = () => {
-  const { view, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig } = useApp();
-  const hasHeadline = headlineConfig?.isVisible;
+  const { view, isOrderSuccessModalOpen, closeOrderSuccessModal, lastCompletedOrder, headlineConfig, isHeadlineDismissed } = useApp();
+  const hasHeadline = headlineConfig?.isVisible && !isHeadlineDismissed;
 
   return (
-    <div className={`flex flex-col min-h-screen ${hasHeadline ? 'pt-28 sm:pt-30' : 'pt-20 sm:pt-22'} pb-16 md:pb-0 transition-all`}>
+    <div className={`flex flex-col min-h-screen ${hasHeadline ? 'pt-[100px] sm:pt-[118px]' : 'pt-16 sm:pt-20'} pb-16 md:pb-0 transition-all`}>
       <Navbar />
-      <HeadlineBar />
       
       <main className="flex-grow">
         <ErrorBoundary>

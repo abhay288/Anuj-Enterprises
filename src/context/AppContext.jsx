@@ -88,7 +88,9 @@ const defaultAppContext = {
   setIsOrderSuccessModalOpen: () => {},
   closeOrderSuccessModal: () => {},
   lastCompletedOrder: null,
-  headlineConfig: { isVisible: false, text: '' },
+  headlineConfig: { isVisible: true, text: '' },
+  isHeadlineDismissed: false,
+  dismissHeadline: () => {},
   updateHeadlineConfig: () => {},
   legalPolicies: DEFAULT_LEGAL_POLICIES,
   updateLegalPolicy: () => {},
@@ -528,6 +530,8 @@ export const AppProvider = ({ children }) => {
       variant: "amber" // 'amber' | 'blue' | 'emerald' | 'purple'
     };
   });
+  const [isHeadlineDismissed, setIsHeadlineDismissed] = useState(false);
+  const dismissHeadline = useCallback(() => setIsHeadlineDismissed(true), []);
 
   // Cross-Tab Instant Real-Time Synchronization Helper
   const broadcastSync = useCallback((type, payload) => {
@@ -4006,6 +4010,8 @@ export const AppProvider = ({ children }) => {
       t,
       showToast,
       headlineConfig,
+      isHeadlineDismissed,
+      dismissHeadline,
       updateHeadlineConfig,
       legalPolicies,
       updateLegalPolicy,

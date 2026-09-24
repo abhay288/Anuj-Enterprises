@@ -1812,19 +1812,6 @@ export const AdminDashboard = () => {
                       </button>
                     ))}
                   </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        resetAdminInvoiceForm();
-                        setIsAdminCreateInvoiceOpen(true);
-                      }}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition-all hover:scale-105"
-                    >
-                      <Plus className="w-4 h-4 text-slate-950" /> Generate B2B Invoice
-                    </button>
-                  </div>
                 </div>
 
                 {/* Interactive Date Range & Timeframe Filter Sub-Bar */}
