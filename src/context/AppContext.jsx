@@ -2279,6 +2279,24 @@ export const AppProvider = ({ children }) => {
   const deleteInvoiceFromAdmin = async (invoiceId) => {
     if (!invoiceId) return { success: false, message: 'No invoice ID provided' };
     try {
+      if (typeof invoiceId === 'object' && invoiceId !== null) {
+        return await deleteOrderFromAdmin(invoiceId);
+      }
+
+      const targetId = String(invoiceId).trim().toLowerCase();
+      const matchingOrder = orders.find(o => 
+        o && (
+          String(o.invoiceNumber || '').trim().toLowerCase() === targetId ||
+          String(o.orderId || '').trim().toLowerCase() === targetId ||
+          String(o.id || '').trim().toLowerCase() === targetId ||
+          String(o._id || '').trim().toLowerCase() === targetId
+        )
+      );
+
+      if (matchingOrder) {
+        return await deleteOrderFromAdmin(matchingOrder);
+      }
+
       await invoiceService.deleteInvoice(invoiceId);
       // Also remove the matching order from state
       setOrders(prev => {
@@ -2286,6 +2304,7 @@ export const AppProvider = ({ children }) => {
           o.invoiceNumber !== invoiceId && o.orderId !== invoiceId && o.id !== invoiceId
         );
         try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+        broadcastSync('SYNC_ORDERS', updated);
         return updated;
       });
       return { success: true };
