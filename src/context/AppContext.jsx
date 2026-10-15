@@ -262,12 +262,33 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  const filterDeletedOrders = (orderList) => {
+    if (!Array.isArray(orderList)) return [];
+    try {
+      const raw = localStorage.getItem('anuj_deleted_orders_v1');
+      if (!raw) return orderList;
+      const deletedList = JSON.parse(raw);
+      if (!Array.isArray(deletedList) || deletedList.length === 0) return orderList;
+      const deletedSet = new Set(deletedList.map(x => String(x).toLowerCase().trim()));
+      return orderList.filter(o => {
+        if (!o) return false;
+        const ids = [o._id, o.id, o.orderId, o.invoiceNumber].filter(Boolean).map(x => String(x).toLowerCase().trim());
+        if (ids.some(x => deletedSet.has(x))) return false;
+        const digits = ids.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
+        if (digits.some(d => deletedSet.has(d))) return false;
+        return true;
+      });
+    } catch (e) {
+      return orderList;
+    }
+  };
+
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('anuj_orders_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return filterDeletedOrders(parsed);
       }
       return [];
     } catch (e) {
@@ -1064,8 +1085,9 @@ export const AppProvider = ({ children }) => {
       try {
         const ordRes = await orderService.getOrders();
         if (!isCancelled && ordRes.data?.orders) {
-          setOrders(ordRes.data.orders);
-          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(ordRes.data.orders)); } catch (e) {}
+          const filteredOrders = filterDeletedOrders(ordRes.data.orders);
+          setOrders(filteredOrders);
+          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(filteredOrders)); } catch (e) {}
         }
       } catch (e) {}
 
@@ -1128,10 +1150,11 @@ export const AppProvider = ({ children }) => {
     try {
       const ordRes = await orderService.getOrders();
       if (ordRes?.data?.orders) {
-        setOrders(ordRes.data.orders);
-        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(ordRes.data.orders)); } catch (e) {}
-        broadcastSync('SYNC_ORDERS', ordRes.data.orders);
-        return ordRes.data.orders;
+        const filteredOrders = filterDeletedOrders(ordRes.data.orders);
+        setOrders(filteredOrders);
+        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(filteredOrders)); } catch (e) {}
+        broadcastSync('SYNC_ORDERS', filteredOrders);
+        return filteredOrders;
       }
     } catch (e) {}
     return [];
@@ -2222,96 +2245,100 @@ export const AppProvider = ({ children }) => {
   // Admin: Delete Order & Linked Invoice Permanently (optimistic state update + server delete)
   const deleteOrderFromAdmin = async (order) => {
     if (!order) return { success: false, message: 'No order provided' };
-    const id = order._id || order.orderId || order.invoiceNumber || order.id;
+    const targetObj = typeof order === 'object' && order !== null ? order : {};
+    const id = typeof order === 'string' ? order : (order._id || order.orderId || order.invoiceNumber || order.id);
     if (!id) return { success: false, message: 'Order ID not found' };
 
     const cleanId = String(id).trim();
-    if (activeOrderDeletes.current.has(cleanId)) {
-      return { success: true, message: 'Deletion already in progress' };
-    }
-    activeOrderDeletes.current.add(cleanId);
 
-    const targetMongoId = String(order._id || '').trim().toLowerCase();
-    const targetCustomId = String(order.id || '').trim().toLowerCase();
-    const targetOrderId = String(order.orderId || '').trim().toLowerCase();
-    const targetInvoice = String(order.invoiceNumber || '').trim().toLowerCase();
+    // Collect all candidate IDs and digits associated with this target order
+    const candidateIds = [
+      targetObj._id,
+      targetObj.id,
+      targetObj.orderId,
+      targetObj.invoiceNumber,
+      cleanId,
+      selectedInvoice?._id,
+      selectedInvoice?.id,
+      selectedInvoice?.orderId,
+      selectedInvoice?.invoiceNumber
+    ].filter(Boolean).map(x => String(x).trim().toLowerCase());
+
+    const candidateDigits = candidateIds.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
+
+    // Save to persistent deletion blacklist so background polling never brings it back
+    try {
+      const raw = localStorage.getItem('anuj_deleted_orders_v1');
+      const list = raw ? JSON.parse(raw) : [];
+      const updatedBlacklist = Array.from(new Set([...list, ...candidateIds, ...candidateDigits]));
+      localStorage.setItem('anuj_deleted_orders_v1', JSON.stringify(updatedBlacklist));
+    } catch (e) {}
+
+    const isMatch = (o) => {
+      if (!o) return false;
+      if (targetObj && o === targetObj) return true;
+      if (selectedInvoice && o === selectedInvoice) return true;
+
+      const oIds = [o._id, o.id, o.orderId, o.invoiceNumber].filter(Boolean).map(x => String(x).trim().toLowerCase());
+      if (oIds.some(oid => candidateIds.includes(oid))) return true;
+
+      const oDigits = oIds.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
+      if (oDigits.some(od => candidateDigits.includes(od))) return true;
+
+      const oCust = String(o.customerName || '').trim().toLowerCase();
+      const tCust = String(targetObj.customerName || selectedInvoice?.customerName || '').trim().toLowerCase();
+      if (oCust && tCust && oCust === tCust) {
+        const oTot = Math.round(Number(o.totalAmount || o.grandTotal || o.subtotal || 0));
+        const tTot = Math.round(Number(targetObj.totalAmount || targetObj.grandTotal || targetObj.subtotal || selectedInvoice?.totalAmount || selectedInvoice?.grandTotal || 0));
+        if (oTot > 0 && oTot === tTot) return true;
+      }
+      return false;
+    };
 
     // Immediately remove permanently from state and localStorage
     setOrders(prev => {
-      const updated = (Array.isArray(prev) ? prev : []).filter(o => {
-        if (!o) return false;
-        const oMongoId = String(o._id || '').trim().toLowerCase();
-        const oCustomId = String(o.id || '').trim().toLowerCase();
-        const oOrderId = String(o.orderId || '').trim().toLowerCase();
-        const oInv = String(o.invoiceNumber || '').trim().toLowerCase();
-
-        const isMatch =
-          (targetMongoId && (oMongoId === targetMongoId || oCustomId === targetMongoId)) ||
-          (targetCustomId && (oMongoId === targetCustomId || oCustomId === targetCustomId)) ||
-          (targetOrderId && (oOrderId === targetOrderId || oCustomId === targetOrderId || oInv === targetOrderId)) ||
-          (targetInvoice && (oInv === targetInvoice || oOrderId === targetInvoice || oCustomId === targetInvoice));
-
-        return !isMatch;
-      });
+      const updated = (Array.isArray(prev) ? prev : []).filter(o => !isMatch(o));
       try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
       broadcastSync('SYNC_ORDERS', updated);
       return updated;
     });
 
     try {
-      const serverId = order.orderId || order.invoiceNumber || cleanId;
-      await orderService.deleteOrder(serverId).catch(() => {});
+      const serverIds = Array.from(new Set([
+        cleanId,
+        targetObj.orderId,
+        targetObj.invoiceNumber,
+        targetObj._id,
+        targetObj.id,
+        selectedInvoice?.orderId,
+        selectedInvoice?.invoiceNumber,
+        selectedInvoice?._id,
+        selectedInvoice?.id
+      ].filter(Boolean).map(x => String(x).trim())));
 
-      // Clean up linked invoice if needed
-      if (order.invoiceNumber && order.invoiceNumber !== serverId) {
-        invoiceService.deleteInvoice(order.invoiceNumber).catch(() => {});
+      const expanded = [...serverIds];
+      for (const sid of serverIds) {
+        if (sid.startsWith('AE-INV-')) expanded.push(sid.replace('AE-INV-', 'ORD-'));
+        if (sid.startsWith('ORD-')) expanded.push(sid.replace('ORD-', 'AE-INV-'));
       }
+
+      const uniqueServerIds = Array.from(new Set(expanded));
+      Promise.allSettled([
+        ...uniqueServerIds.map(sid => orderService.deleteOrder(sid).catch(() => {})),
+        ...uniqueServerIds.map(sid => invoiceService.deleteInvoice(sid).catch(() => {}))
+      ]).catch(() => {});
 
       return { success: true, message: 'Order deleted successfully' };
     } catch (err) {
       console.warn('[deleteOrderFromAdmin] Server deletion warning:', err);
       return { success: true, message: 'Order deleted successfully' };
-    } finally {
-      activeOrderDeletes.current.delete(cleanId);
     }
   };
 
   // Admin: Delete Invoice Permanently (optimistic state update + server delete)
   const deleteInvoiceFromAdmin = async (invoiceId) => {
     if (!invoiceId) return { success: false, message: 'No invoice ID provided' };
-    try {
-      if (typeof invoiceId === 'object' && invoiceId !== null) {
-        return await deleteOrderFromAdmin(invoiceId);
-      }
-
-      const targetId = String(invoiceId).trim().toLowerCase();
-      const matchingOrder = orders.find(o => 
-        o && (
-          String(o.invoiceNumber || '').trim().toLowerCase() === targetId ||
-          String(o.orderId || '').trim().toLowerCase() === targetId ||
-          String(o.id || '').trim().toLowerCase() === targetId ||
-          String(o._id || '').trim().toLowerCase() === targetId
-        )
-      );
-
-      if (matchingOrder) {
-        return await deleteOrderFromAdmin(matchingOrder);
-      }
-
-      await invoiceService.deleteInvoice(invoiceId);
-      // Also remove the matching order from state
-      setOrders(prev => {
-        const updated = prev.filter(o =>
-          o.invoiceNumber !== invoiceId && o.orderId !== invoiceId && o.id !== invoiceId
-        );
-        try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
-        broadcastSync('SYNC_ORDERS', updated);
-        return updated;
-      });
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: err?.message || 'Invoice delete failed' };
-    }
+    return await deleteOrderFromAdmin(invoiceId);
   };
 
   // Robust matcher to reliably link products across Mongo ObjectIds, custom IDs, and SKUs

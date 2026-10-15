@@ -32,6 +32,11 @@ export const InvoiceModal = () => {
   const [invoiceRead, setInvoiceRead] = useState(false);
   const [showDeleteInvoiceModal, setShowDeleteInvoiceModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  React.useEffect(() => {
+    setConfirmDelete(false);
+  }, [selectedInvoice, isInvoiceModalOpen]);
 
   // Email via Nodemailer State
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -166,13 +171,8 @@ export const InvoiceModal = () => {
     await shareInvoicePDFToWhatsApp(inv, showToast);
   };
 
-  const handleDeleteOrder = async () => {
+  const handleExecuteDelete = async () => {
     if (isDeleting) return;
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete order ${inv.orderId || invoiceNumber} from Orders & Invoices?`
-    );
-    if (!confirmed) return;
-
     setIsDeleting(true);
     try {
       if (deleteOrderFromAdmin) {
@@ -183,12 +183,14 @@ export const InvoiceModal = () => {
         const id = inv.orderId || inv.invoiceNumber || inv._id || inv.id;
         await invoiceService.deleteInvoice(id).catch(() => {});
       }
-      showToast(`Order ${inv.orderId || invoiceNumber} deleted successfully from Orders & Invoices`, 'success');
+      showToast(`Order #${inv.orderId || invoiceNumber} deleted successfully from Orders & Invoices`, 'success');
+      setConfirmDelete(false);
       setShowDeleteInvoiceModal(false);
       closeInvoiceModal();
     } catch (e) {
       console.warn('[InvoiceModal] Delete warning:', e);
-      showToast(`Order ${inv.orderId || invoiceNumber} deleted successfully from Orders & Invoices`, 'success');
+      showToast(`Order #${inv.orderId || invoiceNumber} deleted from Orders & Invoices`, 'success');
+      setConfirmDelete(false);
       setShowDeleteInvoiceModal(false);
       closeInvoiceModal();
     } finally {
@@ -313,19 +315,37 @@ export const InvoiceModal = () => {
                     <CheckCircle2 className="w-4 h-4" /> <span>{invoiceRead || inv.isRead ? 'Unread' : 'Mark Read'}</span>
                   </button>
 
-                  <button
-                    onClick={handleDeleteOrder}
-                    disabled={isDeleting}
-                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow disabled:opacity-50"
-                    title="Delete Order & Invoice permanently"
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
-                  </button>
+                  {confirmDelete ? (
+                    <div className="flex items-center gap-1.5 bg-rose-950/90 border border-rose-500/50 p-1 rounded-xl shadow-lg">
+                      <span className="text-[11px] font-black text-rose-200 px-1">Confirm delete?</span>
+                      <button
+                        type="button"
+                        onClick={handleExecuteDelete}
+                        disabled={isDeleting}
+                        className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow"
+                      >
+                        {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        <span>{isDeleting ? 'Deleting...' : 'Yes, Delete'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={isDeleting}
+                        className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow"
+                      title="Delete Order & Invoice permanently"
+                    >
+                      <Trash2 className="w-4 h-4" /> <span>Delete</span>
+                    </button>
+                  )}
                 </>
               )}
               
@@ -886,7 +906,7 @@ export const InvoiceModal = () => {
                 <button
                   type="button"
                   disabled={isDeleting}
-                  onClick={handleDeleteOrder}
+                  onClick={handleExecuteDelete}
                   className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   {isDeleting ? (
