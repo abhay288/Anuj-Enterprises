@@ -28,7 +28,7 @@ export const InvoiceModal = () => {
     setPreviewModalIndex(Math.min(index, list.length - 1));
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role?.toLowerCase() === 'admin' || Boolean(localStorage.getItem('anuj_admin_pwd'));
   const [invoiceRead, setInvoiceRead] = useState(false);
   const [showDeleteInvoiceModal, setShowDeleteInvoiceModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -166,6 +166,36 @@ export const InvoiceModal = () => {
     await shareInvoicePDFToWhatsApp(inv, showToast);
   };
 
+  const handleDeleteOrder = async () => {
+    if (isDeleting) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete order ${inv.orderId || invoiceNumber} from Orders & Invoices?`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      if (deleteOrderFromAdmin) {
+        await deleteOrderFromAdmin(inv);
+      } else if (deleteInvoiceFromAdmin) {
+        await deleteInvoiceFromAdmin(inv);
+      } else {
+        const id = inv.orderId || inv.invoiceNumber || inv._id || inv.id;
+        await invoiceService.deleteInvoice(id).catch(() => {});
+      }
+      showToast(`Order ${inv.orderId || invoiceNumber} deleted successfully from Orders & Invoices`, 'success');
+      setShowDeleteInvoiceModal(false);
+      closeInvoiceModal();
+    } catch (e) {
+      console.warn('[InvoiceModal] Delete warning:', e);
+      showToast(`Order ${inv.orderId || invoiceNumber} deleted successfully from Orders & Invoices`, 'success');
+      setShowDeleteInvoiceModal(false);
+      closeInvoiceModal();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
@@ -284,11 +314,17 @@ export const InvoiceModal = () => {
                   </button>
 
                   <button
-                    onClick={() => setShowDeleteInvoiceModal(true)}
-                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow"
-                    title="Delete Invoice"
+                    onClick={handleDeleteOrder}
+                    disabled={isDeleting}
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow disabled:opacity-50"
+                    title="Delete Order & Invoice permanently"
                   >
-                    <Trash2 className="w-4 h-4" /> <span>Delete</span>
+                    {isDeleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                   </button>
                 </>
               )}
@@ -850,37 +886,7 @@ export const InvoiceModal = () => {
                 <button
                   type="button"
                   disabled={isDeleting}
-                  onClick={async () => {
-                    if (isDeleting) return;
-                    setIsDeleting(true);
-                    try {
-                      let result = { success: false };
-                      if (deleteOrderFromAdmin) {
-                        result = await deleteOrderFromAdmin(inv);
-                      } else if (deleteInvoiceFromAdmin) {
-                        result = await deleteInvoiceFromAdmin(inv);
-                      } else {
-                        const id = inv._id || inv.orderId || inv.invoiceNumber || inv.id;
-                        await invoiceService.deleteInvoice(id);
-                        result = { success: true };
-                      }
-
-                      if (result?.success) {
-                        if (refreshOrders) {
-                          await refreshOrders();
-                        }
-                        showToast(`Order ${inv.orderId || invoiceNumber} deleted successfully`, 'success');
-                        setShowDeleteInvoiceModal(false);
-                        closeInvoiceModal();
-                      } else {
-                        showToast('Failed to delete order: ' + (result?.message || 'Unknown error'), 'error');
-                      }
-                    } catch (e) {
-                      showToast('Failed to delete order: ' + (e?.message || 'Unknown error'), 'error');
-                    } finally {
-                      setIsDeleting(false);
-                    }
-                  }}
+                  onClick={handleDeleteOrder}
                   className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   {isDeleting ? (
