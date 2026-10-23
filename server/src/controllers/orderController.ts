@@ -8,6 +8,7 @@ import { InventoryLog } from '../models/InventoryLog.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { parsePagination, escapeRegex } from '../utils/securityUtils.js';
 import { sendOrderInvoiceEmail } from '../utils/emailService.js';
+import { getNextInvoiceAndOrderNumber } from '../utils/sequenceUtils.js';
 
 export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
@@ -213,24 +214,20 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const orderCount = await Order.countDocuments();
-    const orderId = `ORD-2026-${String(orderCount + 101).padStart(4, '0')}`;
-    const invoiceNumber = `AE-INV-2026-${String(orderCount + 101).padStart(4, '0')}`;
+    const { invoiceNumber, orderId } = await getNextInvoiceAndOrderNumber();
 
     // Normalize customer classification
     let normalizedClassification: 'NORMAL' | 'DAMAGE' | 'EXPIRY' = 'NORMAL';
     if (customerType === 'Damage Customer' || customerType === 'DAMAGE') normalizedClassification = 'DAMAGE';
     if (customerType === 'Expiry Customer' || customerType === 'EXPIRY') normalizedClassification = 'EXPIRY';
 
+    const cleanCustomerName = String(customerName).trim();
     const cleanCustomerMobile = customerMobile && String(customerMobile).trim() ? String(customerMobile).trim() : '';
     const cleanCustomerEmail = customerEmail && String(customerEmail).trim() ? String(customerEmail).trim() : '';
 
-    // Auto-create or Update Customer in Roster
+    // Auto-create or Update Customer in Roster (match strictly by shop name so two different customer shops never merge)
     let customerObj = await Customer.findOne({ 
-      $or: [
-        ...(cleanCustomerMobile ? [{ phone: cleanCustomerMobile }] : []), 
-        { name: new RegExp(`^${escapeRegex(customerName.trim())}$`, 'i') }
-      ] 
+      name: new RegExp(`^${escapeRegex(cleanCustomerName)}$`, 'i')
     });
 
     let resolvedPaymentMethod = req.body.paymentMethod || req.body.paymentMode || 'Cash';
@@ -244,7 +241,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       const custCount = await Customer.countDocuments();
       customerObj = new Customer({
         customerId: `AE-CUST-${String(custCount + 101).padStart(3, '0')}`,
-        name: customerName.trim(),
+        name: cleanCustomerName,
         phone: cleanCustomerMobile,
         email: cleanCustomerEmail,
         address: customerAddress ? String(customerAddress).trim() : '',
@@ -276,7 +273,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     const order = new Order({
       orderId,
       invoiceNumber,
-      customerName: customerObj.name,
+      customerName: cleanCustomerName,
       customerClassification: normalizedClassification,
       customerId: customerObj.customerId,
       salesmanId: resolvedSalesmanId,
@@ -392,6 +389,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       success: true,
       data: {
         order: {
+          _id: String(order._id),
           id: invoiceNumber,
           invoiceNumber,
           orderId,

@@ -274,8 +274,6 @@ export const AppProvider = ({ children }) => {
         if (!o) return false;
         const ids = [o._id, o.id, o.orderId, o.invoiceNumber].filter(Boolean).map(x => String(x).toLowerCase().trim());
         if (ids.some(x => deletedSet.has(x))) return false;
-        const digits = ids.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
-        if (digits.some(d => deletedSet.has(d))) return false;
         return true;
       });
     } catch (e) {
@@ -1531,6 +1529,14 @@ export const AppProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
+    setSelectedCustomerForOrder(null);
+    try {
+      const activeKey = getCartStorageKey(user);
+      localStorage.setItem(activeKey, JSON.stringify([]));
+      localStorage.setItem('anuj_cart', JSON.stringify([]));
+      localStorage.setItem('anuj_cart_guest', JSON.stringify([]));
+      broadcastSync('SYNC_CART', { key: activeKey, cart: [] });
+    } catch (e) {}
   };
 
   const toggleCartItemPriority = (productId) => {
@@ -2053,7 +2059,29 @@ export const AppProvider = ({ children }) => {
           expiredItems: safeCustomerDetails.expiredItems || [],
           returnItems: safeCustomerDetails.returnItems || []
         };
-        setOrders(prev => [fullOrderWithProof, ...(Array.isArray(prev) ? prev : [])]);
+        setOrders(prev => {
+          const list = Array.isArray(prev) ? prev : [];
+          const deduped = list.filter(o => 
+            o.id !== fullOrderWithProof.id && 
+            o.orderId !== fullOrderWithProof.orderId && 
+            o.invoiceNumber !== fullOrderWithProof.invoiceNumber
+          );
+          const updated = [fullOrderWithProof, ...deduped];
+          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+
+        // Un-blacklist this new order if any matching ID was previously in deletion blacklist
+        try {
+          const raw = localStorage.getItem('anuj_deleted_orders_v1');
+          if (raw) {
+            const bl = JSON.parse(raw);
+            const orderKeys = [fullOrderWithProof.id, fullOrderWithProof.orderId, fullOrderWithProof.invoiceNumber, fullOrderWithProof._id].filter(Boolean).map(x => String(x).toLowerCase());
+            const cleaned = bl.filter(x => !orderKeys.includes(String(x).toLowerCase()));
+            localStorage.setItem('anuj_deleted_orders_v1', JSON.stringify(cleaned));
+          }
+        } catch (e) {}
+
         clearCart();
         setLastCompletedOrder(fullOrderWithProof);
         openInvoiceModal(fullOrderWithProof);
@@ -2137,7 +2165,30 @@ export const AppProvider = ({ children }) => {
       const res = await orderService.createOrder(adminPayload);
       if (res?.data?.order || res?.order) {
         const createdOrder = res.data?.order || res.order;
-        setOrders(prev => [createdOrder, ...(Array.isArray(prev) ? prev : [])]);
+        setOrders(prev => {
+          const list = Array.isArray(prev) ? prev : [];
+          const deduped = list.filter(o => 
+            o.id !== createdOrder.id && 
+            o.orderId !== createdOrder.orderId && 
+            o.invoiceNumber !== createdOrder.invoiceNumber
+          );
+          const updated = [createdOrder, ...deduped];
+          try { localStorage.setItem('anuj_orders_v3', JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+
+        // Un-blacklist this new order if any matching ID was previously in deletion blacklist
+        try {
+          const raw = localStorage.getItem('anuj_deleted_orders_v1');
+          if (raw) {
+            const bl = JSON.parse(raw);
+            const orderKeys = [createdOrder.id, createdOrder.orderId, createdOrder.invoiceNumber, createdOrder._id].filter(Boolean).map(x => String(x).toLowerCase());
+            const cleaned = bl.filter(x => !orderKeys.includes(String(x).toLowerCase()));
+            localStorage.setItem('anuj_deleted_orders_v1', JSON.stringify(cleaned));
+          }
+        } catch (e) {}
+
+        clearCart();
         showToast(`Delivery Invoice #${createdOrder.invoiceNumber || createdOrder.id} issued & emailed to ${payload.customerEmail || payload.customerName}!`, 'success');
         openInvoiceModal(createdOrder);
         return createdOrder;
@@ -2264,13 +2315,11 @@ export const AppProvider = ({ children }) => {
       selectedInvoice?.invoiceNumber
     ].filter(Boolean).map(x => String(x).trim().toLowerCase());
 
-    const candidateDigits = candidateIds.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
-
     // Save to persistent deletion blacklist so background polling never brings it back
     try {
       const raw = localStorage.getItem('anuj_deleted_orders_v1');
       const list = raw ? JSON.parse(raw) : [];
-      const updatedBlacklist = Array.from(new Set([...list, ...candidateIds, ...candidateDigits]));
+      const updatedBlacklist = Array.from(new Set([...list, ...candidateIds]));
       localStorage.setItem('anuj_deleted_orders_v1', JSON.stringify(updatedBlacklist));
     } catch (e) {}
 
@@ -2282,16 +2331,6 @@ export const AppProvider = ({ children }) => {
       const oIds = [o._id, o.id, o.orderId, o.invoiceNumber].filter(Boolean).map(x => String(x).trim().toLowerCase());
       if (oIds.some(oid => candidateIds.includes(oid))) return true;
 
-      const oDigits = oIds.map(x => x.replace(/\D+/g, '')).filter(d => d.length >= 4);
-      if (oDigits.some(od => candidateDigits.includes(od))) return true;
-
-      const oCust = String(o.customerName || '').trim().toLowerCase();
-      const tCust = String(targetObj.customerName || selectedInvoice?.customerName || '').trim().toLowerCase();
-      if (oCust && tCust && oCust === tCust) {
-        const oTot = Math.round(Number(o.totalAmount || o.grandTotal || o.subtotal || 0));
-        const tTot = Math.round(Number(targetObj.totalAmount || targetObj.grandTotal || targetObj.subtotal || selectedInvoice?.totalAmount || selectedInvoice?.grandTotal || 0));
-        if (oTot > 0 && oTot === tTot) return true;
-      }
       return false;
     };
 
@@ -2319,7 +2358,11 @@ export const AppProvider = ({ children }) => {
       const expanded = [...serverIds];
       for (const sid of serverIds) {
         if (sid.startsWith('AE-INV-')) expanded.push(sid.replace('AE-INV-', 'ORD-'));
-        if (sid.startsWith('ORD-')) expanded.push(sid.replace('ORD-', 'AE-INV-'));
+        if (sid.startsWith('AE-') && !sid.startsWith('AE-INV-')) expanded.push(sid.replace('AE-', 'ORD-'));
+        if (sid.startsWith('ORD-')) {
+          expanded.push(sid.replace('ORD-', 'AE-INV-'));
+          expanded.push(sid.replace('ORD-', 'AE-'));
+        }
       }
 
       const uniqueServerIds = Array.from(new Set(expanded));

@@ -913,6 +913,27 @@ export const CartView = () => {
           expiredItems,
           returnItems
         });
+
+        // Completely reset all local form state and customer selection so the next invoice starts clean
+        setCustomerName('');
+        setCustomerMobile('');
+        setCustomerAddress('');
+        setCustomerCity('Kanpur');
+        setCustomerState('Uttar Pradesh');
+        setCustomerEmail('');
+        setCustomerPincode('');
+        setCustomerLiveLocation(null);
+        setCustomerType('Retail Store');
+        setSalesmanNameInput('');
+        setSalesmanAreaInput('');
+        setSalesmanRouteInput('');
+        setSalesmanDescription('');
+        setExpiredItems([]);
+        setReturnItems([]);
+        setPreviewModalImages([]);
+        if (setSelectedCustomerForOrder) {
+          setSelectedCustomerForOrder(null);
+        }
       } finally {
         setIsSubmitting(false);
       }

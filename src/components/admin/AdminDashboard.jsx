@@ -1773,15 +1773,28 @@ export const AdminDashboard = () => {
             {activeTab === 'orders' && (
               <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="relative flex-1 max-w-xs w-full">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                      type="text"
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      placeholder="Search Invoice #, Customer..."
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold"
-                    />
+                  <div className="flex items-center gap-3 w-full sm:w-auto flex-1">
+                    <div className="relative flex-1 max-w-xs w-full">
+                      <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                      <input
+                        type="text"
+                        value={orderSearch}
+                        onChange={(e) => setOrderSearch(e.target.value)}
+                        placeholder="Search Invoice #, Customer..."
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetAdminInvoiceForm();
+                        setIsAdminCreateInvoiceOpen(true);
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Generate Invoice</span>
+                    </button>
                   </div>
 
                   {/* Filter Chips for Urgent, Expired, Delivery, and Return Orders */}
