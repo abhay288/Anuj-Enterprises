@@ -712,6 +712,31 @@ export const AdminDashboard = () => {
   };
 
   const [prodSearch, setProdSearch] = useState('');
+  const [editingRankProdId, setEditingRankProdId] = useState(null);
+  const [editingRankValue, setEditingRankValue] = useState('');
+
+  const handleCommitRankEdit = (prod, currentRank) => {
+    if (editingRankProdId === null) return;
+    const raw = editingRankValue.trim();
+    setEditingRankProdId(null);
+
+    // If unchanged, do nothing
+    if (raw === String(currentRank)) return;
+
+    // Validate: positive whole number only between 1 and products.length
+    if (!raw || !/^\d+$/.test(raw)) {
+      showToast(`Invalid rank "${editingRankValue}". Please enter a whole number between 1 and ${products.length}.`, 'warning');
+      return;
+    }
+
+    const targetRank = parseInt(raw, 10);
+    if (targetRank < 1 || targetRank > products.length) {
+      showToast(`Rank must be between 1 and ${products.length} (total products).`, 'warning');
+      return;
+    }
+
+    updateProductRank(prod.id || prod._id || prod.productId, targetRank);
+  };
 
   const orderedAdminProducts = useMemo(() => {
     return [...products]
@@ -1694,14 +1719,45 @@ export const AdminDashboard = () => {
                         const rankNumber = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : index + 1;
                         const isFirst = index === 0;
                         const isLast = index === orderedAdminProducts.length - 1;
+                        const prodKey = prod.id || prod._id || prod.productId || prod.sku;
                         return (
-                          <tr key={prod.id || prod._id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
-                            {/* Product Rank # with Up/Down Controls */}
+                          <tr key={prodKey} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
+                            {/* Product Rank # with Up/Down Controls & Direct Editable Rank */}
                             <td className="py-3 px-4 text-center whitespace-nowrap">
                               <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
-                                <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400 min-w-[28px]">
-                                  #{rankNumber}
-                                </span>
+                                {editingRankProdId === prodKey ? (
+                                  <div className="flex items-center gap-0.5">
+                                    <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">#</span>
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      value={editingRankValue}
+                                      onChange={(e) => setEditingRankValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleCommitRankEdit(prod, rankNumber);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingRankProdId(null);
+                                        }
+                                      }}
+                                      onBlur={() => handleCommitRankEdit(prod, rankNumber)}
+                                      className="w-10 px-1 py-0.5 text-xs font-mono font-black text-center bg-white dark:bg-slate-900 border border-amber-500 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
+                                    />
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingRankProdId(prodKey);
+                                      setEditingRankValue(String(rankNumber));
+                                    }}
+                                    className="font-mono font-black text-xs text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-white dark:hover:bg-slate-700/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer min-w-[28px]"
+                                    title="Click to edit rank directly"
+                                  >
+                                    #{rankNumber}
+                                  </button>
+                                )}
                                 <div className="flex items-center gap-0.5">
                                   <button
                                     type="button"

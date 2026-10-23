@@ -3491,22 +3491,36 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', rankedUpdated);
 
-      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+      // Safe debounced background sync to MongoDB to handle rapid changes safely
+      pendingProductRanksRef.current = rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
         _id: p._id,
         productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch((err) => {
-        console.warn('Backend rank sync notice:', err?.message || err);
-      });
+      }));
+
+      if (productRankDebounceTimerRef.current) {
+        clearTimeout(productRankDebounceTimerRef.current);
+      }
+
+      productRankDebounceTimerRef.current = setTimeout(async () => {
+        const payload = pendingProductRanksRef.current;
+        if (payload && payload.length > 0) {
+          try {
+            await productService.updateProductRanks(payload);
+          } catch (err) {
+            console.warn('Backend rank sync notice:', err?.message || err);
+          }
+        }
+      }, 300);
 
       const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
-      showToast(`Set "${prodName}" to Rank #${newIndex + 1} in catalog`, 'success');
+      showToast(`Set "${prodName}" to Rank #${newIndex + 1}`, 'success');
 
       return rankedUpdated;
     });
-  }, [broadcastSync, checkProductMatch]);
+  }, [broadcastSync, checkProductMatch, showToast]);
 
   const moveProductToExtreme = useCallback((productIdOrCandidate, position, visibleList) => {
     setProducts(prev => {
