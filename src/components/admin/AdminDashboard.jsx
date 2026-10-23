@@ -1680,6 +1680,7 @@ export const AdminDashboard = () => {
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800">
                       <tr>
+                        <th className="py-3 px-4 text-center w-28">Rank</th>
                         <th className="py-3 px-4">Product & SKU</th>
                         <th className="py-3 px-4">Brand</th>
                         <th className="py-3 px-4">Packaging & Unit Info</th>
@@ -1689,9 +1690,40 @@ export const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {orderedAdminProducts.map((prod) => {
+                      {orderedAdminProducts.map((prod, index) => {
+                        const rankNumber = typeof prod.sortOrder === 'number' && prod.sortOrder > 0 ? prod.sortOrder : index + 1;
+                        const isFirst = index === 0;
+                        const isLast = index === orderedAdminProducts.length - 1;
                         return (
                           <tr key={prod.id || prod._id || prod.sku} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
+                            {/* Product Rank # with Up/Down Controls */}
+                            <td className="py-3 px-4 text-center whitespace-nowrap">
+                              <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400 min-w-[28px]">
+                                  #{rankNumber}
+                                </span>
+                                <div className="flex items-center gap-0.5">
+                                  <button
+                                    type="button"
+                                    disabled={isFirst}
+                                    onClick={() => moveProductRank(prod.id || prod._id || prod.productId, 'UP', orderedAdminProducts)}
+                                    className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title="Move product up by one position"
+                                  >
+                                    <ArrowUp className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isLast}
+                                    onClick={() => moveProductRank(prod.id || prod._id || prod.productId, 'DOWN', orderedAdminProducts)}
+                                    className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                                    title="Move product down by one position"
+                                  >
+                                    <ArrowDown className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
                                 <img 

@@ -246,7 +246,13 @@ export const ProductGrid = () => {
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
 
-      // Default & Featured Sort: Prioritize products by Company Ranking
+      // Default & Featured Sort: Prioritize products by Product Ranking (sortOrder)
+      const aOrder = typeof a.sortOrder === 'number' && a.sortOrder > 0 ? a.sortOrder : 999999;
+      const bOrder = typeof b.sortOrder === 'number' && b.sortOrder > 0 ? b.sortOrder : 999999;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
       const aBrandRank = brandRankMap[normalizeBrandName(a.brand)] ?? 999;
       const bBrandRank = brandRankMap[normalizeBrandName(b.brand)] ?? 999;
       if (aBrandRank !== bBrandRank) {

@@ -413,6 +413,8 @@ export const AppProvider = ({ children }) => {
   }, [user]);
 
   const logoutRef = useRef(null);
+  const productRankDebounceTimerRef = useRef(null);
+  const pendingProductRanksRef = useRef(null);
 
   const [cart, setCart] = useState(() => {
     const initialUser = (() => {
@@ -3411,10 +3413,13 @@ export const AppProvider = ({ children }) => {
         return prev;
       }
 
-      const [movedItem] = sorted.splice(fromIndex, 1);
-      sorted.splice(targetIndex, 0, movedItem);
+      // Strictly swap selected product with the adjacent product
+      const updated = [...sorted];
+      const temp = updated[fromIndex];
+      updated[fromIndex] = updated[targetIndex];
+      updated[targetIndex] = temp;
 
-      const rankedUpdated = sorted.map((p, idx) => ({
+      const rankedUpdated = updated.map((p, idx) => ({
         ...p,
         sortOrder: idx + 1
       }));
@@ -3424,22 +3429,36 @@ export const AppProvider = ({ children }) => {
       } catch (e) {}
       broadcastSync('SYNC_PRODUCTS', rankedUpdated);
 
-      productService.updateProductRanks(rankedUpdated.map((p, i) => ({
+      // Safe debounced background sync to MongoDB to handle rapid clicks safely
+      pendingProductRanksRef.current = rankedUpdated.map((p, i) => ({
         id: p.id || p._id || p.productId,
         _id: p._id,
         productId: p.productId || p.id,
         sku: p.sku,
         sortOrder: i + 1
-      }))).catch((err) => {
-        console.warn('Backend rank sync notice:', err?.message || err);
-      });
+      }));
 
-      const prodName = movedItem.name ? movedItem.name.slice(0, 28) : 'Product';
+      if (productRankDebounceTimerRef.current) {
+        clearTimeout(productRankDebounceTimerRef.current);
+      }
+
+      productRankDebounceTimerRef.current = setTimeout(async () => {
+        const payload = pendingProductRanksRef.current;
+        if (payload && payload.length > 0) {
+          try {
+            await productService.updateProductRanks(payload);
+          } catch (err) {
+            console.warn('Backend rank sync notice:', err?.message || err);
+          }
+        }
+      }, 300);
+
+      const prodName = temp.name ? temp.name.slice(0, 28) : 'Product';
       showToast(`Updated "${prodName}" priority to Rank #${targetIndex + 1}`, 'success');
 
       return rankedUpdated;
     });
-  }, [broadcastSync, checkProductMatch]);
+  }, [broadcastSync, checkProductMatch, showToast]);
 
   const updateProductRank = useCallback((productIdOrCandidate, targetRank) => {
     const rankNum = parseInt(targetRank, 10);

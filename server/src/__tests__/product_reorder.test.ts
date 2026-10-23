@@ -1,7 +1,13 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
+import dns from 'dns';
 import { fileURLToPath } from 'url';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
+
 import { Product } from '../models/Product.js';
 import { sendRealtimeEvent } from '../utils/realtime.js';
 
