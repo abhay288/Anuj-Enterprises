@@ -1730,6 +1730,9 @@ export const AdminDashboard = () => {
                                     <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">#</span>
                                     <input
                                       type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      enterKeyHint="done"
                                       autoFocus
                                       value={editingRankValue}
                                       onChange={(e) => setEditingRankValue(e.target.value)}
@@ -1744,6 +1747,24 @@ export const AdminDashboard = () => {
                                       onBlur={() => handleCommitRankEdit(prod, rankNumber)}
                                       className="w-10 px-1 py-0.5 text-xs font-mono font-black text-center bg-white dark:bg-slate-900 border border-amber-500 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
                                     />
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => handleCommitRankEdit(prod, rankNumber)}
+                                      className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded transition-colors"
+                                      title="Save rank"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => setEditingRankProdId(null)}
+                                      className="p-1 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-500 rounded transition-colors"
+                                      title="Cancel"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
                                   </div>
                                 ) : (
                                   <button
